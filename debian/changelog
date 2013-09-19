@@ -1,0 +1,12 @@
+banjax (1.0.0-1.1) UNRELEASED; urgency=low
+
+  * Non-maintainer upload.
+  * Fixed various issues in makefile
+
+ --  <nosmo@debian.localdomain>  Wed, 31 Jul 2013 01:43:27 -0400
+
+banjax (1.0.0-1) unstable; urgency=low
+
+  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+
+ -- unknown <nosmo@debian.localdomain>  Wed, 31 Jul 2013 01:23:03 -0400

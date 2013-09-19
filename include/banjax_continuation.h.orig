@@ -1,0 +1,49 @@
+/*
+ * the continuation data assigned to each request along side with the functions 
+ * to manipulate them
+ *
+ * Vmon: June 2013
+ */
+#ifndef BANJAX_CONTINUATION_H
+#define BANJAX_CONTINUATION_H
+
+class Banjax;
+
+class BanjaxContinuation{
+
+ public:
+  enum calling_func
+  {
+    HANDLE_RESPONSE,
+    HANDLE_REQUEST,
+    READ_REGEX_LIST
+  } cf;
+
+  TSHttpTxn txnp;
+  TSCont contp;
+
+<<<<<<< HEAD
+  Banjax* cur_banjax_inst;
+=======
+  // int that indicates the kind of response we should send (1=ban, 2=challenge)
+  int response_type;
+>>>>>>> Redirct-traffic-to-solver
+
+  /* Destructor: Destroys the continuation after response
+     has been served */
+  ~BanjaxContinuation();
+  /**
+     Constructor to set the default values
+   */
+  BanjaxContinuation()
+    :response_type(0)
+    {
+    }
+
+};
+
+#endif /*banjax_continuation.h*/
+
+
+
+

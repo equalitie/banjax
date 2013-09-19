@@ -1,0 +1,7 @@
+Requirements:
+ Google re2 regex engine:
+        hg clone https://re2.googlecode.com/hg re2
+        cd re2
+        make test
+        make install
+        make testinstall
