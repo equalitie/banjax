@@ -1,4 +1,4 @@
 banjax
 ======
 
-Apache Traffic Plugin performing various anti-DDoS measures
+Apache Traffic Server Plugin performing various anti-DDoS measures
