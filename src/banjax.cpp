@@ -26,6 +26,7 @@ using namespace std;
 #include "util.h"
 #include "banjax_continuation.h"
 #include "regex_manager.h"
+#include "challenge_manager.h"
 #include "banjax.h"
 #include "swabber_interface.h"
 #include "ats_event_handler.h"
@@ -49,6 +50,8 @@ Banjax::filter_factory(const libconfig::Setting& main_root)
     string cur_filter_name = main_root[i].getName();
     if (cur_filter_name == REGEX_BANNER_FILTER_NAME) {
       filters.push_back(new RegexManager(main_root));
+    } else if (cur_filter_name == CHALLENGER_FILTER_NAME){
+      filters.push_back(new ChallengeManager(main_root));
     } else {
       //unrecognized filter, warning and pass
       TSDebug(BANJAX_PLUGIN_NAME.c_str(), "I do not recognize filter %s requested in the config", cur_filter_name.c_str());
@@ -72,10 +75,9 @@ Banjax::Banjax()
   global_contp = TSContCreate(ATSEventHandler::banjax_global_eventhandler, NULL);
 
   BanjaxContinuation* cd = (BanjaxContinuation *) TSmalloc(sizeof(BanjaxContinuation));
-  cd = new(cd) BanjaxContinuation();
+  cd = new(cd) BanjaxContinuation(NULL); //no transaction attached to this cont
   TSContDataSet(global_contp, cd);
 
-  cd->txnp = NULL; //this is global
   cd->contp = global_contp;
   cd->cur_banjax_inst = this;
 

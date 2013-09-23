@@ -26,27 +26,34 @@ typedef std::map<uint64_t, std::string> TransactionParts;
 class TransactionMuncher{
  protected:
   TransactionParts cur_trans_parts;
+  TSHttpTxn trans_txnp;
   uint64_t valid_parts; //This flag collection indicate the parts we have
                         //already retrieved
 
-  TSHttpTxn trans_txnp;
-  TSMBuffer request_header;
-  TSMLoc header_location;
+  TSMBuffer request_header, response_header;
+  TSMLoc header_location, response_header_location;
 
+  /**
+     if the response_header pointer is NULL we call this function
+     internally to retrieve the response header. Throws exception
+     if it faces error.
+   */
+
+  void retrieve_response_header();
  public:
     enum TransactionPart{
-        IP        = 0x01,
-        URL       = 0x02,
-        HOST      = 0x04,
-        UA        = 0x08,
-        COOKIE    = 0x10
+      IP             = 0x01,
+      URL            = 0x02,
+      HOST           = 0x04,
+      UA             = 0x08,
+      COOKIE         = 0x10,
+      URL_WITH_HOST  = 0x20
     };
 
     enum PARTS_ERROR {
       HEADER_RETRIEVAL_ERROR,
       PART_RETRIEVAL_ERROR
     };
-
 
     /**
        checks if the parts are already retrieved and if not ask ATS 
@@ -59,6 +66,13 @@ class TransactionMuncher{
      */
     const TransactionParts& retrieve_parts(uint64_t requested_log_parts);
 
+
+    /**
+       same as retrieve_parts but needs to be called in reponse handle 
+       cause it uses response_header
+     */
+    const TransactionParts&  retrieve_response_parts(uint64_t requested_log_parts);
+
     /**
        Should be called during response to set the header status to
        something meaningful
@@ -66,6 +80,16 @@ class TransactionMuncher{
        @param status the HTTP status
     */
     void set_status(TSHttpStatus status);
+
+    /**
+       Add the value of host field to url. This is useful when 
+       the filter tries to generate the original address entered in
+       the browser bar for redirect purposes.
+
+       @param hostname to be set in the filed, NULL default value
+              means to use the hostname in request header.
+    */
+    void set_url_host(std::string* hostname = NULL);
 
     /**
        Constructor

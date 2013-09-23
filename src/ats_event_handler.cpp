@@ -67,6 +67,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
     txnp = (TSHttpTxn) edata;
     if (contp != Banjax::global_contp) {
       cd = (BanjaxContinuation *) TSContDataGet(contp); 
+      TSDebug("banjax", "continuation data being destroyed at %lu", (unsigned long)cd);
       cd->~BanjaxContinuation(); //leave mem manage to ATS
       //TSfree(cd); I think TS is taking care of this
       destroy_continuation(txnp, contp);
@@ -117,10 +118,7 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
   Banjax* banjax = cd->cur_banjax_inst;
 
   //retreiving part of header requested by the filters
-  cd->transaction_muncher = (TransactionMuncher*) TSmalloc(sizeof(TransactionMuncher));
-  cd->transaction_muncher = new(cd->transaction_muncher) TransactionMuncher(cd->txnp);
-
-  const TransactionParts& cur_trans_parts = cd->transaction_muncher->retrieve_parts(banjax->which_parts_are_requested());
+  const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(banjax->which_parts_are_requested());
 
 
   for(list<BanjaxFilter*>::iterator cur_filter = banjax->filters.begin(); cur_filter != banjax->filters.end(); cur_filter++) {
@@ -213,9 +211,10 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
 {
 
   if (cd->response_generator) {
-    cd->transaction_muncher->set_status(TS_HTTP_STATUS_FORBIDDEN);
-    string alternative_response = ((cd->responding_filter)->*(cd->response_generator))(cd->transaction_muncher->retrieve_parts(cd->cur_banjax_inst->all_filters_requested_part), cd->response_info);
-    char* buf = (char *) TSmalloc(4096);
+    cd->transaction_muncher.retrieve_response_parts(cd->responding_filter->response_info());
+    cd->transaction_muncher.set_status(TS_HTTP_STATUS_FORBIDDEN);
+    string alternative_response = ((cd->responding_filter)->*(cd->response_generator))(cd->transaction_muncher.retrieve_parts(cd->cur_banjax_inst->all_filters_requested_part), cd->response_info);
+    char* buf = (char *) TSmalloc(alternative_response.length()+1);
     sprintf(buf, "%s", alternative_response.c_str());
 
     //TSHttpTxnErrorBodySet(cd->txnp, (char*)alternative_response.c_str(), alternative_response.length(), NULL);
@@ -224,37 +223,6 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
   }
 
   TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_CONTINUE);
-
-  /*TODO: taking care of challenger later
-
-  url = (char *) TSmalloc(strlen(url_str)+strlen(host));
-  strncpy(url, url_str, x);
-  url[x] = '\0';
-  strcat(url, host);
-  strcat(url, url_str+x);
-
-  //TSDebug("banjax", "url_str = %s", url_str);
-  //TSDebug("banjax", "host_str = %s", host_str);
-  TSDebug("banjax", "%s", url);
-
-  //Retrieving the ip address
-  client_address = (struct sockaddr_in*) TSHttpTxnClientAddrGet(txnp);
-   
-  if (!client_address) {
-        TSError("error in retrieving client ip\n");
-        TSHandleMLocRelease(bufp, hdr_loc, url_loc);
-        TSHandleMLocRelease(bufp, TS_NULL_MLOC, hdr_loc);                       
-        goto done;
-   }
-
-   client_ip = inet_ntoa(client_address->sin_addr);
-   TSDebug("banjax", "client_ip: %s",client_ip );
-
-   time_validity = time(NULL) + 60*60*24; // TODO: one day validity for now, should be changed
-   buf_str = ChallengeManager::generate_html(client_ip, time_validity, url);
-   buf = (char *) TSmalloc(buf_str.length()+1);
-   strcpy(buf, buf_str.c_str());
-  */
 
 }
 
@@ -274,10 +242,10 @@ ATSEventHandler::handle_txn_start(TSCont global_contp, TSHttpTxn txnp)
   txn_contp = TSContCreate((TSEventFunc) banjax_global_eventhandler, TSMutexCreate());
   /* create the data that'll be associated with the continuation */
   cd = (BanjaxContinuation *) TSmalloc(sizeof(BanjaxContinuation));
-  cd = new(cd) BanjaxContinuation();
+  cd = new(cd) BanjaxContinuation(txnp);
+  TSDebug("banjax", "New continuation data at %lu", (unsigned long)cd);
   TSContDataSet(txn_contp, cd);
 
-  cd->txnp = txnp;
   cd->contp = txn_contp;
   cd->cur_banjax_inst = global_cont_data->cur_banjax_inst;
 
