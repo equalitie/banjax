@@ -88,6 +88,13 @@ class BanjaxFilter
   /**
      needs to be overriden by the filter
      It returns a list of ORed flags which tells banjax which fields
+     should be retrieved from the response and handed to the filter.
+  */
+  virtual uint64_t response_info() {return 0;}
+
+  /**
+     needs to be overriden by the filter
+     It returns a list of ORed flags which tells banjax which fields
      should be retrieved from the request and handed to the filter.
 
      @return if return the response_type of FilterResponse is 

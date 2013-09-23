@@ -15,6 +15,8 @@
 #include <map>
 #include <string.h>
 
+#include <assert.h>
+
 #include <ts/ts.h>
 //to retrieve the client ip
 #include <sys/socket.h>
@@ -38,6 +40,13 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
 {
   //only turn those bits that are off in valid_parts and off in requested
   uint64_t parts_to_retreive = (~valid_parts) & requested_log_parts;
+
+  //we retrieve the header anyway
+  if (!request_header)
+    if (TSHttpTxnClientReqGet(trans_txnp, &request_header, &header_location) != TS_SUCCESS) {
+      TSError("couldn't retrieve client response header\n");
+      throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+    }
 
   //IP
   if (parts_to_retreive & TransactionMuncher::IP) {
@@ -78,6 +87,41 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
     TSHandleMLocRelease(request_header, header_location, url_loc);
     //TSfree(url);
 
+  } 
+
+  if (parts_to_retreive & TransactionMuncher::URL_WITH_HOST) {
+    //first make sure HOST has already been retrieved 
+    retrieve_parts(TransactionMuncher::HOST | TransactionMuncher::URL);
+
+    TSMLoc url_loc;
+    if (TSHttpHdrUrlGet(request_header, header_location, &url_loc) != TS_SUCCESS) {
+      TSError("couldn't retrieve request url\n");
+      TSHandleMLocRelease(request_header, header_location, url_loc);
+      throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+    }
+
+    if (TSUrlHostSet(request_header, url_loc, cur_trans_parts[TransactionMuncher::HOST].c_str(), cur_trans_parts[TransactionMuncher::HOST].length()) != TS_SUCCESS) {
+      TSError("couldn't manipulate url field.\n");
+      TSHandleMLocRelease(request_header, header_location, url_loc);
+      throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+    }
+
+    int url_length;
+    const char* url = TSUrlStringGet(request_header, url_loc, &url_length);
+      
+    if (!url){
+      TSError("couldn't retrieve request url string\n");
+      TSHandleMLocRelease(request_header, header_location, url_loc);
+      throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+    }
+
+    //I'm not sure if we need to release URL explicitly
+    //my guess is not
+    cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL_WITH_HOST, string(url,url_length)));
+    TSDebug("banjax", "resp url %s", cur_trans_parts[TransactionMuncher::URL_WITH_HOST].c_str());
+    
+    TSHandleMLocRelease(request_header, header_location, url_loc);
+    //TSfree(url);
   } 
   
   if (parts_to_retreive & TransactionMuncher::HOST) {
@@ -133,10 +177,14 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
       if (cookie_value) {
         cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::COOKIE, string(cookie_value,cookie_length)));
         //TSfree(cookie_value);
+      } else {
+        cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::COOKIE, ""));
       }
 
       TSHandleMLocRelease(request_header, header_location, cookie_loc);
 
+    } else {
+      cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::COOKIE, ""));
     }
 
   }
@@ -147,35 +195,106 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
 
 }
 
+const TransactionParts&
+TransactionMuncher::retrieve_response_parts(uint64_t requested_log_parts)
+{
+  //only turn those bits that are off in valid_parts and off in requested
+  //uint64_t parts_to_retreive = (~valid_parts) & requested_log_parts;
+
+  //First check if we need to retrieve the header
+  if (!response_header) retrieve_response_header();
+
+  valid_parts |= requested_log_parts;
+
+  return cur_trans_parts;
+
+}
+
+void 
+TransactionMuncher::retrieve_response_header()
+{
+  assert(trans_txnp);
+  if (TSHttpTxnClientRespGet(trans_txnp, &response_header, &response_header_location) != TS_SUCCESS) {
+    TSError("couldn't retrieve client response header\n");
+    throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+  }
+
+}
+
 void
 TransactionMuncher::set_status(TSHttpStatus status)
 {
-  TSMLoc hdr_loc;
-  TSMBuffer bufp;
 
-  if (TSHttpTxnClientRespGet(trans_txnp, &bufp, &hdr_loc) != TS_SUCCESS) {
-    TSError("couldn't retrieve client response header\n");
-    TSHttpTxnReenable(trans_txnp, TS_EVENT_HTTP_CONTINUE);
-    return;
-  }
+  //First check if we need to retrieve the header
+  if (!response_header) 
+    retrieve_response_header();
 
-  TSHttpHdrStatusSet(bufp, hdr_loc, status);
-  TSHttpHdrReasonSet(bufp, hdr_loc,
+  TSHttpHdrStatusSet(response_header, response_header_location, status);
+  TSHttpHdrReasonSet(response_header, response_header_location,
                        TSHttpHdrReasonLookup(status),
                        strlen(TSHttpHdrReasonLookup(status)));
 
 }
 
-TransactionMuncher::TransactionMuncher(TSHttpTxn cur_txnp)
-  :valid_parts(0), request_header(NULL), header_location(NULL)
-{
-  trans_txnp = cur_txnp;
 
-  //we retrieve the header anyway
-  if (TSHttpTxnClientReqGet(trans_txnp, &request_header, &header_location) != TS_SUCCESS) {
-    TSError("couldn't retrieve client response header\n");
+/**
+  Add the value of host field to url. This is useful when 
+  the filter tries to generate the original address entered in
+  the browser bar for redirect purposes.
+
+  @param hostname to be set in the filed, NULL default value
+         means to use the hostname in request header.
+*/
+void 
+TransactionMuncher::set_url_host(string* hostname)
+{
+  if (!request_header)
+    if (TSHttpTxnClientReqGet(trans_txnp, &request_header, &header_location) != TS_SUCCESS) {
+      TSError("couldn't retrieve client response header\n");
+      throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+    }
+
+  if (!hostname) {//use the hostname in the header
+    retrieve_parts(TransactionMuncher::HOST); //make sure the host is retrieved
+    hostname = &(cur_trans_parts[TransactionMuncher::HOST]);
+  }
+    
+  TSMLoc url_loc;
+  if (TSHttpHdrUrlGet(request_header, header_location, &url_loc) != TS_SUCCESS) {
+    TSError("couldn't retrieve request url\n");
+    TSHandleMLocRelease(request_header, header_location, url_loc);
     throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
   }
+
+  if (TSUrlHostSet(request_header, url_loc, hostname->c_str(), hostname->length()) != TS_SUCCESS) {
+    TSError("couldn't manipulate url field.\n");
+    TSHandleMLocRelease(request_header, header_location, url_loc);
+    throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+  }
+
+  //update the url.
+  int url_length;
+  const char* url = TSUrlStringGet(request_header, url_loc, &url_length);
+      
+  if (!url){
+    TSError("couldn't retrieve request url string\n");
+    TSHandleMLocRelease(request_header, header_location, url_loc);
+    throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+  }
+
+  //I'm not sure if we need to release URL explicitly
+  //my guess is not
+  cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL, string(url,url_length)));
+    
+  TSHandleMLocRelease(request_header, header_location, url_loc);
+  //TSfree(url);
+
+}  
+
+TransactionMuncher::TransactionMuncher(TSHttpTxn cur_txnp)
+  :trans_txnp(cur_txnp), valid_parts(0), request_header(NULL), 
+   response_header(NULL),header_location(NULL),response_header_location(NULL)
+{
 
 }
 
@@ -185,5 +304,10 @@ TransactionMuncher::TransactionMuncher(TSHttpTxn cur_txnp)
 TransactionMuncher::~TransactionMuncher()
 {
   TSDebug("banjax", "holy shit!");
-  TSHandleMLocRelease(request_header, TS_NULL_MLOC, header_location);
+  if (request_header)
+    TSHandleMLocRelease(request_header, TS_NULL_MLOC, header_location);
+
+  if (response_header)
+    TSHandleMLocRelease(response_header, TS_NULL_MLOC, response_header_location);
+
 }

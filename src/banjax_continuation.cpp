@@ -16,9 +16,6 @@ BanjaxContinuation::~BanjaxContinuation()
 
   // TSCont temp_contp = contp;
   TSDebug("banjax", "somebody is destorynig the continuation");
-
-  transaction_muncher->~TransactionMuncher(); //leave mem manage to ATS
-  TSfree(transaction_muncher);
   
   // TSfree(this);
   // TSContDestroy(temp_contp);
