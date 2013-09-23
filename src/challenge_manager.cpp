@@ -11,6 +11,7 @@
 #include <sstream>
 #include <fstream>
 #include <cmath>
+#include <algorithm>
 
 #include <cassert>
 #include <limits>
@@ -20,17 +21,17 @@
 #include <openssl/evp.h>
 #include <openssl/aes.h>
 #include <openssl/sha.h>
+#include <openssl/rand.h>
 
 #include <ts/ts.h>
 
- using namespace std;
+#include <assert.h>
+
+using namespace std;
 
 #include "cookie_parser.h"
 #include "challenge_manager.h"
 
-// TODO: this should be loaded from the db
-unsigned char ChallengeManager::key[] = "abcdefghijklmnop";
-unsigned ChallengeManager::number_of_trailing_zeros = 8; //TODO: only support multiples of 4 for now
 string ChallengeManager::zeros_in_javascript = "00"; // needs to be in accordance with the number above
 std::string ChallengeManager::solver_page = "/usr/local/etc/trafficserver/solver.html";//"/home/vmon/doc/code/deflect/ats_lab/deflect/banjax/challenger/solver.html";
 
@@ -40,15 +41,41 @@ std::string ChallengeManager::sub_url = "$url";
 std::string ChallengeManager::sub_zeros = "$zeros";
 
 /**
- * Sets the class parameters
- * @param mKey              AES key
- * @param nb_trailing_zeros number of zeros in the SHA256
- */
-void ChallengeManager::set_parameters(string mKey, unsigned nb_trailing_zeros){
-  strcpy( (char*) key, mKey.c_str() );
-  number_of_trailing_zeros = nb_trailing_zeros;
-  // TODO: will need to be changed when we modify the js
-  zeros_in_javascript = string(nb_trailing_zeros / 4, '0');
+  Overload of the load config
+  reads all the regular expressions from the database.
+  and compile them
+*/
+void
+ChallengeManager::load_config(libconfig::Setting& cfg)
+{
+   try
+   {
+     const libconfig::Setting &challenger_hosts = cfg["hosts"];
+     unsigned int count = challenger_hosts.getLength();
+
+     //now we compile all of them and store them for later use
+     for(unsigned int i = 0; i < count; i++)
+       challenged_hosts.push_back(challenger_hosts[i]);
+
+     //we use SHA256 to generate a key from the user passphrase
+     //we will use half of the hash as we are using AES128
+     string challenger_key = cfg["key"];
+     unsigned char hashed_key[SHA256_DIGEST_LENGTH];
+     SHA256((const unsigned char*)challenger_key.c_str(), challenger_key.length(), hashed_key);
+     AES_set_encrypt_key(hashed_key, 128, &enc_key);
+     AES_set_decrypt_key(hashed_key, 128, &dec_key);
+ 
+     number_of_trailing_zeros = cfg["difficulty"];
+     assert(!(number_of_trailing_zeros % 4));
+     zeros_in_javascript = string(number_of_trailing_zeros / 4, '0');
+ 
+     cookie_life_time = cfg["cookie_life_time"];
+   }
+   catch(const libconfig::SettingNotFoundException &nfex)
+     {
+       TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "Bad config for filter %s", BANJAX_FILTER_NAME.c_str());
+     }
+
 }
 
 /**
@@ -71,18 +98,23 @@ vector<string> ChallengeManager::split(const string &s, char delim) {
  * @return    the encrypted token
  */
 string ChallengeManager::generate_token(string ip, long t){
-  const unsigned text_length = 8;
+  //we are not padding for now so we only need to make sure
+  //we are using less than AES_BLOCK_SIZE
+  //const unsigned token_data_length = 8;
 
-    // concatenate the ip and the time
+
+  // concatenate the ip and the time
+  //TODO: If we get the ip as the ip struct
+  //it is already numerical so we don't need to
+  //waste time here
   vector<string> x = split(ip, '.');
   if(x.size() != 4){
         // TODO: change this to ATS logging
         // cerr << "ChallengeManager::generate_token : ip has " << x.size() << " elements.\n";
   }
 
-  unsigned char * uncrypted = new unsigned char[text_length];
-  *(uncrypted+text_length) = '\0';
-
+  unsigned char uncrypted[AES_BLOCK_SIZE], encrypted_token[AES_BLOCK_SIZE+1];
+  encrypted_token[AES_BLOCK_SIZE] = '\0';
     // add the ip
   for(unsigned int i=0; i<x.size(); i++){
     *(uncrypted+i) = (unsigned char) atoi(x[i].c_str());
@@ -93,77 +125,13 @@ string ChallengeManager::generate_token(string ip, long t){
     t >>= 8;
   }
 
-    // encode the token and transform it in base64
-  string result = base64_encode(encrypt_token(uncrypted));
-  delete[] uncrypted;
-
-    // cout << "base64 = " << result << endl;
-    // cout << "token length = " << result.size() << endl;
+  //this might be necessary as we are using ECB mode
+  //BYTES_rand(uncrypted + token_data_length, AES_BLOCK_SIZE - token_data_length);
+  AES_encrypt(uncrypted, encrypted_token, &enc_key);
+  // encode the token and transform it in base64
+  string result = base64_encode((char*)encrypted_token);
  
-  //TSDebug("banjax", "token = %s", result.c_str());
-  //TSDebug("banjax", "token len = %d", (int) result.length());
-
   return result;
-}
-
-/**
- * Encrypts the token using AES128. Assumes that the token has a length of 16 bytes.
- * @param  uncrypted original token (8 bytes)
- * @return           encrypted token (16 bytes)
- */
-string ChallengeManager::encrypt_token(unsigned char uncrypted[]){
-  unsigned char enc_out[80*sizeof(char)];
-  *(enc_out+16) = '\0';
-
-  AES_KEY enc_key;
-
-  AES_set_encrypt_key(key, 128, &enc_key);
-  AES_encrypt(uncrypted, enc_out, &enc_key);
-
-    // // some testing: print original and encoded
-    // printf("original:\t");
-    // for(int i=0;*(uncrypted+i)!=0x00;i++)
-    //     printf("%X ",*(uncrypted+i));
-    // printf("\nencrypted:\t");
-    // for(int i=0;*(enc_out+i)!=0x00;i++)
-    //     printf("%X ",*(enc_out+i));
-    // printf("\n");
-
-  string result(reinterpret_cast<const char*>(enc_out));
-
-  return result;
-}
-
-/**
- * Decrypt the token
- * @param  token the encrypted token
- * @return       the decrypted token 
- */
-unsigned char * ChallengeManager::decrypt_token(string token){
-  unsigned char enc_out[16*sizeof(char)];
-  unsigned char * dec_out = new unsigned char[80*sizeof(char)];
-
-  strcpy( (char*) enc_out, token.c_str() );
-
-  AES_KEY dec_key;
-
-  AES_set_decrypt_key(key, 128, &dec_key);
-  AES_decrypt(enc_out, dec_out, &dec_key);
-
-    // // some tests
-    // int i;
-    // printf("\nencrypted:\t");
-    // for(i=0;*(enc_out+i)!=0x00;i++)
-    //     printf("%X ",*(enc_out+i));
-    // printf("\n");
-    // // cout << "encrypted length = " << i << endl;
-    // printf("decrypted:\t");
-    // for(i=0;*(dec_out+i)!=0x00;i++)
-    //     printf("%X ",*(dec_out+i));
-    // printf("\n");
-    // // cout << "decrypted length = " << i << endl;
-
-  return dec_out;
 }
 
 /**
@@ -194,17 +162,6 @@ bool ChallengeManager::check_sha(const char* cookiestr, const char* cookie_val_e
       return false;
     }
   } 
-
-    // printf("sha:\t");
-    // for(int i=0; i<SHA256_DIGEST_LENGTH; i++)
-    //     printf("%X ",*(hash+i));
-    // printf("\n");  
-
-  //unsigned last = hash[SHA256_DIGEST_LENGTH-1];
-  //for(unsigned int i=0; i<number_of_trailing_zeros; i++){
-  //  if(last%2 != 0) return false;
-  //  last >>= 1;
-  //}
 
   return true;
 }
@@ -237,9 +194,10 @@ bool ChallengeManager::check_cookie(string cookie_jar, string ip){
   string token = base64_decode(cookie_parser.val_start, cookie_parser.val_end);
 
     // unencode token and separate ip from time
-  unsigned char * original = decrypt_token(token);
+  unsigned char original[AES_BLOCK_SIZE];
+  AES_decrypt((const unsigned char*)token.c_str(), original, &dec_key);
 
-    // check the ip against the client's ip
+  // check the ip against the client's ip
   vector<string> x = split(ip, '.');
   for(unsigned int i=0; i<x.size(); i++){
     if ( ((int) *(original+i)) != atoi(x[i].c_str()) ){
@@ -379,4 +337,51 @@ string ChallengeManager::base64_decode(const char* data, const char* data_end)
     }
   }
   return retval;
+}
+
+
+/**
+   overloaded execute to execute the filter, It calls cookie checker
+   and if it fails ask for responding by the filter.
+*/
+FilterResponse 
+ChallengeManager::execute(const TransactionParts& transaction_parts)
+{
+  /*
+   * checking the cookie and serving the js challenge if does not pass
+   */
+  /*  TSDebug("banjax", "Checking for challenge");
+
+    url_str = TSUrlStringGet (bufp, url_loc, &url_length);
+    time_validity = time(NULL) + 60*60*24; // TODO: one day validity for now, should be changed
+    //buf_str = ChallengeManager::generate_html(client_ip, time_validity, url_str);
+    buf_str = "This is a test";
+    buf = (char *) TSmalloc(buf_str.length()+1);
+    //strcpy(buf, buf_str.c_str());
+    
+    url_str = TSUrlStringGet (bufp, url_loc, &url_length);
+    time_validity = time(NULL) + 60*60*24; // TODO: one day validity for now, should be     
+  */ 
+
+  TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE).c_str());
+  if(!ChallengeManager::check_cookie(transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP)))
+    {
+      TSDebug("banjax", "cookie is not valid, sending challenge");
+ 
+      return FilterResponse(FilterResponse::I_RESPOND);
+    }  
+
+  return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+
+}
+
+std::string ChallengeManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
+{
+
+  long time_validity = time(NULL) + cookie_life_time; // TODO: one day validity for now, should be changed
+
+  return generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity, transaction_parts.at(TransactionMuncher::URL_WITH_HOST));
+  /*char* buf = (char *) TSmalloc(buf_str.length()+1);
+    strcpy(buf, buf_str.c_str());*/
+
 }
