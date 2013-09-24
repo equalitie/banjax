@@ -13,12 +13,12 @@ LIBLIST=-l re2 -l zmq -l config++
 
 all:	banjax
 
-banjax: 
+banjax:
 	$(TSXS) -o banjax.so $(INCFLAGS) $(LIBLIST) -C src/*.cpp
 
 clean:
 	rm -fr banjax.so
 
-install: 
+install:
 	mkdir -p $(DESTDIR)$(INSTALLDIR)
 	$(INSTALL) banjax.so $(DESTDIR)$(INSTALLDIR)
