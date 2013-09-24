@@ -24,9 +24,6 @@ using namespace std;
 //to run fail2ban-client
 #include <stdlib.h>
 
-#include <mysql.h>
-#include <my_global.h>
-
 #include "banjax.h"
 #include "banjax_continuation.h"
 #include "transaction_muncher.h"
