@@ -9,7 +9,7 @@ TSXS="$(BASEDIR)/bin/tsxs"
 INSTALL=install
 
 INCFLAGS=-I "./include" -I "/usr/include/mysql"
-LIBLIST=-l re2 -l zmq -l config++
+LIBLIST=-l re2 -l zmq -l config++ -l mysqlclient
 
 all:	banjax
 
