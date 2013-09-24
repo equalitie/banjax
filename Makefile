@@ -9,16 +9,16 @@ TSXS="$(BASEDIR)/bin/tsxs"
 INSTALL=install
 
 INCFLAGS=-I "./include" -I "/usr/include/mysql"
-LIBLIST=-l re2 -l mysqlclient -l zmq -l config++
+LIBLIST=-l re2 --l zmq -l config++
 
 all:	banjax
 
-banjax: 
+banjax:
 	$(TSXS) -o banjax.so $(INCFLAGS) $(LIBLIST) -C src/*.cpp
 
 clean:
 	rm -fr banjax.so
 
-install: 
+install:
 	mkdir -p $(DESTDIR)$(INSTALLDIR)
 	$(INSTALL) banjax.so $(DESTDIR)$(INSTALLDIR)
