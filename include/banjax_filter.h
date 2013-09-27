@@ -47,6 +47,9 @@ class BanjaxFilter
  protected:
   /**
      It should be overriden by the filter to load its specific configurations
+     
+     @param banjax_dir the directory which contains banjax config files
+     @param cfg        the object that contains the configuration of the filter
   */
   virtual void load_config(libconfig::Setting& cfg) {assert(0);};
   
@@ -71,8 +74,10 @@ class BanjaxFilter
      receives the db object need to read the regex list,
      subsequently it reads all the regexs
 
+     @param banjax_dir the directory which contains banjax config files
+
   */
- BanjaxFilter(const libconfig::Setting& main_root, unsigned int child_id, std::string child_name)
+ BanjaxFilter(const std::string& banjax_dir, const libconfig::Setting& main_root, unsigned int child_id, std::string child_name)
     : BANJAX_FILTER_ID(child_id),
     BANJAX_FILTER_NAME(child_name)
   {
