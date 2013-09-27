@@ -33,7 +33,6 @@ using namespace std;
 #include "challenge_manager.h"
 
 string ChallengeManager::zeros_in_javascript = "00"; // needs to be in accordance with the number above
-std::string ChallengeManager::solver_page = "/usr/local/etc/trafficserver/solver.html";//"/home/vmon/doc/code/deflect/ats_lab/deflect/banjax/challenger/solver.html";
 
 std::string ChallengeManager::sub_token = "$token";
 std::string ChallengeManager::sub_time = "$time";

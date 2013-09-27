@@ -42,16 +42,16 @@ extern const string Banjax::BANJAX_PLUGIN_NAME = "banjax";
    you need to add it inside this function
 */
 void
-Banjax::filter_factory(const libconfig::Setting& main_root)
+Banjax::filter_factory(const string& banjax_dir, const libconfig::Setting& main_root)
 {
   int filter_count = main_root.getLength();
   
   for(int i = 0; i < filter_count; i++) {
     string cur_filter_name = main_root[i].getName();
     if (cur_filter_name == REGEX_BANNER_FILTER_NAME) {
-      filters.push_back(new RegexManager(main_root));
+      filters.push_back(new RegexManager(banjax_dir, main_root));
     } else if (cur_filter_name == CHALLENGER_FILTER_NAME){
-      filters.push_back(new ChallengeManager(main_root));
+      filters.push_back(new ChallengeManager(banjax_dir, main_root));
     } else {
       //unrecognized filter, warning and pass
       TSDebug(BANJAX_PLUGIN_NAME.c_str(), "I do not recognize filter %s requested in the config", cur_filter_name.c_str());
@@ -96,7 +96,8 @@ Banjax::read_configuration()
 {
   // Read the file. If there is an error, report it and exit.
   string sep = "/";
-  string absolute_config_file = /*TSInstallDirGet() + sep + */TSPluginDirGet() + sep + BANJAX_PLUGIN_NAME + sep+ CONFIG_FILENAME;
+  string banjax_dir = TSPluginDirGet() + sep + BANJAX_PLUGIN_NAME;
+  string absolute_config_file = /*TSInstallDirGet() + sep + */ banjax_dir + sep+ CONFIG_FILENAME;
 
   try
   {
@@ -113,7 +114,7 @@ Banjax::read_configuration()
     return;
   }
 
-  filter_factory((const libconfig::Setting&)cfg.getRoot());
+  filter_factory(banjax_dir, (const libconfig::Setting&)cfg.getRoot());
 
 }
 

@@ -41,10 +41,12 @@ class Banjax
      mentioned in the config file. If you make a new filter
      you need to add it inside this function
      
+     @param banjx_dir the directory that contains banjax related files to be
+                      passed to each filter
      @param main_root is libconfig++ ref to the root of
                       config file
   */
-  void filter_factory(const libconfig::Setting& main_root);
+  void filter_factory(const std::string& banjax_dir, const libconfig::Setting& main_root);
 
   uint64_t all_filters_requested_part;
 

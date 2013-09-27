@@ -35,7 +35,7 @@ protected:
     //Hosts that challenger needs to check
     std::vector<std::string> challenged_hosts;
 
-    static std::string solver_page;
+    const std::string solver_page;
 	// substrings of the page that needs to be replaced
 	static std::string sub_token;	// token
 	static std::string sub_time;	// time until which the cookie is valid
@@ -56,8 +56,8 @@ public:
 
        @param main_root the root of the configuration structure
     */
- ChallengeManager(const libconfig::Setting& main_root)
-   :BanjaxFilter::BanjaxFilter(main_root, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME)
+ ChallengeManager(const string& banjax_dir, const libconfig::Setting& main_root)
+   :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html")
   {
     load_config(main_root[BANJAX_FILTER_NAME]);
   }
