@@ -39,7 +39,7 @@ b?(q=t(a,l),s=q.binLen,j=q.value):"B64"===b?(q=A(a),s=q.binLen,j=q.value):n("inp
                 } while(hash_value.substring(0, match_value.length) != match_value);
                 //alert(hash_value);
                 //alert(solution);
-                document.cookie="deflect" + "=" + solution+  "; expires="+expiration;
+                document.cookie="deflect" + "=" + solution+  "; expires="+expiration+"; path=/";
                window.location.assign("$url")
 
 			} catch(e) {
