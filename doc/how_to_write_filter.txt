@@ -1,0 +1,14 @@
+1) Inherit from BanjaxFilter.
+2) Add the constant representing your filter to the top enum in banjax_filter.h e.g. 
+  WHITE_LISTER_FILTER_ID,
+
+3) Add the constant filter name in banjax_filter.h, e.g.:
+   const std::string WHITE_LISTER_FILTER_NAME = "white_lister";
+
+4) write the constructor to set the filter name and id.
+5) Override the load_config, execute.
+6) if it is needed override generate_response
+
+7) in Banjax::filter_factory add the new name to the loop
+8) include the filter header file in banjax.cpp
+9) add the cpp file to the Makefile

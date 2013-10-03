@@ -25,8 +25,11 @@ using namespace std;
 
 #include "util.h"
 #include "banjax_continuation.h"
+
 #include "regex_manager.h"
 #include "challenge_manager.h"
+#include "white_lister.h"
+
 #include "banjax.h"
 #include "swabber_interface.h"
 #include "ats_event_handler.h"
@@ -52,6 +55,8 @@ Banjax::filter_factory(const string& banjax_dir, const libconfig::Setting& main_
       filters.push_back(new RegexManager(banjax_dir, main_root));
     } else if (cur_filter_name == CHALLENGER_FILTER_NAME){
       filters.push_back(new ChallengeManager(banjax_dir, main_root));
+    } else if (cur_filter_name == WHITE_LISTER_FILTER_NAME){
+      filters.push_back(new WhiteLister(banjax_dir, main_root));
     } else {
       //unrecognized filter, warning and pass
       TSDebug(BANJAX_PLUGIN_NAME.c_str(), "I do not recognize filter %s requested in the config", cur_filter_name.c_str());
