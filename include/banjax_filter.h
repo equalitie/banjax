@@ -16,12 +16,15 @@
 enum  {
   REGEX_BANNER_FILTER_ID,
   CHALLENGER_FILTER_ID,
-  BOT_SNIFFER_FILTER_ID
+  BOT_SNIFFER_FILTER_ID,
+  WHITE_LISTER_FILTER_ID,
 };
   
 const std::string REGEX_BANNER_FILTER_NAME = "regex_banner";
 const std::string CHALLENGER_FILTER_NAME = "challenger";
 const std::string BOT_SNIFFER_FILTER_NAME = "bot_sniffer";
+const std::string WHITE_LISTER_FILTER_NAME = "white_lister";
+
 
 class FilterResponse
 {
@@ -29,9 +32,10 @@ public:
    enum ResponseType {
         GO_AHEAD_NO_COMMENT,
         I_RESPOND,
+        NO_WORRIES_SERVE_IMMIDIATELY,
         CALL_OTHER_FILTERS,
         CALL_ME_ON_RESPONSE
-          };
+   };
 
    unsigned int response_type;
    void* response_data;

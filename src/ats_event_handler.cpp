@@ -105,7 +105,9 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
     TSDebug("banjax", "default" );
     break;
   }
+
   return 0;
+
 }
 
 void
@@ -118,13 +120,19 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
   const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(banjax->which_parts_are_requested());
 
 
-  for(list<BanjaxFilter*>::iterator cur_filter = banjax->filters.begin(); cur_filter != banjax->filters.end(); cur_filter++) {
+  bool continue_filtering = true;
+  for(list<BanjaxFilter*>::iterator cur_filter = banjax->filters.begin(); continue_filtering && cur_filter != banjax->filters.end(); cur_filter++) {
     FilterResponse cur_filter_result = (*cur_filter)->execute(cur_trans_parts);
     switch (cur_filter_result.response_type) 
       {
       case FilterResponse::GO_AHEAD_NO_COMMENT:
         continue;
         
+      case FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY: //This is when the requester is white listed
+        continue_filtering = false;
+        break;
+
+
       case FilterResponse::I_RESPOND:
         cd->response_info = cur_filter_result;
         cd->responding_filter = *cur_filter;
@@ -146,60 +154,6 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
   //response hook while continuing with the flow
   //destroy_continuation(cd->txnp, cd->contp);
   TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_CONTINUE);
-
-  /*
-   * checking the cookie and serving the js challenge if does not pass
-   */
-  /*  TSDebug("banjax", "Checking for challenge");
-
-  if (cookie_loc == TS_NULL_MLOC)
-  {
-    TSDebug("banjax", "couldn't retrieve request cookie, sending challenge\n");
-    url_str = TSUrlStringGet (bufp, url_loc, &url_length);
-    time_validity = time(NULL) + 60*60*24; // TODO: one day validity for now, should be changed
-    //buf_str = ChallengeManager::generate_html(client_ip, time_validity, url_str);
-    buf_str = "This is a test";
-    buf = (char *) TSmalloc(buf_str.length()+1);
-    //strcpy(buf, buf_str.c_str());
-    
-    url_str = TSUrlStringGet (bufp, url_loc, &url_length);
-    time_validity = time(NULL) + 60*60*24; // TODO: one day validity for now, should be     
- 
-    if (!cookie_value)
-    {                                                                                              
-      TSError("couldn't retrieve request url string\n");
-      TSHandleMLocRelease(bufp, hdr_loc, url_loc);
-      TSHandleMLocRelease(bufp, hdr_loc, cookie_loc);
-      TSHandleMLocRelease(bufp, TS_NULL_MLOC, hdr_loc);                                                     
-      return take_normal_couse_of_events(txnp);
-    }
-
-    TSDebug("banjax", "cookie_value: %s", cookie_value );
-    if(!ChallengeManager::check_cookie(cookie_value, client_ip))
-      {
-        TSDebug("banjax", "cookie is not valid, sending challenge");
- 
-        BanjaxContinuation *cd = (BanjaxContinuation *) TSContDataGet(contp);
-        cd->response_type = 2;
-
-        TSHttpTxnHookAdd(txnp, TS_HTTP_SEND_RESPONSE_HDR_HOOK, contp);
-        TSHandleMLocRelease(bufp, hdr_loc, url_loc);
-        TSHandleMLocRelease(bufp, hdr_loc, ua_loc);
-        TSHandleMLocRelease(bufp, TS_NULL_MLOC, hdr_loc);
-        TSHttpTxnReenable(txnp, TS_EVENT_HTTP_ERROR);
-        TSMutexUnlock(Banjax::regex_mutex);
-        return;
-      }  
-
-    TSDebug("banjax", "cookie is valid, continuing");
-
-    TSMutexUnlock(Banjax::regex_mutex);
-    TSHandleMLocRelease(bufp, hdr_loc, url_loc);
-    TSHandleMLocRelease(bufp, hdr_loc, ua_loc);
-    TSHandleMLocRelease(bufp, hdr_loc, cookie_loc);
-    TSHandleMLocRelease(bufp, TS_NULL_MLOC, hdr_loc);
-    //regfree(&regex);  
-    }*/
 
 }
 

@@ -1,3 +1,11 @@
+/*
+ * RegexManager unit test set
+ * 
+ * Copyright (c) eQualit.ie 2013 under GNU AGPL v3.0 or later
+ *
+ *  Vmon: Sept 2013, Initial version
+ */
+
 // Copyright 2005, Google Inc.
 // All rights reserved.
 //
@@ -29,54 +37,163 @@
 
 #include <iostream>
 #include <fstream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <event2/buffer.h>
+#include <map>
 
 #include "util.h"
-#include "connections.h"
-#include "../payload_server.h"
-
-#include "file_steg.h"
-#include "pngSteg.h"
-
-#include "pngSteg.h"
+#include "regex_manager.h"
 #include <gtest/gtest.h>
 
 using namespace std;
 
+/**
+   Mainly fill an string stream buffer with a predefined configuration
+   and to check if the regex manager has picked them correctly and
+   match them correctly.
+ */
+class RegexManagerTest : public testing:Test {
+ protected:
 
-// Tests factorial of negative numbers.
-TEST(pngStegTest, encode_decode) {
-  // This test is named "Negative", and belongs to the "FactorialTest"
-  // test case.
+  libconfig::Config cfg;
+  string TEMP_DIR;
+  string TEST_CONF_FILE;
+    
 
-  ifstream png_test_cover("test1.png", ios::binary, ios::ate);
-  ASSERT_TRUE(png_test_cover.is_open());
+  fstream  mock_config;
+  virtual void SetUP() {
+
+    TEMP_DIR = "/tmp";
+    TEST_CONF_FILE = TEMP_DIR + "/test.conf";
+    try {
+      mock_config.open(TEST_CONF_FILE,ios::write);
+    } catch {
+      ASSERT_TRUE(false);
+    }
+    
+    mock_config << "regex_banner :" << endl;
+    mock_config << "banned_regexes = ( " << endl;
+    mock_config << ".*simple_to_ban.*" << endl;
+    mock_config << ".*not%20so%20simple%20to%20ban[\s\S]*" << endl;
+    mock_config << ")" << endl;
+    
+    mock_config.close();
+  }
+
+  //if there is no way to feed an sstream to
+  //to config reader then we might need to close the file
+  //tear down. More importantly we need to make the file in case of non
+  //existence anyways
+  // virtual void TearDown() {
+  // }
+
+  void open_config()
+  {
+    try  {
+        cfg.readFile(TEST_CONF_FILE.c_str());
+    }
+    catch(const libconfig::FileIOException &fioex)  {
+      ASSERT_TRUE(false);
+    }
+    catch(const libconfig::ParseException &pex)   {
+      ASSERT_TRUE(false);
+    }
+
+    const libconfig::Setting& config_root = cfg.getRoot();
+    test_regex_manager = new RegexManager(TEMP_DIR, config_root)
+  }
+
+}
   
-  //read the whole file
-  size_t cover_len = png_test_cover.tellg();
-  uint8_t* cover_payload = new uint8_t[cover_len];
-
-  ASSERT_TRUE(cover_payload);
-
-  png_test_cover.seekg (0, ios::beg);
-  png_test.read (cover_payload, cover_len);
-  png_test.close();
-
-  
-  uint8_t test_phrase[] = "There are 10 types of people in the world: those who understand binary, and those who don't.";
-  size_t data_len = strlen(test_phrase)+1
-  uint8_t recovered_phrase = new uint8_t[data_len];
-  PNGSteg test_steg;
-
-  ASSERT_TRUE(test_steg.capacity(cover_payload, cover_len) >= data_len);
-  
-  EXPECT_EQ(cover_len, test_steg.encode(test_phrase, data_len, cover_payload, cover_len));
-
-  EXPECT_EQ(strlen(test_phrase)+1, test_steg.decode(cover_payload, cover_len, recovered_phrase));
-  EXPECT_FALSE(memcmp(test_phrase,recovered_phrase, data_len));
+/**
+   read a pre determined config file and check if the values are
+   as expected for the regex manager
+ */
+TEST_F(RegxManagerTest, load_config) {
+  open_config();
 }
 
+/**
+   make up a fake GET request and check that the manager is banning
+ */
+TEST_F(RegexManagerTest, match)
+{
+
+  open_config();
+
+  //first we make a mock up request
+  TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
+  mock_transaction[TransactionMuncher::URL] = "http://simple_to_ban_me/";
+  mock_transaction[TransactionMuncher::HOST] = "neverhood.com"
+  mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
+
+  FilterResponse cur_filter_result = test_regex_manager.execute(mock_transaction);
+
+  EXPECT_EQ(cur_filter_result, FilterResponse::I_RESPOND);
+
+}
+
+/**
+   make up a fake GET request and check that the manager is not banning
+ */
+TEST_F(RegexManagerTest, miss)
+{
+
+  open_config();
+
+  //first we make a mock up request
+  TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
+  mock_transaction[TransactionMuncher::URL] = "http://dont_ban_me/";
+  mock_transaction[TransactionMuncher::HOST] = "neverhood.com"
+  mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
+
+  FilterResponse cur_filter_result = test_regex_manager.execute(mock_transaction);
+
+  EXPECT_EQ(cur_filter_result, FilterResponse::GO_AHEAD_NO_COMMENT);
+
+}
+
+/**
+   make up a fake GET request and check that the manager is banning a request
+   with special chars that . doesn't match
+ */
+TEST_F(RegexManagerTest, match_special_chars)
+{
+
+  open_config();
+
+  //first we make a mock up request
+  TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
+  mock_transaction[TransactionMuncher::URL] = "http://not%20so%20simple%20to%20ban//";
+  mock_transaction[TransactionMuncher::HOST] = "neverhood.com"
+  mock_transaction[TransactionMuncher::UA] = "\"[this is no simple]\" () * ... :; neverhood browsing and co";
+
+  FilterResponse cur_filter_result = test_regex_manager.execute(mock_transaction);
+
+  EXPECT_EQ(cur_filter_result, FilterResponse::I_RESPOND);
+
+}
+
+/**
+   Check the response
+ */
+TEST_F(RegexManagerTest, forbidden_response)
+{
+
+  open_config();
+
+  //first we make a mock up request
+  TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
+  mock_transaction[TransactionMuncher::URL] = "http://dont_ban_me/";
+  mock_transaction[TransactionMuncher::HOST] = "neverhood.com"
+  mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
+  FilterResponse cur_filter_result = test_regex_manager.execute(mock_transaction);
+
+
+  EXPECT_EQ("<html><header></header><body>Forbidden</body></html>", test_regex_manager);
+
+}
+
+//TOOD: We need a test that listen on the publication and see if the ip really being send on the port
