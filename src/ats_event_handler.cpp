@@ -67,7 +67,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
       TSDebug("banjax", "continuation data being destroyed at %lu", (unsigned long)cd);
       cd->~BanjaxContinuation(); //leave mem manage to ATS
       //TSfree(cd); I think TS is taking care of this
-      destroy_continuation(txnp, contp);
+      destroy_continuation(contp);
     }
     break;
   case TS_EVENT_HTTP_SEND_RESPONSE_HDR:
@@ -207,7 +207,7 @@ ATSEventHandler::handle_txn_start(TSCont global_contp, TSHttpTxn txnp)
 }
 
 void
-ATSEventHandler::destroy_continuation(TSHttpTxn txnp, TSCont contp)
+ATSEventHandler::destroy_continuation(TSCont contp)
 {
   BanjaxContinuation *cd = NULL;
 

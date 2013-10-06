@@ -129,6 +129,8 @@ Banjax* p_banjax_plugin;
 void
 TSPluginInit(int argc, const char *argv[])
 {
+
+  (void) argc; (void)argv;
   TSPluginRegistrationInfo info;
 
   info.plugin_name = (char*) Banjax::BANJAX_PLUGIN_NAME.c_str();
