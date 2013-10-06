@@ -5,3 +5,12 @@ Requirements:
         make test
         make install
         make testinstall
+
+Banjax is using automake frame work, to make and install banjax, cd into banjax directory, assuming that the plugin directory of the traffic server is
+       /usr/local/trafficserver/modules
+invoke following sequences of command
+
+       autoconf
+       ./configure --libdir=/usr/local/trafficserver/modules
+       make
+       make install
