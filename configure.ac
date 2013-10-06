@@ -4,7 +4,15 @@
 AC_PREREQ([2.69])
 AC_INIT(banjax, 0.2, vmon@equalit.ie)
 AC_CONFIG_SRCDIR([src/banjax.cpp])
-AC_CONFIG_HEADERS([config.h])
+AM_INIT_AUTOMAKE()
+
+
+#libtool
+AC_ENABLE_SHARED
+AC_DISABLE_STATIC
+AC_PROG_LIBTOOL()
+
+#AC_CONFIG_HEADERS([config.h])
 AC_LANG([C++])
 
 # Checks for programs.
@@ -16,18 +24,18 @@ AC_PROG_INSTALL
 # We require version 1.0.1 for SHA256 support.
 PKG_CHECK_MODULES([libcrypto], [libcrypto >= 1.0.1])
 # configuration reader
-PKG_CHECK_MODULES([libconfig++], [libconfig++ >= 1.4.8])
+PKG_CHECK_MODULES([libconfig], [libconfig >= 1.4.8])
 # 0mq pubsub
 PKG_CHECK_MODULES([libzmq], [libzmq >= 3.0.0])
 # fast regex recognition
 PKG_CHECK_MODULES([libre], [libre2 >= 2.0.0])
 
-LIBS="$libcrypto_LIBS $libconfig++_LIBS $libzmq_LIBS $libre2_LIBS"
+LIBS="$libcrypto_LIBS $libconfig_LIBS $libzmq_LIBS $libre2_LIBS"
 
-lib_CPPFLAGS="$libcrypto_CFLAGS"
+lib_CPPFLAGS="$libcrypto_CFLAGS $libconfig_CFLAGS"
 AC_SUBST(lib_CPPFLAGS)
 
-lib_LIBS="LIBS"
+lib_LIBS="$LIBS"
 LIBS=
 AC_SUBST(lib_LIBS)
 AC_SUBST(lib_CPPFLAGS)
@@ -44,5 +52,16 @@ AC_TYPE_UINT64_T
 # Checks for library functions.
 AC_CHECK_FUNCS([inet_ntoa memset socket])
 
-AC_CONFIG_FILES([Makefile])
-AC_OUTPUT
+#AC_CONFIG_FILES(config.h)
+#AC_OUTPUT
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
+
+AC_CONFIG_SRCDIR([src/banjax.cpp])
+#AC_CONFIG_HEADERS([config.h])
+AC_LANG([C++])
+
+#AC_CONFIG_FILES([Makefile])
+AC_OUTPUT(Makefile src/Makefile doc/Makefile test/Makefile)
+
+ 

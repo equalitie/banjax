@@ -10,13 +10,15 @@
 //#include "banjax.h"
 #include "banjax_continuation.h"
 
+/**
+   We are calling the destructor manually so we can ask 
+   TS to release the memory according to their management
+ */
 BanjaxContinuation::~BanjaxContinuation()
 {
   // TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
 
   // TSCont temp_contp = contp;
-  TSDebug("banjax", "somebody is destorynig the continuation");
-  
   // TSfree(this);
   // TSContDestroy(temp_contp);
 

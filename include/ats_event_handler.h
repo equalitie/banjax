@@ -19,7 +19,7 @@ class ATSEventHandler
 {
  public:
   static void handle_txn_start(TSCont contp, TSHttpTxn txnp);
-  static void destroy_continuation(TSHttpTxn txnp, TSCont contp);
+  static void destroy_continuation(TSCont contp);
 
   /**
      runs all filters to make decsion based on request header

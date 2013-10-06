@@ -56,7 +56,7 @@ RegexManager::parse_request(string ats_record)
     {
       if (RE2::FullMatch(ats_record, **it))
         {
-          TSDebug("banjax", ("requests matched " + (*it)->pattern()).c_str());
+          TSDebug("banjax", "requests matched %s", (char*)((*it)->pattern()).c_str());
           return REGEX_MATCHED;
         }
     }
@@ -95,6 +95,7 @@ FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
 
 std::string RegexManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
 {
+  (void)transaction_parts; (void)response_info;
   const string Forbidden_Message("<html><header></header><body>Forbidden</body></html>");
   return Forbidden_Message;
 }

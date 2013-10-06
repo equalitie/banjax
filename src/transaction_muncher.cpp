@@ -300,10 +300,10 @@ TransactionMuncher::TransactionMuncher(TSHttpTxn cur_txnp)
 
 /**
    destructor releasing the header buffer
+   called manually to let TS to manage the release process
  */
 TransactionMuncher::~TransactionMuncher()
 {
-  TSDebug("banjax", "holy shit!");
   if (request_header)
     TSHandleMLocRelease(request_header, TS_NULL_MLOC, header_location);
 

@@ -55,7 +55,7 @@ class BanjaxFilter
      @param banjax_dir the directory which contains banjax config files
      @param cfg        the object that contains the configuration of the filter
   */
-  virtual void load_config(libconfig::Setting& cfg) {assert(0);};
+  virtual void load_config(libconfig::Setting& cfg) {(void) cfg;assert(0);};
   
  public:
   const unsigned int BANJAX_FILTER_ID;
@@ -78,13 +78,13 @@ class BanjaxFilter
      receives the db object need to read the regex list,
      subsequently it reads all the regexs
 
-     @param banjax_dir the directory which contains banjax config files
-
   */
  BanjaxFilter(const std::string& banjax_dir, const libconfig::Setting& main_root, unsigned int child_id, std::string child_name)
     : BANJAX_FILTER_ID(child_id),
     BANJAX_FILTER_NAME(child_name)
   {
+    (void) banjax_dir; (void) main_root;
+    
   }
  
   /**
@@ -125,6 +125,7 @@ class BanjaxFilter
     //Just in case that the filter has nothing to do with the response
     //we should not make them to overload this
     //but shouldn't be called anyway.
+    (void) transaction_parts; (void) response_info;
     TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "You shouldn't have called me at the first place.");
     assert(NULL);
   }
@@ -136,6 +137,7 @@ class BanjaxFilter
    */
   virtual FilterResponse execute_on_response(const TransactionParts& transaction_parts)
   {
+    (void) transaction_parts;
     return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
   }
 

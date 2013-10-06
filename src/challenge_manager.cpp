@@ -377,6 +377,7 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
 std::string ChallengeManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
 {
 
+  (void) response_info;
   long time_validity = time(NULL) + cookie_life_time; // TODO: one day validity for now, should be changed
 
   return generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity, transaction_parts.at(TransactionMuncher::URL_WITH_HOST));

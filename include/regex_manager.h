@@ -37,7 +37,7 @@ class RegexManager : public BanjaxFilter
      subsequently it reads all the regexs
 
   */
- RegexManager(const string& banjax_dir, const libconfig::Setting& main_root)
+ RegexManager(const std::string& banjax_dir, const libconfig::Setting& main_root)
    :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME)
   {
     load_config(main_root[BANJAX_FILTER_NAME]);
