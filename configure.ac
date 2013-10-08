@@ -26,7 +26,7 @@ PKG_CHECK_MODULES([libcrypto], [libcrypto >= 1.0.1])
 # configuration reader
 PKG_CHECK_MODULES([libconfig], [libconfig >= 1.4.8])
 # 0mq pubsub
-PKG_CHECK_MODULES([libzmq], [libzmq >= 3.0.0])
+PKG_CHECK_MODULES([libzmq], [libzmq >= 2.2.0])
 # fast regex recognition
 PKG_CHECK_MODULES([libre], [libre2 >= 2.0.0])
 
