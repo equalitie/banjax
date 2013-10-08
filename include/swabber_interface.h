@@ -12,9 +12,9 @@
 class SwabberInterface
 {
  protected:
-  static const string SWABBER_SERVER;
-  static const string SWABBER_PORT;
-  static const string SWABBER_BAN;
+  static const std::string SWABBER_SERVER;
+  static const std::string SWABBER_PORT;
+  static const std::string SWABBER_BAN;
 
   static const unsigned int SWABBER_MAX_MSG_SIZE;
 
@@ -35,11 +35,16 @@ class SwabberInterface
   SwabberInterface();
 
   /**
+     Destructor: closes and release the publication channell
+   */
+  ~SwabberInterface();
+
+  /**
      Asks Swabber to ban the bot ip
 
      @param bot_ip the ip address to be banned
   */
-  void ban(string bot_ip);
+  void ban(std::string bot_ip);
   
 };
 

@@ -18,8 +18,6 @@ class Banjax
   friend class ATSEventHandler;
   
  protected:
-  static TSMutex regex_mutex; //lock to control access to regex object from different
-
   //requests
   TSTextLogObject log;
   static TSCont global_contp;
