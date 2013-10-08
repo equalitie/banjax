@@ -29,18 +29,21 @@ RegexManager::load_config(libconfig::Setting& cfg)
    try
    {
      const libconfig::Setting &banned_regexes_list = cfg["banned_regexes"];
+ 
      unsigned int count = banned_regexes_list.getLength();
 
      //now we compile all of them and store them for later use
-     for(unsigned int i = 0; i < count; i++)
+ 
+     for(unsigned int i = 0; i < count; i++) {
        banning_regexes.push_back(new RE2((const char*)(banned_regexes_list[i])));
+     }
 
-   }
+    }
    catch(const libconfig::SettingNotFoundException &nfex)
      {
        // Ignore.
      }
-
+ 
 }
 
 /**
