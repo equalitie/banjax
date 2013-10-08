@@ -37,11 +37,39 @@
 
 #include <iostream>
 #include <fstream>
+#include <string>
 #include <map>
+#include <zmq.hpp>
+
+#include <re2/re2.h> //google re2
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <gtest/gtest.h> //google test
+
+#include <ts/ts.h>
 
 #include "util.h"
+#include "banjax.h"
 #include "regex_manager.h"
-#include <gtest/gtest.h>
+
+using namespace std;
+
+extern const string Banjax::BANJAX_PLUGIN_NAME = "banjax";
+
+/**
+   mock TSDebug for the sake of compiling tests independence from ATS
+ */
+void TSDebug(const char* tag, const char* format_str, ...)
+{
+  (void) tag, (void) format_str;
+}
+
+void TSError(const char* fmt, ...) 
+{
+  (void) fmt;
+}
 
 using namespace std;
 
@@ -50,32 +78,49 @@ using namespace std;
    and to check if the regex manager has picked them correctly and
    match them correctly.
  */
-class RegexManagerTest : public testing:Test {
+class RegexManagerTest : public testing::Test {
  protected:
 
   libconfig::Config cfg;
   string TEMP_DIR;
   string TEST_CONF_FILE;
-    
 
   fstream  mock_config;
-  virtual void SetUP() {
+  BanjaxFilter* test_regex_manager;
 
+  virtual void SetUp() {
+
+    test_regex_manager = NULL;
     TEMP_DIR = "/tmp";
-    TEST_CONF_FILE = TEMP_DIR + "/test.conf";
-    try {
-      mock_config.open(TEST_CONF_FILE,ios::write);
-    } catch {
-      ASSERT_TRUE(false);
-    }
+
+    //gtest is multip thread so we can't use the same file
+    //for them
+    char random_suffix[7]; 
+    sprintf(random_suffix,"%i", rand()%100000);
+    TEST_CONF_FILE = TEMP_DIR + "/test"+random_suffix+".conf";
+    //try {
+      mock_config.open(TEST_CONF_FILE,ios::out);
+      //} catch (){
+      //ASSERT_TRUE(false);
+      //}
     
     mock_config << "regex_banner :" << endl;
+    mock_config << "{" << endl;
     mock_config << "banned_regexes = ( " << endl;
-    mock_config << ".*simple_to_ban.*" << endl;
-    mock_config << ".*not%20so%20simple%20to%20ban[\s\S]*" << endl;
-    mock_config << ")" << endl;
+    mock_config << "\".*simple_to_ban.*\"," << endl;
+    mock_config << "\".*not%20so%20simple%20to%20ban[\\s\\S]*\"" << endl;
+    mock_config << ");" << endl;
+    mock_config << "};" << endl;
     
     mock_config.close();
+  }
+
+  virtual void TearDown() {
+   string rm_command("rm ");
+   rm_command += TEST_CONF_FILE;
+   system(rm_command.c_str());
+
+   delete test_regex_manager;
   }
 
   //if there is no way to feed an sstream to
@@ -87,8 +132,9 @@ class RegexManagerTest : public testing:Test {
 
   void open_config()
   {
+    libconfig::Config cfg;
     try  {
-        cfg.readFile(TEST_CONF_FILE.c_str());
+      cfg.readFile(TEST_CONF_FILE.c_str());
     }
     catch(const libconfig::FileIOException &fioex)  {
       ASSERT_TRUE(false);
@@ -98,16 +144,17 @@ class RegexManagerTest : public testing:Test {
     }
 
     const libconfig::Setting& config_root = cfg.getRoot();
-    test_regex_manager = new RegexManager(TEMP_DIR, config_root)
+    test_regex_manager = new RegexManager(TEMP_DIR, config_root);
+
   }
 
-}
+};
   
 /**
    read a pre determined config file and check if the values are
    as expected for the regex manager
  */
-TEST_F(RegxManagerTest, load_config) {
+TEST_F(RegexManagerTest, load_config) {
   open_config();
 }
 
@@ -123,12 +170,12 @@ TEST_F(RegexManagerTest, match)
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
   mock_transaction[TransactionMuncher::URL] = "http://simple_to_ban_me/";
-  mock_transaction[TransactionMuncher::HOST] = "neverhood.com"
+  mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
   mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
 
-  FilterResponse cur_filter_result = test_regex_manager.execute(mock_transaction);
+  FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
 
-  EXPECT_EQ(cur_filter_result, FilterResponse::I_RESPOND);
+  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
 
 }
 
@@ -144,12 +191,12 @@ TEST_F(RegexManagerTest, miss)
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
   mock_transaction[TransactionMuncher::URL] = "http://dont_ban_me/";
-  mock_transaction[TransactionMuncher::HOST] = "neverhood.com"
+  mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
   mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
 
-  FilterResponse cur_filter_result = test_regex_manager.execute(mock_transaction);
+  FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
 
-  EXPECT_EQ(cur_filter_result, FilterResponse::GO_AHEAD_NO_COMMENT);
+  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
 
 }
 
@@ -166,12 +213,12 @@ TEST_F(RegexManagerTest, match_special_chars)
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
   mock_transaction[TransactionMuncher::URL] = "http://not%20so%20simple%20to%20ban//";
-  mock_transaction[TransactionMuncher::HOST] = "neverhood.com"
+  mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
   mock_transaction[TransactionMuncher::UA] = "\"[this is no simple]\" () * ... :; neverhood browsing and co";
 
-  FilterResponse cur_filter_result = test_regex_manager.execute(mock_transaction);
+  FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
 
-  EXPECT_EQ(cur_filter_result, FilterResponse::I_RESPOND);
+  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
 
 }
 
@@ -186,13 +233,15 @@ TEST_F(RegexManagerTest, forbidden_response)
   //first we make a mock up request
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
-  mock_transaction[TransactionMuncher::URL] = "http://dont_ban_me/";
-  mock_transaction[TransactionMuncher::HOST] = "neverhood.com"
+  mock_transaction[TransactionMuncher::URL] = "http://simple_to_ban_me/";
+  mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
   mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
-  FilterResponse cur_filter_result = test_regex_manager.execute(mock_transaction);
 
+  FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
 
-  EXPECT_EQ("<html><header></header><body>Forbidden</body></html>", test_regex_manager);
+  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
+
+  EXPECT_EQ("<html><header></header><body>Forbidden</body></html>", test_regex_manager->generate_response(mock_transaction, cur_filter_result));
 
 }
 
