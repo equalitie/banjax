@@ -10,6 +10,9 @@ Banjax is using automake frame work, to make and install banjax, cd into banjax 
        /usr/local/trafficserver/modules
 invoke following sequences of command
 
+       libtoolize
+       aclocal
+       automake
        autoconf
        ./configure --libdir=/usr/local/trafficserver/modules
        make
