@@ -88,6 +88,16 @@ class BanjaxFilter
   }
 
   /**
+     Simpler constructor that only receives name and id of the filter.
+
+   */
+ BanjaxFilter(unsigned int child_id, std::string child_name)
+    : BANJAX_FILTER_ID(child_id),
+    BANJAX_FILTER_NAME(child_name)
+  {
+  }
+
+  /**
      destructor: just to tell the compiler that the destructor is
      virtual
   */

@@ -46,20 +46,29 @@ protected:
 	static const char b64_table[65];
 	static const char reverse_table[128];
 
+public:
 	std::string base64_encode(const std::string &data);
 	std::string base64_decode(const char* data, const char* data_end);
 
-public:
-    /**
+   /**
        construtor which receives the config object, set the filter 
        name and calls the config reader function.
 
        @param main_root the root of the configuration structure
-    */
- ChallengeManager(const string& banjax_dir, const libconfig::Setting& main_root)
+   */
+ ChallengeManager(const std::string& banjax_dir, const libconfig::Setting& main_root)
    :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html")
   {
     load_config(main_root[BANJAX_FILTER_NAME]);
+  }
+
+   /**
+       default construtor is used to test various aspect of the Challenger
+       that is not related to config like b64 speed
+   */
+ ChallengeManager(const std::string& banjax_dir)
+   :BanjaxFilter::BanjaxFilter(CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html")
+  {
   }
 
   /**
