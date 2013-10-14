@@ -260,7 +260,7 @@ string ChallengeManager::generate_html(string ip, long t, string url){
   // replace the token
   replace(page, sub_token, token);
   // replace the url
-  replace(page, sub_url, url);
+  //replace(page, sub_url, url);
   // set the correct number of zeros
   replace(page, sub_zeros, zeros_in_javascript);
 
