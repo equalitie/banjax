@@ -45,7 +45,7 @@ std::string ChallengeManager::sub_zeros = "$zeros";
   and compile them
 */
 void
-ChallengeManager::load_config(libconfig::Setting& cfg)
+ChallengeManager::load_config(libconfig::Setting& cfg, const std::string& banjax_dir)
 {
    try
    {
@@ -53,8 +53,39 @@ ChallengeManager::load_config(libconfig::Setting& cfg)
      unsigned int count = challenger_hosts.getLength();
 
      //now we compile all of them and store them for later use
-     for(unsigned int i = 0; i < count; i++)
-       challenged_hosts.push_back(challenger_hosts[i]);
+     for(unsigned int i = 0; i < count; i++) {
+       libconfig::Setting& host_config = challenger_hosts[i];
+       std::string host_name = host_config["name"];
+       // TODO(oschaaf): host name can be configured twice, and could except here
+       host_settings_[host_name] = &host_config;
+       std::string challenge_file;
+       if (host_config.exists("challenge")) {
+         challenge_file = (const char*)host_config["challenge"];
+       }
+       // If no file is configured, default to hard coded solver_page.
+       if (challenge_file.size() == 0) {
+         challenge_file.append(ChallengeManager::solver_page.c_str());
+       }
+       
+       std::string challenge_path = banjax_dir + "/" + challenge_file;
+       TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "Host [%s] uses challenge file [%s]",
+               host_name.c_str(), challenge_path.c_str());
+       
+       ifstream ifs(challenge_path);
+       std::stringstream buffer;
+       buffer << ifs.rdbuf();
+       std::string html(buffer.str());
+       
+       if (html.size() == 0) {
+         TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "Warning, [%s] looks empty", challenge_path.c_str());
+         TSError("Warning, [%s] looks empty", challenge_path.c_str());
+       } else {
+         TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "Assigning %d bytes of html for [%s]",
+                 (int)html.size(), host_name.c_str());
+       }
+       
+       host_config.add("challenge_html", libconfig::Setting::TypeString) = html;
+     }
 
      //we use SHA256 to generate a key from the user passphrase
      //we will use half of the hash as we are using AES128
@@ -234,17 +265,30 @@ bool ChallengeManager::replace(string &original, string &from, string &to){
   return true;
 }
 
-string ChallengeManager::generate_html(string ip, long t, string url){
-  
+string ChallengeManager::generate_html(string ip, long t, string url, string host_header){
   // generate the token
   string token = ChallengeManager::generate_token(ip, t);
-
+  HostSettingsMap::iterator it = host_settings_.find(host_header);
+  string challenge_html;
+  if (it != host_settings_.end()) {
+    libconfig::Setting* setting = it->second;
+    challenge_html.assign((const char*)(*setting)["challenge_html"]);
+  }
+  
   // load the page
   //ifstream ifs("../challenger/solver.html");
   //TODO: Should not re-read the fiel upon each request
   //We need to read the whole string from the database infact
-  ifstream ifs(ChallengeManager::solver_page.c_str());
-  string page( (istreambuf_iterator<char>(ifs) ), (istreambuf_iterator<char>()) );
+  //TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "Challenge html file for host: [%s] is [%s].",
+  //        host_header.c_str(), ChallengeManager::solver_page.c_str());
+
+  stringstream ss(challenge_html.c_str());
+  
+  string page( (istreambuf_iterator<char>(ss) ), (istreambuf_iterator<char>()) );
+  TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(),
+          "ChallengeManager::generate_html lookup for host [%s] found %d bytes of html.",
+          host_header.c_str(), (int)page.size());
+
 
   // set the time in the correct format
   time_t rawtime = (time_t) t;
@@ -380,7 +424,8 @@ std::string ChallengeManager::generate_response(const TransactionParts& transact
   (void) response_info;
   long time_validity = time(NULL) + cookie_life_time; // TODO: one day validity for now, should be changed
 
-  return generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity, transaction_parts.at(TransactionMuncher::URL_WITH_HOST));
+  return generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity, transaction_parts.at(TransactionMuncher::URL_WITH_HOST),
+                       transaction_parts.at(TransactionMuncher::HOST));
   /*char* buf = (char *) TSmalloc(buf_str.length()+1);
     strcpy(buf, buf_str.c_str());*/
 

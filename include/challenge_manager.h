@@ -32,9 +32,6 @@ protected:
 	bool check_sha(const char* cookiestr, const char* cookie_val_end);
 	bool replace(std::string &original, std::string &from, std::string &to);
 
-    //Hosts that challenger needs to check
-    std::vector<std::string> challenged_hosts;
-
     const std::string solver_page;
 	// substrings of the page that needs to be replaced
 	static std::string sub_token;	// token
@@ -59,7 +56,7 @@ public:
  ChallengeManager(const string& banjax_dir, const libconfig::Setting& main_root)
    :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html")
   {
-    load_config(main_root[BANJAX_FILTER_NAME]);
+    load_config(main_root[BANJAX_FILTER_NAME], banjax_dir);
   }
 
   /**
@@ -68,8 +65,9 @@ public:
     and compile them
 
     @param cfg the config node for "challenger"
+    @param banjax_dir Banjax configuration directory
   */
-  virtual void load_config(libconfig::Setting& cfg);
+  virtual void load_config(libconfig::Setting& cfg, const std::string& banjax_dir);
 
   /**
      Overloaded to tell banjax that we need url, host 
@@ -117,8 +115,11 @@ public:
 	 */
 	std::string generate_token(std::string client_ip, long time);
 	
-	std::string generate_html(std::string ip, long time, std::string url);
+	std::string generate_html(std::string ip, long time, std::string url, std::string host_header);
 
+
+   typedef std::map<std::string, libconfig::Setting*> HostSettingsMap;
+   HostSettingsMap host_settings_;
 };
 
 #endif /* challenge_manager.h */

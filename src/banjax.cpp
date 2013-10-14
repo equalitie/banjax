@@ -104,13 +104,15 @@ Banjax::read_configuration()
   string banjax_dir = TSPluginDirGet() + sep + BANJAX_PLUGIN_NAME;
   string absolute_config_file = /*TSInstallDirGet() + sep + */ banjax_dir + sep+ CONFIG_FILENAME;
 
+  TSDebug(BANJAX_PLUGIN_NAME.c_str(), "Reading configuration from [%s]", absolute_config_file.c_str());
+
   try
   {
     cfg.readFile(absolute_config_file.c_str());
   }
   catch(const libconfig::FileIOException &fioex)
   {
-    TSDebug(BANJAX_PLUGIN_NAME.c_str(), "I/O error while reading config file %s.", CONFIG_FILENAME.c_str());
+    TSDebug(BANJAX_PLUGIN_NAME.c_str(), "I/O error while reading config file [%s].", absolute_config_file.c_str());
     return;
   }
   catch(const libconfig::ParseException &pex)
@@ -145,9 +147,7 @@ TSPluginInit(int argc, const char *argv[])
     TSError("Plugin requires Traffic Server 3.0 or later\n");
     return;
   }
-
   /* create the banjax object that control the whole procedure */
   p_banjax_plugin = (Banjax*)TSmalloc(sizeof(Banjax));
   p_banjax_plugin = new(p_banjax_plugin) Banjax;
-
 }

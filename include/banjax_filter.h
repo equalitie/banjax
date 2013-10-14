@@ -54,9 +54,9 @@ class BanjaxFilter
      
      @param banjax_dir the directory which contains banjax config files
      @param cfg        the object that contains the configuration of the filter
+     @param banjax_dir the banjax configuration directory
   */
-  virtual void load_config(libconfig::Setting& cfg) {(void) cfg;assert(0);};
-  
+  virtual void load_config(libconfig::Setting& cfg, const std::string& banjax_dir) {(void) cfg; (void)banjax_dir; assert(0);};
  public:
   const unsigned int BANJAX_FILTER_ID;
   const std::string BANJAX_FILTER_NAME;
