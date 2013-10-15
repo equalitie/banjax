@@ -26,7 +26,7 @@
 #include <ts/ts.h>
 
 #include <assert.h>
-
+#include "libcaptcha.c"
 using namespace std;
 
 #include "cookie_parser.h"
