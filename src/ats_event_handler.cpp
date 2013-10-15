@@ -169,7 +169,11 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
     sprintf(buf, "%s", alternative_response.c_str());
 
     //TSHttpTxnErrorBodySet(cd->txnp, (char*)alternative_response.c_str(), alternative_response.length(), NULL);
-    TSHttpTxnErrorBodySet(cd->txnp, buf, strlen(buf), NULL);
+    int size = strlen("text/html")+1;
+    char* mt = (char*)TSmalloc(size);
+    memcpy(mt, "text/html", size-1);
+    mt[size] = 0;
+    TSHttpTxnErrorBodySet(cd->txnp, buf, strlen(buf), mt);
 
   }
 

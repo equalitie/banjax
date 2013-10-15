@@ -269,6 +269,7 @@ string ChallengeManager::generate_html(string ip, long t, string url, string hos
   // generate the token
   string token = ChallengeManager::generate_token(ip, t);
   HostSettingsMap::iterator it = host_settings_.find(host_header);
+  // TODO(oschaaf): see if we can avoid the copy here
   string challenge_html;
   if (it != host_settings_.end()) {
     libconfig::Setting* setting = it->second;
@@ -289,7 +290,6 @@ string ChallengeManager::generate_html(string ip, long t, string url, string hos
           "ChallengeManager::generate_html lookup for host [%s] found %d bytes of html.",
           host_header.c_str(), (int)page.size());
 
-
   // set the time in the correct format
   time_t rawtime = (time_t) t;
   struct tm *timeinfo;
@@ -308,6 +308,17 @@ string ChallengeManager::generate_html(string ip, long t, string url, string hos
   // set the correct number of zeros
   replace(page, sub_zeros, zeros_in_javascript);
 
+  // XXX oschaaf: -- i get around 6000 captcha's/second out of this
+  unsigned char l[6];
+  unsigned char im[70*200];
+  unsigned char gif[gifsize];
+  captcha(im,l);
+  makegif(im,gif);
+  std::string encoded = "<img src=\"data:image/gif;base64," + base64_encode(std::string((const char*)gif, (int)gifsize)) + "\" >";
+  page = encoded;
+  // -- 
+  TSDebug("banjax", "generated captcha [%.*s]", 6, (const char*)l);
+  
   return page;
 }
 
