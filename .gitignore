@@ -40,3 +40,5 @@ Makefile.in
 #libtools
 src/.libs
 *.la
+install-sh
+libtool

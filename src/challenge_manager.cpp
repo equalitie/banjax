@@ -275,7 +275,6 @@ string ChallengeManager::generate_html(string ip, long t, string url, string hos
     libconfig::Setting* setting = it->second;
     challenge_html.assign((const char*)(*setting)["challenge_html"]);
   }
-  
   // load the page
   //ifstream ifs("../challenger/solver.html");
   //TODO: Should not re-read the fiel upon each request
@@ -310,6 +309,7 @@ string ChallengeManager::generate_html(string ip, long t, string url, string hos
 
   // XXX oschaaf: -- i get around 6000 captcha's/second out of this
   unsigned char l[6];
+  l[0]='h';l[1]='e';l[2]='l';l[3]='l';l[4]='o';l[5]='\0';
   unsigned char im[70*200];
   unsigned char gif[gifsize];
   captcha(im,l);
@@ -318,7 +318,7 @@ string ChallengeManager::generate_html(string ip, long t, string url, string hos
   page = encoded;
   // -- 
   TSDebug("banjax", "generated captcha [%.*s]", 6, (const char*)l);
-  
+
   return page;
 }
 

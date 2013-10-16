@@ -190,17 +190,27 @@ static void filter(unsigned char im[70*200]) {
 
 static const char *letters="abcdafahijklmnopqrstuvwxyz";
 
+// oschaaf: changed to only summon a random word when the input
+// is all zero. Else create an image for what was given.
 void captcha(unsigned char im[70*200], unsigned char l[6]) {
 	unsigned char swr[200];
 	uint8_t s1,s2;
         ssize_t r;
-	int f=open("/dev/urandom",O_RDONLY);
-	r=read(f,l,5); r=read(f,swr,200); r=read(f,dr,sizeof(dr)); r=read(f,&s1,1); r=read(f,&s2,1);
-        (void)r;
-	close(f);
-
-	memset(im,0xff,200*70); s1=s1&0x7f; s2=s2&0x3f; l[0]%=25; l[1]%=25; l[2]%=25; l[3]%=25; l[4]%=25; l[5]=0;
-	int p=30; p=letter(l[0],p,im,swr,s1,s2); p=letter(l[1],p,im,swr,s1,s2); p=letter(l[2],p,im,swr,s1,s2); p=letter(l[3],p,im,swr,s1,s2); letter(l[4],p,im,swr,s1,s2);
+	memset(im,0xff,200*70);
+        s1=s1&0x7f; s2=s2&0x3f;
+        int p=30;
+        if (memcmp(l,"000000",6) == 0) {
+          int f=open("/dev/urandom",O_RDONLY);
+          r=read(f,l,5); r=read(f,swr,200); r=read(f,dr,sizeof(dr)); r=read(f,&s1,1); r=read(f,&s2,1);
+          (void)r;
+          close(f);
+          l[0]%=25; l[1]%=25; l[2]%=25; l[3]%=25; l[4]%=25; l[5]=0;
+        } else {
+          // transform the input
+          l[0]-=97; l[1]-=97; l[2]-=97; l[3]-=97; l[4]-=97; l[5]=0;
+          l[5]=0;
+        }
+	p=letter(l[0],p,im,swr,s1,s2); p=letter(l[1],p,im,swr,s1,s2); p=letter(l[2],p,im,swr,s1,s2); p=letter(l[3],p,im,swr,s1,s2); letter(l[4],p,im,swr,s1,s2);
 	dots(im); blur(im); filter(im); line(im,swr,s1); 
 	l[0]=letters[l[0]]; l[1]=letters[l[1]]; l[2]=letters[l[2]]; l[3]=letters[l[3]]; l[4]=letters[l[4]];
 }
