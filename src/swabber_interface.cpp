@@ -9,6 +9,8 @@
 #include <zmq.hpp>
 #include <string>
 
+#include <stdio.h>
+
 #include <ts/ts.h>
 
 using namespace std;
@@ -66,5 +68,12 @@ SwabberInterface::ban(string bot_ip)
   zmq::message_t ip_to_ban(bot_ip.size());
   memcpy((void*)ip_to_ban.data(), bot_ip.c_str(), bot_ip.size());
   socket.send(ip_to_ban);
+
+  //also asking fail2ban to ban
+  char fail2ban_cmd[1024] = "fail2ban-client set ats-filter banip ";
+  strcat(fail2ban_cmd, bot_ip.c_str());
+
+  TSDebug("banjax", "banning client ip: %s", fail2ban_cmd);
+  system(fail2ban_cmd);
 
 }
