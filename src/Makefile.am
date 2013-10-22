@@ -8,7 +8,6 @@ LIBLIST=-l re2 -l zmq -l config++
 
 
 lib_LTLIBRARIES = banjax.la
-#noinst_PROGRAMS  = unittests
 
 banjax_la_LDFLAGS = \
   -module \
@@ -26,6 +25,8 @@ banjax_la_SOURCES = 	banjax.cpp \
 						transaction_muncher.cpp \
 					 	regex_manager.cpp \
                         util.cpp
+
+
 
 #libbanjax_la_LDFLAGS = -version-info 0:0:0
 

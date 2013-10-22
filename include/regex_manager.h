@@ -15,7 +15,7 @@ class RegexManager : public BanjaxFilter
   //list of compiled banning_regex, called for matching everytime
   //the filter get a new connection
   //the idea is that the regex can add stuff at the end
-  list<RE2*> banning_regexes;
+  std::list<RE2*> banning_regexes;
 
   //swabber object used for banning bots
   SwabberInterface swabber_interface;  
@@ -31,7 +31,7 @@ class RegexManager : public BanjaxFilter
     REGEX_MISSED,
     REGEX_MATCHED
   };
-  enum RegexResult parse_request(string ats_record);
+  enum RegexResult parse_request(std::string ats_record);
   /**
      receives the db object need to read the regex list,
      subsequently it reads all the regexs

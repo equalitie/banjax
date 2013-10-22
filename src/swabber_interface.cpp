@@ -34,8 +34,16 @@ SwabberInterface::SwabberInterface()
   string test_conn = "tcp://"+SWABBER_SERVER+":"+SWABBER_PORT;
   socket.bind(("tcp://"+SWABBER_SERVER+":"+SWABBER_PORT).c_str());
 
+
 }
 
+/**
+   Destructor: closes and release the publication channell
+ */
+SwabberInterface::~SwabberInterface()
+{
+  socket.close();
+}
 /**
    Asks Swabber to ban the bot ip
 
