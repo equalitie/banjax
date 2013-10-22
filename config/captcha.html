@@ -16,12 +16,40 @@
 </td>
 </tr>
 <tr>
+  <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+  <script type="text/javascript">
+    function check() { 
+       $("#d1").hide();
+       $("#d2").show();
+       $("#d2").load("/__validate/" + document.getElementById("answer").value, done);
+    }
+    function done()  {
+      var solved = $("#d1").text() == "OK";
+      if (solved) { 
+        $("#d2").text("Solved! Redirecting to destination..");
+        document.location.reload();
+      } else {
+        document.getElementById('captchaimg').src=document.getElementById('captchaimg').src;
+        $("#d1").show();
+        $("#d2").hide();
+        $("#intro").html("<span style='color:red'>Invalid answer, please try again</span>");
+        $("#answer").val("");
+      }
+    }
+  </script>
   <td align="center" valign="center">
-    <p>Are you human? Proove it. Please enter the displayed text and submit.</p>
+    <span id="d1">
+    <p id="intro">Are you human? Proove it. Please enter the displayed text and submit.</p>
     <img src="__captcha" id='captchaimg' /><input type="button" value="Regenerate" onclick="document.getElementById('captchaimg').src=document.getElementById('captchaimg').src;"/><br/>
+    <div>
     <form>
-    Captcha text: <input type="text" maxlength="5"/><input type="submit" value="Send"/>
+    Captcha text: <input type="text" maxlength="5" id="answer" /><input type="button" value="Send" onclick="check()"/>
     </form>
+    </div>
+    </span>
+    <span id="d2" style="display:none">
+      Validating..
+    </span>
   </td>
 </tr>
 </table>
