@@ -169,6 +169,8 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
   } 
   
   if (parts_to_retreive & TransactionMuncher::COOKIE) {
+    // TODO(oschaaf): what about multiple cookie fields?
+    // Looks like we should coalesce them
     TSMLoc cookie_loc = TSMimeHdrFieldFind(request_header, header_location, TS_MIME_FIELD_COOKIE, TS_MIME_LEN_COOKIE);
 
     if (cookie_loc != TS_NULL_MLOC) {

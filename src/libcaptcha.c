@@ -199,12 +199,12 @@ void captcha(unsigned char im[70*200], unsigned char l[6]) {
 	memset(im,0xff,200*70);
         s1=s1&0x7f; s2=s2&0x3f;
         int p=30;
-        if (memcmp(l,"000000",6) == 0) {
+        if (memcmp(l,"\0\0\0\0\0\0",6) == 0) {
           int f=open("/dev/urandom",O_RDONLY);
           r=read(f,l,5); r=read(f,swr,200); r=read(f,dr,sizeof(dr)); r=read(f,&s1,1); r=read(f,&s2,1);
           (void)r;
           close(f);
-          l[0]%=25; l[1]%=25; l[2]%=25; l[3]%=25; l[4]%=25;;
+          l[0]%=25; l[1]%=25; l[2]%=25; l[3]%=25; l[4]%=25;
         } else {
           // transform the input, so 'a' becomes zero
           l[0]-='a'; l[1]-='a'; l[2]-='a'; l[3]-='a'; l[4]-='a';
