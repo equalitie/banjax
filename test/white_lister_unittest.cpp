@@ -1,5 +1,5 @@
 /*
- * RegexManager unit test set
+ * WhiteLister unit test set
  * 
  * Copyright (c) eQualit.ie 2013 under GNU AGPL v3.0 or later
  *
@@ -53,16 +53,16 @@
 #include "util.h"
 #include "banjax.h"
 #include "unittest_common.h"
-#include "regex_manager.h"
+#include "white_lister.h"
 
 using namespace std;
 
 /**
    Mainly fill an string stream buffer with a predefined configuration
-   and to check if the regex manager has picked them correctly and
+   and to check if the white lister has picked them correctly and
    match them correctly.
  */
-class RegexManagerTest : public testing::Test {
+class WhiteListerTest : public testing::Test {
  protected:
 
   libconfig::Config cfg;
@@ -70,11 +70,11 @@ class RegexManagerTest : public testing::Test {
   string TEST_CONF_FILE;
 
   fstream  mock_config;
-  BanjaxFilter* test_regex_manager;
+  BanjaxFilter* test_white_lister;
 
   virtual void SetUp() {
 
-    test_regex_manager = NULL;
+    test_white_lister = NULL;
     TEMP_DIR = "/tmp";
 
     //gtest is multip thread so we can't use the same file
@@ -84,16 +84,15 @@ class RegexManagerTest : public testing::Test {
     TEST_CONF_FILE = TEMP_DIR + "/test"+random_suffix+".conf";
     try {
       mock_config.open(TEST_CONF_FILE,ios::out);
-    }  catch (std::ifstream::failure e) {
-  
+    } catch (std::ifstream::failure e) {
       ASSERT_TRUE(false);
     }
     
-    mock_config << "regex_banner :" << endl;
+    mock_config << "white_lister :" << endl;
     mock_config << "{" << endl;
-    mock_config << "banned_regexes = ( " << endl;
-    mock_config << "\".*simple_to_ban.*\"," << endl;
-    mock_config << "\".*not%20so%20simple%20to%20ban[\\s\\S]*\"" << endl;
+    mock_config << "white_listed_ips = ( " << endl;
+    mock_config << "\"127.0.0.1\"," << endl;
+    mock_config << "\"x.y.z.w\"" << endl;
     mock_config << ");" << endl;
     mock_config << "};" << endl;
     
@@ -109,7 +108,7 @@ class RegexManagerTest : public testing::Test {
    rm_command += TEST_CONF_FILE;
    system(rm_command.c_str());
 
-   delete test_regex_manager;
+   delete test_white_lister;
   }
 
   void open_config()
@@ -126,7 +125,7 @@ class RegexManagerTest : public testing::Test {
     }
 
     const libconfig::Setting& config_root = cfg.getRoot();
-    test_regex_manager = new RegexManager(TEMP_DIR, config_root);
+    test_white_lister = new WhiteLister(TEMP_DIR, config_root);
 
   }
 
@@ -136,14 +135,32 @@ class RegexManagerTest : public testing::Test {
    read a pre determined config file and check if the values are
    as expected for the regex manager
  */
-TEST_F(RegexManagerTest, load_config) {
+TEST_F(WhiteListerTest, load_config) {
   open_config();
 }
 
 /**
-   make up a fake GET request and check that the manager is banning
+   make up a fake transaction and check that the ip get white listed
  */
-TEST_F(RegexManagerTest, match)
+TEST_F(WhiteListerTest, white_listed_ip)
+{
+
+  open_config();
+
+  //first we make a mock up request
+  TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::IP] = "127.0.0.1";
+
+  FilterResponse cur_filter_result = test_white_lister->execute(mock_transaction);
+
+  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
+
+}
+
+/**
+   make up a fake transaction and check that an ip get doesn't get white listed
+ */
+TEST_F(WhiteListerTest, ordinary_ip)
 {
 
   open_config();
@@ -151,80 +168,29 @@ TEST_F(RegexManagerTest, match)
   //first we make a mock up request
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
-  mock_transaction[TransactionMuncher::URL] = "http://simple_to_ban_me/";
-  mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
-  mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
 
-  FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
-
-  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
-
-}
-
-/**
-   make up a fake GET request and check that the manager is not banning
- */
-TEST_F(RegexManagerTest, miss)
-{
-
-  open_config();
-
-  //first we make a mock up request
-  TransactionParts mock_transaction;
-  mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
-  mock_transaction[TransactionMuncher::URL] = "http://dont_ban_me/";
-  mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
-  mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
-
-  FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
+  FilterResponse cur_filter_result = test_white_lister->execute(mock_transaction);
 
   EXPECT_EQ(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
 
 }
 
 /**
-   make up a fake GET request and check that the manager is banning a request
-   with special chars that . doesn't match
+   make up a fake transaction and check that the ip get white listed even if it is an 
+   invalid one
  */
-TEST_F(RegexManagerTest, match_special_chars)
+TEST_F(WhiteListerTest, invalid_white_ip)
 {
 
   open_config();
 
   //first we make a mock up request
   TransactionParts mock_transaction;
-  mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
-  mock_transaction[TransactionMuncher::URL] = "http://not%20so%20simple%20to%20ban//";
-  mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
-  mock_transaction[TransactionMuncher::UA] = "\"[this is no simple]\" () * ... :; neverhood browsing and co";
+  mock_transaction[TransactionMuncher::IP] = "x.y.z.w";
 
-  FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
+  FilterResponse cur_filter_result = test_white_lister->execute(mock_transaction);
 
-  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
+  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
 
 }
 
-/**
-   Check the response
- */
-TEST_F(RegexManagerTest, forbidden_response)
-{
-
-  open_config();
-
-  //first we make a mock up request
-  TransactionParts mock_transaction;
-  mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
-  mock_transaction[TransactionMuncher::URL] = "http://simple_to_ban_me/";
-  mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
-  mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
-
-  FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
-
-  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
-
-  EXPECT_EQ("<html><header></header><body>Forbidden</body></html>", test_regex_manager->generate_response(mock_transaction, cur_filter_result));
-
-}
-
-//TOOD: We need a test that listen on the publication and see if the ip really being send on the port

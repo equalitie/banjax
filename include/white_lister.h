@@ -14,7 +14,7 @@ class WhiteLister : public BanjaxFilter
  protected:
   //list of previlaged ips that don't need to go through
   //the banjax filtering process
-  list<string> white_list;
+  std::list<std::string> white_list;
 
  public:
   /**
@@ -22,7 +22,7 @@ class WhiteLister : public BanjaxFilter
      subsequently it reads all the ips
 
   */
- WhiteLister(const string& banjax_dir, const libconfig::Setting& main_root)
+ WhiteLister(const std::string& banjax_dir, const libconfig::Setting& main_root)
    :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME)
   {
     load_config(main_root[BANJAX_FILTER_NAME]);

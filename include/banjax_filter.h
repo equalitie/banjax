@@ -84,9 +84,17 @@ class BanjaxFilter
     BANJAX_FILTER_NAME(child_name)
   {
     (void) banjax_dir; (void) main_root;
-    
+
   }
- 
+
+  /**
+     destructor: just to tell the compiler that the destructor is
+     virtual
+  */
+  virtual ~BanjaxFilter()
+    {
+    }
+
   /**
      needs to be overriden by the filter
      It returns a list of ORed flags which tells banjax which fields

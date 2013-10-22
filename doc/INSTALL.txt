@@ -17,3 +17,7 @@ invoke following sequences of command
        ./configure --libdir=/usr/local/trafficserver/modules
        make
        make install
+
+Debugging:
+ If you would like to debug banjax in gdb you need to configure it as follow:
+       ./configure --libdir=/usr/local/trafficserver/modules CXXFLAGS="-g2 -O0"
