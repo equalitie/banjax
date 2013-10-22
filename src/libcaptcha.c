@@ -204,12 +204,12 @@ void captcha(unsigned char im[70*200], unsigned char l[6]) {
           r=read(f,l,5); r=read(f,swr,200); r=read(f,dr,sizeof(dr)); r=read(f,&s1,1); r=read(f,&s2,1);
           (void)r;
           close(f);
-          l[0]%=25; l[1]%=25; l[2]%=25; l[3]%=25; l[4]%=25; l[5]=0;
+          l[0]%=25; l[1]%=25; l[2]%=25; l[3]%=25; l[4]%=25;;
         } else {
-          // transform the input
-          l[0]-=97; l[1]-=97; l[2]-=97; l[3]-=97; l[4]-=97; l[5]=0;
-          l[5]=0;
+          // transform the input, so 'a' becomes zero
+          l[0]-='a'; l[1]-='a'; l[2]-='a'; l[3]-='a'; l[4]-='a';
         }
+        l[5]=0;
 	p=letter(l[0],p,im,swr,s1,s2); p=letter(l[1],p,im,swr,s1,s2); p=letter(l[2],p,im,swr,s1,s2); p=letter(l[3],p,im,swr,s1,s2); letter(l[4],p,im,swr,s1,s2);
 	dots(im); blur(im); filter(im); line(im,swr,s1); 
 	l[0]=letters[l[0]]; l[1]=letters[l[1]]; l[2]=letters[l[2]]; l[3]=letters[l[3]]; l[4]=letters[l[4]];

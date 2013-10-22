@@ -266,6 +266,19 @@ bool ChallengeManager::replace(string &original, string &from, string &to){
 }
 
 string ChallengeManager::generate_html(string ip, long t, string url, string host_header){
+
+  if (ChallengeManager::is_captcha_url(url)) {
+      // XXX oschaaf: -- i get around 6000 captcha's/second out of this
+      unsigned char text[6];
+      text[0]='h';text[1]='e';text[2]='l';text[3]='l';text[4]='o';text[5]='\0';
+      unsigned char im[70*200];
+      unsigned char gif[gifsize];
+      captcha(im,text);
+      makegif(im,gif);
+      TSDebug("banjax", "generated captcha [%.*s]", 6, (const char*)text);
+      return std::string((const char*)gif, (int)gifsize);
+  }
+
   // generate the token
   string token = ChallengeManager::generate_token(ip, t);
   HostSettingsMap::iterator it = host_settings_.find(host_header);
@@ -289,7 +302,12 @@ string ChallengeManager::generate_html(string ip, long t, string url, string hos
           "ChallengeManager::generate_html lookup for host [%s] found %d bytes of html.",
           host_header.c_str(), (int)page.size());
 
-  // set the time in the correct format
+  // TODO(oschaaf): if we could send these placeholder values as
+  // a cookie header instead of replacing them in the string
+  // the html would never change. Which would mean we could cache it
+  // on the proxy, or at least eliminate some copying / replacing.
+  // This would mean that the cookie has to be checked from javascript to
+  // aquire these values in the challenger html files.
   time_t rawtime = (time_t) t;
   struct tm *timeinfo;
   char buffer [30];
@@ -306,18 +324,6 @@ string ChallengeManager::generate_html(string ip, long t, string url, string hos
   replace(page, sub_url, url);
   // set the correct number of zeros
   replace(page, sub_zeros, zeros_in_javascript);
-
-  // XXX oschaaf: -- i get around 6000 captcha's/second out of this
-  unsigned char l[6];
-  l[0]='h';l[1]='e';l[2]='l';l[3]='l';l[4]='o';l[5]='\0';
-  unsigned char im[70*200];
-  unsigned char gif[gifsize];
-  captcha(im,l);
-  makegif(im,gif);
-  std::string encoded = "<img src=\"data:image/gif;base64," + base64_encode(std::string((const char*)gif, (int)gifsize)) + "\" >";
-  page = encoded;
-  // -- 
-  TSDebug("banjax", "generated captcha [%.*s]", 6, (const char*)l);
 
   return page;
 }
@@ -394,6 +400,11 @@ string ChallengeManager::base64_decode(const char* data, const char* data_end)
 }
 
 
+bool ChallengeManager::is_captcha_url(const std::string& url) {
+  size_t found = url.rfind("__captcha");
+  return found != std::string::npos;
+}
+
 /**
    overloaded execute to execute the filter, It calls cookie checker
    and if it fails ask for responding by the filter.
@@ -416,14 +427,21 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
     url_str = TSUrlStringGet (bufp, url_loc, &url_length);
     time_validity = time(NULL) + 60*60*24; // TODO: one day validity for now, should be     
   */ 
-
+  
+  //TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "url: %s", transaction_parts.at(TransactionMuncher::URL_WITH_HOST).c_str());
+  //const char* url = transaction_parts.at(TransactionMuncher::URL_WITH_HOST).c_str();
+  
+  
   TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE).c_str());
-  if(!ChallengeManager::check_cookie(transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP)))
-    {
+
+  if (ChallengeManager::is_captcha_url(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
+      TSDebug("banjax", "Intercept captcha image request");
+      return FilterResponse(FilterResponse::I_RESPOND);    
+  } else
+  if(!ChallengeManager::check_cookie(transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP))) {
       TSDebug("banjax", "cookie is not valid, sending challenge");
- 
       return FilterResponse(FilterResponse::I_RESPOND);
-    }  
+  }  
 
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
 

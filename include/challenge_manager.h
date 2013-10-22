@@ -45,7 +45,7 @@ protected:
 
 	std::string base64_encode(const std::string &data);
 	std::string base64_decode(const char* data, const char* data_end);
-
+        bool is_captcha_url(const std::string& url);
 public:
     /**
        construtor which receives the config object, set the filter 

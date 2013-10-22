@@ -168,13 +168,11 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
     // TODO(oschaaf): we might see if we can eliminate some of the string copying here.
     string alternative_response = ((cd->responding_filter)->*(cd->response_generator))(cd->transaction_muncher.retrieve_parts(cd->cur_banjax_inst->all_filters_requested_part), cd->response_info);
 
-    char* buf = (char *) TSmalloc(alternative_response.length()+1);
-    sprintf(buf, "%s", alternative_response.c_str());
-
-    //TSHttpTxnErrorBodySet(cd->txnp, (char*)alternative_response.c_str(), alternative_response.length(), NULL);
-    char* mt = TSstrdup("text/html");
-    TSHttpTxnErrorBodySet(cd->txnp, buf, strlen(buf), mt);
-
+    int len = alternative_response.length();
+    char* buf = (char *) TSmalloc(len);
+    memcpy(buf, alternative_response.data(), len);
+    char* content_type = TSstrdup("text/html");
+    TSHttpTxnErrorBodySet(cd->txnp, buf, len, content_type);
   }
 
   TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_CONTINUE);
