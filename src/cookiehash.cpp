@@ -14,7 +14,7 @@ static char hex_chars[]={'0','1','2','3','4','5','6','7','8','9','a','b','c','d'
 // output:
 // obuf, the resulting hash of length HASH_LENGTH
 //
-int GenerateCookieHash(uchar *captcha,uchar *secret,time_t valid_till_timestamp,uchar *remoteaddress,uchar *obuf)
+void GenerateCookieHash(uchar *captcha,uchar *secret,time_t valid_till_timestamp,uchar *remoteaddress,uchar *obuf)
 {
   uchar ibuf[200]; // should be safe
   uchar *ibufp=ibuf;
@@ -26,7 +26,7 @@ int GenerateCookieHash(uchar *captcha,uchar *secret,time_t valid_till_timestamp,
   ibufp+=SECRET_LENGTH;
   memcpy(ibufp,remoteaddress,tlen=strlen((char*)remoteaddress));
   ibufp+=tlen;
-  memcpy(ibufp,captcha,tlen=strlen(captcha));
+  memcpy(ibufp,captcha,tlen=strlen((char*)captcha));
   ibufp+=tlen;
   int totallen=ibufp-ibuf;
   SHA1(ibuf,totallen,obuf);
@@ -50,8 +50,8 @@ int GenerateCookie(uchar *captcha,uchar *secret,time_t valid_till_timestamp,ucha
   memcpy(cookie,hash,HASH_LENGTH);
   memcpy(cookie+HASH_LENGTH,&valid_till_timestamp,sizeof(time_t));
   // optimize
-  char *cookie_outp=cookiestring_out;
-  for(int c=0;c<COOKIE_LENGTH;c++)
+  char *cookie_outp = (char*)cookiestring_out;
+  for(unsigned int c=0;c<COOKIE_LENGTH;c++)
   {
     *cookie_outp++=hex_chars[cookie[c]>>4];
     *cookie_outp++=hex_chars[cookie[c]&15];
@@ -96,14 +96,14 @@ int ValidateCookie(uchar *captcha,uchar *secret,time_t current_timestamp,uchar *
 {
   char cookie[COOKIE_LENGTH];
   char hash[HASH_LENGTH];
-  if (strlen(cookiestring)!=(COOKIE_LENGTH*2))
+  if (strlen((char*)cookiestring)!=(COOKIE_LENGTH*2))
     return -3;
-  for (int c=0;c<COOKIE_LENGTH;c++)
+  for (unsigned int c=0;c<COOKIE_LENGTH;c++)
   {
     cookie[c]=parsehexbyte(cookiestring+2*c);
   }
   time_t *valid_until_timestamp=(time_t *)(cookie+HASH_LENGTH);
-  GenerateCookieHash(captcha,secret,*valid_until_timestamp,remoteaddress,hash);
+  GenerateCookieHash(captcha,secret,*valid_until_timestamp,remoteaddress,(uchar*)hash);
   if (memcmp(cookie,hash,HASH_LENGTH))
   {
     return -1;
