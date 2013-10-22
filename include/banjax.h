@@ -21,8 +21,11 @@ class Banjax
   //requests
   TSTextLogObject log;
   static TSCont global_contp;
-
+  
+  IPDatabase ip_database;
+  
   std::list<BanjaxFilter*> filters;
+
 
   //configuration
   static const std::string CONFIG_FILENAME;

@@ -1,3 +1,5 @@
+* Adding a new filter
+
 1) Inherit from BanjaxFilter.
 2) Add the constant representing your filter to the top enum in banjax_filter.h e.g. 
   WHITE_LISTER_FILTER_ID,
@@ -12,3 +14,9 @@
 7) in Banjax::filter_factory add the new name to the loop
 8) include the filter header file in banjax.cpp
 9) add the cpp file to the Makefile
+
+* Allocating space in ip-db.
+If a filter needs to keep state for the ips, during it creation banjax needs to know
+how much memory the filter needs to allocate for each ip. It is not responsible of
+filter for requesting huge amount of memory for each ip. Instead the filter needs to use 
+pointer and allocate that memory itself on idividual bases.
