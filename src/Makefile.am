@@ -25,6 +25,7 @@ banjax_la_SOURCES = 	banjax.cpp \
 						cookie_parser.cpp \
 						transaction_muncher.cpp \
 					 	regex_manager.cpp \
+					 	cookiehash.cpp \
                         util.cpp
 
 #libbanjax_la_LDFLAGS = -version-info 0:0:0

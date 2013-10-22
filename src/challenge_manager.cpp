@@ -31,6 +31,7 @@ using namespace std;
 
 #include "cookie_parser.h"
 #include "challenge_manager.h"
+#include "cookiehash.h"
 
 string ChallengeManager::zeros_in_javascript = "00"; // needs to be in accordance with the number above
 
@@ -277,7 +278,12 @@ string ChallengeManager::generate_html(string ip, long t, string url, string hos
       unsigned char gif[gifsize];
       captcha(im,text);
       makegif(im,gif);
-      TSDebug("banjax", "generated captcha [%.*s]", 6, (const char*)text);
+
+      uchar cookie[100];
+      time_t curtime=time(NULL);
+      GenerateCookie((uchar*)text, (uchar*)"12345", curtime, (uchar*)"127.0.0.1", cookie);
+
+      TSDebug("banjax", "generated captcha [%.*s], cookie: [%s]", 6, (const char*)text, (const char*)cookie);
       // TODO(oschaaf): somehow, we must return a cookie and content-type 'image/gif' here
       return std::string((const char*)gif, (int)gifsize);
   }
