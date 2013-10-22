@@ -8,6 +8,19 @@
 
 #include "banjax_filter.h"
 #include "swabber_interface.h"
+struct RatedRegex
+{
+  RE2* re2_regex;
+  unsigned int interval; //interval to look in mseconds
+  float rate; //threshold /interval
+
+};
+
+struct regex_banner_state
+{
+  long  begin_msec;
+  float rate;
+}
 
 class RegexManager : public BanjaxFilter
 {
@@ -15,10 +28,16 @@ class RegexManager : public BanjaxFilter
   //list of compiled banning_regex, called for matching everytime
   //the filter get a new connection
   //the idea is that the regex can add stuff at the end
-  std::list<RE2*> banning_regexes;
+  std::list<std:pair<RE2*, double>> rated_banning_regexes;
 
   //swabber object used for banning bots
-  SwabberInterface swabber_interface;  
+  SwabberInterface swabber_interface;
+
+ public:
+  enum RegexResult{
+    REGEX_MISSED,
+    REGEX_MATCHED
+  };
   /**
     applies all regex to an ATS record
 
@@ -26,19 +45,15 @@ class RegexManager : public BanjaxFilter
     @return: 1 match 0 not match < 0 error.
   */
 
- public:
-  enum RegexResult{
-    REGEX_MISSED,
-    REGEX_MATCHED
-  };
-  enum RegexResult parse_request(std::string ats_record);
+  enum RegexResult parse_request(std::string ip, std::string ats_record);
   /**
      receives the db object need to read the regex list,
      subsequently it reads all the regexs
 
   */
- RegexManager(const std::string& banjax_dir, const libconfig::Setting& main_root)
-   :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME)
+ RegexManager(const std::string& banjax_dir, const libconfig::Setting& main_root, IPDatabase* global_ip_database)
+   :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME),
+    ip_database(global_ip_database)
   {
     load_config(main_root[BANJAX_FILTER_NAME]);
   }

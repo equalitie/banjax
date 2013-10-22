@@ -24,7 +24,8 @@ banjax_la_SOURCES = 	banjax.cpp \
 						cookie_parser.cpp \
 						transaction_muncher.cpp \
 					 	regex_manager.cpp \
-                        util.cpp
+                        util.cpp \
+						ip_database.cpp
 
 
 

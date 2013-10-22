@@ -13,11 +13,11 @@
 
 #include "banjax.h"
 
-enum  {
+enum FilterIDType {
   REGEX_BANNER_FILTER_ID,
   CHALLENGER_FILTER_ID,
   BOT_SNIFFER_FILTER_ID,
-  WHITE_LISTER_FILTER_ID,
+  WHITE_LISTER_FILTER_ID
 };
   
 const std::string REGEX_BANNER_FILTER_NAME = "regex_banner";
@@ -25,6 +25,7 @@ const std::string CHALLENGER_FILTER_NAME = "challenger";
 const std::string BOT_SNIFFER_FILTER_NAME = "bot_sniffer";
 const std::string WHITE_LISTER_FILTER_NAME = "white_lister";
 
+class IPDatabase;
 
 class FilterResponse
 {
@@ -49,6 +50,8 @@ public:
 class BanjaxFilter
 {
  protected:
+  IPDatabase* ip_database;
+
   /**
      It should be overriden by the filter to load its specific configurations
      
@@ -83,7 +86,7 @@ class BanjaxFilter
     : BANJAX_FILTER_ID(child_id),
     BANJAX_FILTER_NAME(child_name)
   {
-    (void) banjax_dir; (void) main_root;
+    (void) banjax_dir; (void) main_root; ip_database = NULL;
 
   }
 
