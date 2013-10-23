@@ -39,10 +39,15 @@ public:
 
    unsigned int response_type;
    void* response_data;
+   // NULL terminated string, not owned.
+   char* content_type;
+   int response_code;
 
  FilterResponse(unsigned int cur_response_type = GO_AHEAD_NO_COMMENT, void* cur_response_data = NULL)
-   : response_type(cur_response_type), response_data(cur_response_data)
-   {}
+     : response_type(cur_response_type), response_data(cur_response_data), content_type(NULL),
+       response_code(403)
+   {
+   }
 
 };
 
@@ -120,7 +125,7 @@ class BanjaxFilter
   /**
      The functoin will be called if the filter reply with I_RESPOND
    */
-  virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
+  virtual std::string generate_response(const TransactionParts& transaction_parts, FilterResponse& response_info)
   { 
     //Just in case that the filter has nothing to do with the response
     //we should not make them to overload this

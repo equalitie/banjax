@@ -32,7 +32,7 @@ class BanjaxContinuation{
   //the filter that genenates the response
   BanjaxFilter* responding_filter;
   //the function that should generate the response
-  std::string (BanjaxFilter::*response_generator)(const TransactionParts& transaction_parts, const FilterResponse& response_info);
+  std::string (BanjaxFilter::*response_generator)(const TransactionParts& transaction_parts, FilterResponse& response_info);
 
   /* Destructor: Destroys the continuation after response
      has been served */

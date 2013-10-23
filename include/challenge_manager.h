@@ -98,7 +98,7 @@ public:
   /**
      This basically calls the function to generate the html
    */
-  virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
+  virtual std::string generate_response(const TransactionParts& transaction_parts, FilterResponse& response_info);
 
     /**
      * Checks if the cookie is valid: sha256, ip, and time
@@ -115,7 +115,7 @@ public:
 	 */
 	std::string generate_token(std::string client_ip, long time);
 	
-	std::string generate_html(std::string ip, long time, std::string url, std::string host_header);
+	std::string generate_html(std::string ip, long time, std::string url, std::string host_header, FilterResponse& response_info);
 
 
    typedef std::map<std::string, libconfig::Setting*> HostSettingsMap;

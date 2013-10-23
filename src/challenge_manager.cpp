@@ -266,14 +266,16 @@ bool ChallengeManager::replace(string &original, string &from, string &to){
   return true;
 }
 
-string ChallengeManager::generate_html(string ip, long t, string url, string host_header){
+string ChallengeManager::generate_html(string ip, long t, string url, string host_header,
+                                       FilterResponse& response_info){
   if (ChallengeManager::is_captcha_url(url)) {
-      // XXX oschaaf: -- i get around 6000 captcha's/second out of this
       unsigned char text[6];
       memset(text, 0, 6);
-      // We could also invent a text ourselves here.
+      
+      // We could also invent a text ourselves here:
+      // text[0]='h';text[1]='e';text[2]='l';text[3]='l';text[4]='o';text[5]='\0'
       // When we memset the text to 0, libcaptcha will invent a random text for us.
-      //text[0]='h';text[1]='e';text[2]='l';text[3]='l';text[4]='o';text[5]='\0'
+
       unsigned char im[70*200];
       unsigned char gif[gifsize];
       captcha(im,text);
@@ -285,6 +287,9 @@ string ChallengeManager::generate_html(string ip, long t, string url, string hos
 
       TSDebug("banjax", "generated captcha [%.*s], cookie: [%s]", 6, (const char*)text, (const char*)cookie);
       // TODO(oschaaf): somehow, we must return a cookie and content-type 'image/gif' here
+      response_info.response_code = 200;
+      // TODO: encapsulate this.
+      response_info.content_type = TSstrdup("image/gif");
       return std::string((const char*)gif, (int)gifsize);
   }
 
@@ -456,14 +461,12 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
 
 }
 
-std::string ChallengeManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
+std::string ChallengeManager::generate_response(const TransactionParts& transaction_parts, FilterResponse& response_info)
 {
-
-  (void) response_info;
   long time_validity = time(NULL) + cookie_life_time; // TODO: one day validity for now, should be changed
 
   return generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity, transaction_parts.at(TransactionMuncher::URL_WITH_HOST),
-                       transaction_parts.at(TransactionMuncher::HOST));
+                       transaction_parts.at(TransactionMuncher::HOST), response_info);
   /*char* buf = (char *) TSmalloc(buf_str.length()+1);
     strcpy(buf, buf_str.c_str());*/
 

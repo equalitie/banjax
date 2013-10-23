@@ -165,14 +165,25 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
   if (cd->response_generator) {
     cd->transaction_muncher.retrieve_response_parts(cd->responding_filter->response_info());
     cd->transaction_muncher.set_status(TS_HTTP_STATUS_FORBIDDEN);
-    // TODO(oschaaf): we might see if we can eliminate some of the string copying here.
+
     string alternative_response = ((cd->responding_filter)->*(cd->response_generator))(cd->transaction_muncher.retrieve_parts(cd->cur_banjax_inst->all_filters_requested_part), cd->response_info);
 
     int len = alternative_response.length();
     char* buf = (char *) TSmalloc(len);
+
     memcpy(buf, alternative_response.data(), len);
-    char* content_type = TSstrdup("text/html");
-    TSHttpTxnErrorBodySet(cd->txnp, buf, len, content_type);
+
+    TSMBuffer bufp;
+    TSMLoc locp;
+    if (TSHttpTxnClientRespGet(cd->txnp, &bufp, &locp) == TS_SUCCESS) {
+      // Return values of TSHttpHdrxxx intentionally ignored, there's not much
+      // we can do in case of failure.
+      TSHttpHdrStatusSet(bufp, locp, (TSHttpStatus)cd->response_info.response_code);
+      // Blank out the status description
+      TSHttpHdrReasonSet(bufp, locp, "", 0);
+      TSHandleMLocRelease (bufp, TS_NULL_MLOC, locp);
+    }
+    TSHttpTxnErrorBodySet(cd->txnp, buf, len, cd->response_info.content_type);
   }
 
   TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_CONTINUE);
