@@ -275,7 +275,7 @@ hardcode_into_libs=yes
 sys_lib_search_path_spec="/usr/lib/gcc/x86_64-unknown-linux-gnu/4.8.1 /usr/lib /lib "
 
 # Run-time system search path for libraries.
-sys_lib_dlsearch_path_spec="/lib /usr/lib /opt/android-sdk/tools/lib /usr/lib/libfakeroot /usr/lib/ /usr/lib/ffmpeg-compat/ /usr/lib32 /usr/lib/xulrunner-22.0 "
+sys_lib_dlsearch_path_spec="/lib /usr/lib /opt/android-sdk/tools/lib /usr/lib/libfakeroot /usr/lib/ /usr/lib/ffmpeg-compat/ /usr/lib32 /usr/lib/xulrunner-23.0.1 "
 
 # Whether dlopen is supported.
 dlopen_support=unknown

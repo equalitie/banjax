@@ -1,10 +1,10 @@
 * Adding a new filter
 
 1) Inherit from BanjaxFilter.
-2) Add the constant representing your filter to the top enum in banjax_filter.h e.g. 
+2) Add the constant representing your filter to the top enum in filter_list.h e.g. 
   WHITE_LISTER_FILTER_ID,
 
-3) Add the constant filter name in banjax_filter.h, e.g.:
+3) Add the constant filter name in filter_list.h, e.g.:
    const std::string WHITE_LISTER_FILTER_NAME = "white_lister";
 
 4) write the constructor to set the filter name and id.

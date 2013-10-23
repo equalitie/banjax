@@ -16,6 +16,7 @@ unittests_LDADD =   $(lib_LIBS)
 unittests_SOURCES = unittest_common.cpp \
 					regex_manager_unittest.cpp \
 					white_lister_unittest.cpp \
+					../src/ip_database.cpp \
 					../src/regex_manager.cpp \
 					../src/swabber_interface.cpp \
 					../src/white_lister.cpp

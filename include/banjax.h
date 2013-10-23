@@ -13,6 +13,8 @@
 class ATSEventHandler;
 class BanjaxFilter;
 
+#include "ip_database.h"
+
 class Banjax
 {
   friend class ATSEventHandler;
