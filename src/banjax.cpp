@@ -52,7 +52,7 @@ Banjax::filter_factory(const string& banjax_dir, const libconfig::Setting& main_
   for(int i = 0; i < filter_count; i++) {
     string cur_filter_name = main_root[i].getName();
     if (cur_filter_name == REGEX_BANNER_FILTER_NAME) {
-      filters.push_back(new RegexManager(banjax_dir, main_root));
+      filters.push_back(new RegexManager(banjax_dir, main_root, &ip_database));
     } else if (cur_filter_name == CHALLENGER_FILTER_NAME){
       filters.push_back(new ChallengeManager(banjax_dir, main_root));
     } else if (cur_filter_name == WHITE_LISTER_FILTER_NAME){

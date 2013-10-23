@@ -9,7 +9,7 @@
 #include <list>
 #include <vector>
 #include <stdio.h>
-#include <time.h>
+#include <sys/time.h>
 #include <zmq.hpp>
 
 #include <re2/re2.h> //google re2
@@ -37,7 +37,13 @@ RegexManager::load_config(libconfig::Setting& cfg)
      //now we compile all of them and store them for later use
  
      for(unsigned int i = 0; i < count; i++) {
-       banning_regexes.push_back(new pair<RE2*, double>((new RE2((const char*)(banned_regexes_list[i][0])), banned_regexes_list[i][0])));
+       TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "initiating rule %s", ((const char*) banned_regexes_list[i]["rule"]));
+
+       unsigned int observation_interval = banned_regexes_list[i]["interval"];
+       unsigned int threshold  = banned_regexes_list[i]["hits_per_interval"];
+       
+       rated_banning_regexes.push_back(new RatedRegex(new RE2((const char*)(banned_regexes_list[i]["regex"])), observation_interval *1000, threshold /(double)(observation_interval)));
+       
      }
 
     }
@@ -57,37 +63,37 @@ RegexManager::load_config(libconfig::Setting& cfg)
 RegexManager::RegexResult
 RegexManager::parse_request(string ip, string ats_record)
 {
-  for(list<RE2*>::iterator it=banning_regexes.begin(); it != banning_regexes.end(); it++)
+  for(list<RatedRegex*>::iterator it=rated_banning_regexes.begin(); it != rated_banning_regexes.end(); it++)
     {
-      if (RE2::FullMatch(ats_record, **it))
-        {
-          TSDebug("banjax", "requests matched %s", (char*)((*it)->pattern()).c_str());
+      if (RE2::FullMatch(ats_record, *((*it)->re2_regex))) {
+        TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "requests matched %s", (char*)((*it)->re2_regex->pattern()).c_str());
 
           /* we need to check the rate condition here */
           //getting current time in msec
           timeval cur_time; gettimeofday(&cur_time, NULL);
-          long cur_time_msec = cur_time.tv_sec * 1000 + cur_time.tv_usec / 1000.0
+          long cur_time_msec = cur_time.tv_sec * 1000 + cur_time.tv_usec / 1000.0;
           
           /* first we check if we already have a state for this ip */
-            regex_banner_state cur_ip_state = (regex_banner_state) ip_database->get_ip_state(ip, REGEX_BANNER_FILTER_ID);
-          if (begin_msec == 0) {//We don't have a record 
-            cur_ip_state.begin_msec = cur_time_msec;
-            cur_ip_state.rate = 0;
-            ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, (long long) cur_ip_state);
+          RegexBannerStateUnion cur_ip_state;
+          cur_ip_state.state_allocator =  ip_database->get_ip_state(ip, REGEX_BANNER_FILTER_ID);
+          if (cur_ip_state.detail.begin_msec == 0) {//We don't have a record 
+            cur_ip_state.detail.begin_msec = cur_time_msec;
+            cur_ip_state.detail.rate = 0;
+            ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.state_allocator);
 
           } else { //we have a record, update the rate and ban if necessary.
             //we move the interval by the differences of the "begin_in_ms - cur_time_msec - interval*1000"
             //if it is less than zero we don't do anything
-            time_window_movement = cur_time_msec -cur_ip_rate.begin_in_ms - interval;
+            long time_window_movement = cur_time_msec - cur_ip_state.detail.begin_msec - (*it)->interval;
             if (time_window_movement > 0) { //we need to move
-              cur_ip_state.begin_msec += time_window_movement;
-              cur_ip_state.rate = cur_ip_state.rate - (cur_ip_state.rate - 1) * time_window_movement/(double)interval;
-              cur_ip_state.rate =  cur_ip_state.rate < 0 ? 0 : cur_ip_state.rate; //just to make sure
+              cur_ip_state.detail.begin_msec += time_window_movement;
+              cur_ip_state.detail.rate = cur_ip_state.detail.rate - (cur_ip_state.detail.rate - 1) * time_window_movement/(double) (*it)->interval;
+              cur_ip_state.detail.rate =  cur_ip_state.detail.rate < 0 ? 0 : cur_ip_state.detail.rate; //just to make sure
             }
-
-            ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, (long long) cur_ip_state);
+            TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "with rate %f", cur_ip_state.detail.rate);
+            ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.state_allocator);
           }
-          if (cur_ip_state.rate > it->rate)
+          if (cur_ip_state.detail.rate >= (*it)->rate)
             return REGEX_MATCHED;
         }
     }
@@ -99,7 +105,6 @@ RegexManager::parse_request(string ip, string ats_record)
 
 FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
 {
-
   const string sep(" ");
   TransactionParts ats_record_parts = (TransactionParts) transaction_parts;
   string ats_record =  ats_record_parts[TransactionMuncher::URL] + sep;

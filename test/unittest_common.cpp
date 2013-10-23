@@ -20,3 +20,16 @@ void TSError(const char* fmt, ...)
 {
   (void) fmt;
 }
+
+tsapi TSReturnCode TSMutexLockTry(TSMutex mutexp)
+{
+  //each test has its own database, no multi-thread threat
+  (void) mutexp;
+  return TS_SUCCESS;
+}
+
+tsapi void TSMutexUnlock(TSMutex mutexp)
+{
+  (void) mutexp;
+}
+

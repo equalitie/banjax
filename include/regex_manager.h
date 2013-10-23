@@ -14,13 +14,27 @@ struct RatedRegex
   unsigned int interval; //interval to look in mseconds
   float rate; //threshold /interval
 
+  RatedRegex(RE2* regex, unsigned int observation_interval, float excessive_rate):
+    re2_regex(regex),
+    interval(observation_interval),
+    rate(excessive_rate) {}
+
 };
 
-struct regex_banner_state
-{
-  long  begin_msec;
+struct RegexBannerState {
+  unsigned long begin_msec;
   float rate;
-}
+};
+
+union RegexBannerStateUnion
+{
+  FilterState state_allocator;
+  RegexBannerState detail;
+
+  RegexBannerStateUnion()
+    : state_allocator() { }
+  
+};
 
 class RegexManager : public BanjaxFilter
 {
@@ -28,7 +42,7 @@ class RegexManager : public BanjaxFilter
   //list of compiled banning_regex, called for matching everytime
   //the filter get a new connection
   //the idea is that the regex can add stuff at the end
-  std::list<std:pair<RE2*, double>> rated_banning_regexes;
+  std::list<RatedRegex*> rated_banning_regexes;
 
   //swabber object used for banning bots
   SwabberInterface swabber_interface;
@@ -52,9 +66,9 @@ class RegexManager : public BanjaxFilter
 
   */
  RegexManager(const std::string& banjax_dir, const libconfig::Setting& main_root, IPDatabase* global_ip_database)
-   :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME),
-    ip_database(global_ip_database)
+   :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME)
   {
+    ip_database = global_ip_database;
     load_config(main_root[BANJAX_FILTER_NAME]);
   }
 

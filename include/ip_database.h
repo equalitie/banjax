@@ -8,38 +8,58 @@
    AUTHORS:
    - Vmon: Oct 2013: Initial version
  */
+#ifndef IP_DATABASE_H
+#define IP_DATABASE_H
+
 #include <map> //IP DB is a hash table
 #include <ts/ts.h> //for locking business
-#include <banjax_filter.h>
+
+#include "filter_list.h"
 
 //list of filter with db storage requirement (state keepers
-const unsigned int filters_to_column[] = {
+const FilterIDType filter_to_column[] = {
   REGEX_BANNER_FILTER_ID
+  };
+/* const unsigned  filters_to_column[] = { */
+/*   0 */
+/* }; */
+const unsigned int NUMBER_OF_STATE_KEEPER_FILTERS = sizeof(filter_to_column) / sizeof(int);
 
+const unsigned int NUMBER_OF_STATE_WORDS = 2;
+
+struct FilterState
+{
+  long long single_filter_state[2];
+  FilterState()
+  : single_filter_state() {}
 };
 
-const unsigned int NUMBER_OF_STATE_KEEPER_FILTERS = sizeof(filters_to_column) / sizeof(int);
+struct IPState
+{
+  FilterState state_array[NUMBER_OF_STATE_KEEPER_FILTERS];
 
-typedef long long [NUMBER_OF_STATE_KEEPER_FILTERS] IPState;
-typedef map<std::string, IPState> IPHashTable;
+};
+typedef std::map<std::string, IPState> IPHashTable;
 
 class IPDatabase
 {
 protected:
   IPHashTable _ip_db;
-  static TSMutex db_mutex;
+  TSMutex db_mutex;
   
 public:
   /**
      check if  the ip is in the db, if not store it and updates its states
      related to that filter
    */
-  void set_ip_state(std::string& ip, long long state);
+  bool set_ip_state(std::string& ip, FilterIDType filter_id, FilterState state);
 
-   /**
+  /**
      check if  the ip is in the db, if not store it, with default state 0
      then return the current state
-   */
-   long get_ip_state(std::string& ip);
+  */
+  FilterState get_ip_state(std::string& ip, FilterIDType filter_id);
 
 };
+
+#endif

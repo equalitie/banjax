@@ -55,6 +55,8 @@
 #include "unittest_common.h"
 #include "regex_manager.h"
 
+#include "ip_database.h"
+
 using namespace std;
 
 /**
@@ -71,6 +73,8 @@ class RegexManagerTest : public testing::Test {
 
   fstream  mock_config;
   BanjaxFilter* test_regex_manager;
+  
+  IPDatabase test_ip_database;
 
   virtual void SetUp() {
 
@@ -91,10 +95,17 @@ class RegexManagerTest : public testing::Test {
     
     mock_config << "regex_banner :" << endl;
     mock_config << "{" << endl;
-    mock_config << "banned_regexes = ( " << endl;
-    mock_config << "\".*simple_to_ban.*\"," << endl;
-    mock_config << "\".*not%20so%20simple%20to%20ban[\\s\\S]*\"" << endl;
-    mock_config << ");" << endl;
+    mock_config << "banned_regexes = ( {" << endl;
+    mock_config << "rule = \"simple to ban\"; " << endl;
+    mock_config << "regex = \".*simple_to_ban.*\";" << endl;
+    mock_config << "interval = 1; " << endl;
+    mock_config << "hits_per_interval = 0;" << endl;
+    mock_config << "}," << endl;
+    mock_config << "{ rule = \"hard to ban\"; " << endl;
+    mock_config << "regex = \".*not%20so%20simple%20to%20ban[\\s\\S]*\";" << endl;
+    mock_config << "interval = 1; " << endl;
+    mock_config << "hits_per_interval = 0;" << endl;
+    mock_config << "});" << endl;
     mock_config << "};" << endl;
     
     mock_config.close();
@@ -126,7 +137,7 @@ class RegexManagerTest : public testing::Test {
     }
 
     const libconfig::Setting& config_root = cfg.getRoot();
-    test_regex_manager = new RegexManager(TEMP_DIR, config_root);
+    test_regex_manager = new RegexManager(TEMP_DIR, config_root, &test_ip_database);
 
   }
 
