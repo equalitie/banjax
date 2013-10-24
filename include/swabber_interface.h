@@ -28,6 +28,9 @@ class SwabberInterface
 
   std::ofstream ban_ip_list;
 
+  //lock for writing into the socket
+  TSMutex swabber_mutex;
+
  public:
   //Error list
   enum SWABBER_ERROR {

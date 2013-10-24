@@ -16,6 +16,7 @@
 using namespace std;
 
 #include "swabber_interface.h"
+#include "banjax.h"
 
 //Swabber connection detail
 const string SwabberInterface::SWABBER_SERVER = "*";
@@ -28,7 +29,9 @@ const string SwabberInterface::BAN_IP_LOG("/usr/local/trafficserver/logs/ban_ip_
 
 /* initiating the interface */ 
 SwabberInterface::SwabberInterface()
-  :context (1), socket (context, ZMQ_PUB), ban_ip_list(BAN_IP_LOG.c_str(), ios::out | ios::app)
+  :context (1), socket (context, ZMQ_PUB), 
+   ban_ip_list(BAN_IP_LOG.c_str(), ios::out | ios::app), //openning banned ip log file
+   swabber_mutex(TSMutexCreate())
 {
 
   TSDebug("banjax", "Connecting to swabber server...");
@@ -69,13 +72,15 @@ SwabberInterface::ban(string bot_ip)
   }
 
   zmq_msg_close(&msg_to_send);*/
-  zmq::message_t ban_request(SWABBER_BAN.size());
-  memcpy((void*)ban_request.data(), SWABBER_BAN.c_str(), SWABBER_BAN.size());
-  socket.send(ban_request, ZMQ_SNDMORE);
+  TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "locking the swabber socket...");
+  if (TSMutexLockTry(swabber_mutex) == TS_SUCCESS) {
+    zmq::message_t ban_request(SWABBER_BAN.size());
+    memcpy((void*)ban_request.data(), SWABBER_BAN.c_str(), SWABBER_BAN.size());
+    socket.send(ban_request, ZMQ_SNDMORE);
 
-  zmq::message_t ip_to_ban(bot_ip.size());
-  memcpy((void*)ip_to_ban.data(), bot_ip.c_str(), bot_ip.size());
-  socket.send(ip_to_ban);
+    zmq::message_t ip_to_ban(bot_ip.size());
+    memcpy((void*)ip_to_ban.data(), bot_ip.c_str(), bot_ip.size());
+    socket.send(ip_to_ban);
 
   //also asking fail2ban to ban
   //char fail2ban_cmd[1024] = "fail2ban-client set ats-filter banip ";
@@ -84,6 +89,11 @@ SwabberInterface::ban(string bot_ip)
 
   //TSDebug("banjax", "banning client ip: %s", iptable_ban_cmd);
   //system(iptable_ban_cmd);
+    TSMutexUnlock(swabber_mutex);
+  }
+  else
+    TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "Unable to get lock on the swabber socket");
+
   ban_ip_list << bot_ip << endl;
 
 }
