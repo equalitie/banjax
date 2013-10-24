@@ -43,6 +43,9 @@ typedef std::map<std::string, IPState> IPHashTable;
 
 class IPDatabase
 {
+  friend class Banjax; //To access the mutex and assign it to the global 
+  //continuation
+
 protected:
   IPHashTable _ip_db;
   TSMutex db_mutex;
@@ -59,6 +62,14 @@ public:
      then return the current state
   */
   FilterState get_ip_state(std::string& ip, FilterIDType filter_id);
+
+  /**
+     constructor: is creating the mutex
+  */
+  IPDatabase()
+    :db_mutex(TSMutexCreate())
+  { }
+
 
 };
 

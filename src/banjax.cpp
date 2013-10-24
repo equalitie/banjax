@@ -76,8 +76,8 @@ Banjax::Banjax()
   
   TSDebug(BANJAX_PLUGIN_NAME.c_str(), "in the beginning");
 
-  //regex_mutex = TSMutexCreate();
-  global_contp = TSContCreate(ATSEventHandler::banjax_global_eventhandler, NULL);
+  
+  global_contp = TSContCreate(ATSEventHandler::banjax_global_eventhandler, ip_database.db_mutex);
 
   BanjaxContinuation* cd = (BanjaxContinuation *) TSmalloc(sizeof(BanjaxContinuation));
   cd = new(cd) BanjaxContinuation(NULL); //no transaction attached to this cont

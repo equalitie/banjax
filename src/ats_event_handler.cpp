@@ -46,7 +46,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
   //raise(SIGINT);
   switch (event) {
   case TS_EVENT_HTTP_READ_REQUEST_HDR:
-    TSDebug("banjax", "request" );
+    //TSDebug("banjax", "request" );
     if(contp != Banjax::global_contp) {
       cd = (BanjaxContinuation *) TSContDataGet(contp);
       handle_request(cd);
@@ -71,7 +71,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
     }
     break;
   case TS_EVENT_HTTP_SEND_RESPONSE_HDR:
-    TSDebug("banjax", "response" );
+    //TSDebug("banjax", "response" );
     if (contp != Banjax::global_contp) {
       cd = (BanjaxContinuation *) TSContDataGet(contp);
       handle_response(cd);
@@ -194,7 +194,7 @@ ATSEventHandler::handle_txn_start(TSCont global_contp, TSHttpTxn txnp)
   /* create the data that'll be associated with the continuation */
   cd = (BanjaxContinuation *) TSmalloc(sizeof(BanjaxContinuation));
   cd = new(cd) BanjaxContinuation(txnp);
-  TSDebug("banjax", "New continuation data at %lu", (unsigned long)cd);
+  //TSDebug("banjax", "New continuation data at %lu", (unsigned long)cd);
   TSContDataSet(txn_contp, cd);
 
   cd->contp = txn_contp;

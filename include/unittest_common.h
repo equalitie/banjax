@@ -7,8 +7,8 @@
 void TSDebug(const char* tag, const char* format_str, ...);
 void TSError(const char* fmt, ...) ;
 
+tsapi void TSMutexUnlock(TSMutex mutexp);
 tsapi TSReturnCode TSMutexLockTry(TSMutex mutexp);
-
 tsapi void TSMutexUnlock(TSMutex mutexp);
 
 #endif

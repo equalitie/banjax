@@ -42,7 +42,7 @@ RegexManager::load_config(libconfig::Setting& cfg)
        unsigned int observation_interval = banned_regexes_list[i]["interval"];
        unsigned int threshold  = banned_regexes_list[i]["hits_per_interval"];
        
-       rated_banning_regexes.push_back(new RatedRegex(new RE2((const char*)(banned_regexes_list[i]["regex"])), observation_interval *1000, threshold /(double)(observation_interval)));
+       rated_banning_regexes.push_back(new RatedRegex(new RE2((const char*)(banned_regexes_list[i]["regex"])), observation_interval * 1000, threshold /(double)(observation_interval* 1000)));
        
      }
 
@@ -87,14 +87,20 @@ RegexManager::parse_request(string ip, string ats_record)
             long time_window_movement = cur_time_msec - cur_ip_state.detail.begin_msec - (*it)->interval;
             if (time_window_movement > 0) { //we need to move
               cur_ip_state.detail.begin_msec += time_window_movement;
-              cur_ip_state.detail.rate = cur_ip_state.detail.rate - (cur_ip_state.detail.rate - 1) * time_window_movement/(double) (*it)->interval;
+              cur_ip_state.detail.rate = cur_ip_state.detail.rate - (cur_ip_state.detail.rate * time_window_movement - 1)/(double) (*it)->interval;
               cur_ip_state.detail.rate =  cur_ip_state.detail.rate < 0 ? 0 : cur_ip_state.detail.rate; //just to make sure
             }
-            TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "with rate %f", cur_ip_state.detail.rate);
+            else {
+              //we are still in the same interval so just increase the hit by 1
+              cur_ip_state.detail.rate += 1/(double) (*it)->interval;
+            }
+            TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "with rate %f /msec", cur_ip_state.detail.rate);
             ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.state_allocator);
           }
-          if (cur_ip_state.detail.rate >= (*it)->rate)
+          if (cur_ip_state.detail.rate >= (*it)->rate) {
+            TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "exceeding excessive rate %f /msec", (*it)->rate);
             return REGEX_MATCHED;
+          }
         }
     }
 
