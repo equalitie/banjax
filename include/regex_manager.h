@@ -86,9 +86,10 @@ class RegexManager : public BanjaxFilter
      later we can ask more if it is needed
    */
   uint64_t requested_info() { return 
-      TransactionMuncher::IP   |
-      TransactionMuncher::URL  |
-      TransactionMuncher::HOST |
+      TransactionMuncher::IP     |
+      TransactionMuncher::METHOD |
+      TransactionMuncher::URL    |
+      TransactionMuncher::HOST   |
       TransactionMuncher::UA;}    
 
   /**

@@ -113,8 +113,9 @@ FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
 {
   const string sep(" ");
   TransactionParts ats_record_parts = (TransactionParts) transaction_parts;
-  string ats_record =  ats_record_parts[TransactionMuncher::URL] + sep;
+  string ats_record =  ats_record_parts[TransactionMuncher::METHOD] + sep;
 
+  ats_record+= ats_record_parts[TransactionMuncher::URL] + sep;
   ats_record+= ats_record_parts[TransactionMuncher::HOST] + sep;
   ats_record+= ats_record_parts[TransactionMuncher::UA];
 
