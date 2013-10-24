@@ -6,6 +6,8 @@
 #ifndef FILTER_LIST_H
 #define FILTER_LIST_H
 
+#include <string>
+
 enum FilterIDType {
   REGEX_BANNER_FILTER_ID,
   CHALLENGER_FILTER_ID,

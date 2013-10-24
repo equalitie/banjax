@@ -2,10 +2,9 @@ ACLOCAL_AMFLAGS = -I config-aux --install
 
 AM_CXXFLAGS = -Werror -Wall -Wextra -Wformat=2 -std=c++0x
 
-AM_CPPFLAGS = -I../include -I$(srcdir)/src $(lib_CPPFLAGS)
+AM_CPPFLAGS = -I../include -I$(srcdir)/src -I/usr/local/trafficserver/include $(lib_CPPFLAGS) 
 
 LIBLIST=-l re2 -l zmq -l config++
-
 
 lib_LTLIBRARIES = banjax.la
 

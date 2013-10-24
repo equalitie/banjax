@@ -12,12 +12,27 @@ invoke following sequences of command
 
        libtoolize
        aclocal
-       automake
+       automake --add-missing
        autoconf
        ./configure --libdir=/usr/local/trafficserver/modules
        make
        make install
 
+HACK:
+if configure complains that libre2 isn't there but you are sure 
+you have already installed it, then
+
+	cp libre2.pc /usr/lib/pkgconfig/
+
 Debugging:
  If you would like to debug banjax in gdb you need to configure it as follow:
        ./configure --libdir=/usr/local/trafficserver/modules CXXFLAGS="-g2 -O0"
+
+You also need google test framework to be installed
+
+wget http://googletest.googlecode.com/files/gtest-1.7.0.zip
+unzip gtest-1.7.0.zip
+cd gtest-1.7.0
+./configure
+make
+cp lib/.lib/libgtest*.a /usr/lib
