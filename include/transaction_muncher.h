@@ -47,7 +47,8 @@ class TransactionMuncher{
       HOST           = 0x04,
       UA             = 0x08,
       COOKIE         = 0x10,
-      URL_WITH_HOST  = 0x20
+      URL_WITH_HOST  = 0x20,
+      METHOD         = 0x40
     };
 
     enum PARTS_ERROR {

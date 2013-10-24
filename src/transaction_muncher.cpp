@@ -123,7 +123,23 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
     TSHandleMLocRelease(request_header, header_location, url_loc);
     //TSfree(url);
   } 
-  
+
+  //METHOD
+  if (parts_to_retreive & TransactionMuncher::METHOD) {
+    int method_length;
+    const char* http_method = TSHttpHdrMethodGet(request_header, header_location, &method_length);
+
+    if (!http_method){
+      TSError("couldn't retrieve request method\n");
+      throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+    }
+
+    //I'm not sure if we need to release URL explicitly
+    //my guess is not
+    cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::METHOD, string(http_method,method_length)));
+
+  } 
+   
   if (parts_to_retreive & TransactionMuncher::HOST) {
     TSMLoc host_loc = TSMimeHdrFieldFind(request_header, header_location, TS_MIME_FIELD_HOST, TS_MIME_LEN_HOST);
 
