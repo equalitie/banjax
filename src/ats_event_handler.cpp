@@ -123,19 +123,25 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
 
   bool continue_filtering = true;
   for(list<BanjaxFilter*>::iterator cur_filter = banjax->filters.begin(); continue_filtering && cur_filter != banjax->filters.end(); cur_filter++) {
-    FilterResponse cur_filter_result = (*cur_filter)->execute(cur_trans_parts);
-    switch (cur_filter_result.response_type) 
+    FilterResponse* cur_filter_result = (*cur_filter)->execute(cur_trans_parts);
+    switch (cur_filter_result->response_type) 
       {
       case FilterResponse::GO_AHEAD_NO_COMMENT:
+        delete cur_filter_result;
+        cur_filter_result = NULL;
         continue;
         
       case FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY: //This is when the requester is white listed
+        delete cur_filter_result;
+        cur_filter_result = NULL;
         continue_filtering = false;
         break;
 
 
       case FilterResponse::I_RESPOND:
+        // from here on, cur_filter_result is owned by the continuation data.
         cd->response_info = cur_filter_result;
+        cur_filter_result = NULL;
         cd->responding_filter = *cur_filter;
         cd->response_generator = &BanjaxFilter::generate_response;
         TSHttpTxnHookAdd(cd->txnp, TS_HTTP_SEND_RESPONSE_HDR_HOOK, cd->contp);
@@ -178,12 +184,12 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
     if (TSHttpTxnClientRespGet(cd->txnp, &bufp, &locp) == TS_SUCCESS) {
       // Return values of TSHttpHdrxxx intentionally ignored, there's not much
       // we can do in case of failure.
-      TSHttpHdrStatusSet(bufp, locp, (TSHttpStatus)cd->response_info.response_code);
+      TSHttpHdrStatusSet(bufp, locp, (TSHttpStatus)cd->response_info->response_code);
       // Blank out the status description
       TSHttpHdrReasonSet(bufp, locp, "", 0);
       TSHandleMLocRelease (bufp, TS_NULL_MLOC, locp);
     }
-    TSHttpTxnErrorBodySet(cd->txnp, buf, len, cd->response_info.content_type);
+    TSHttpTxnErrorBodySet(cd->txnp, buf, len, cd->response_info->get_and_release_content_type());
   }
 
   TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_CONTINUE);

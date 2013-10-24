@@ -48,7 +48,7 @@ class WhiteLister : public BanjaxFilter
      overloaded execute to execute the filter, it assemble the
      parts to make ats record and then call the parse log
   */
-  FilterResponse execute(const TransactionParts& transaction_parts);
+  FilterResponse* execute(const TransactionParts& transaction_parts);
 
   /**
      we do not overload generate_respons cause we have no response to generate

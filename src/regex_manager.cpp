@@ -66,7 +66,7 @@ RegexManager::parse_request(string ats_record)
 
 }
 
-FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
+FilterResponse* RegexManager::execute(const TransactionParts& transaction_parts)
 {
 
   const string sep(" ");
@@ -83,17 +83,17 @@ FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
     
     //here instead we are calling nosmos's banning client
     swabber_interface.ban(ats_record_parts[TransactionMuncher::IP].c_str());
-    return FilterResponse(FilterResponse::I_RESPOND);
+    return new FilterResponse(FilterResponse::I_RESPOND);
 
   } else if (result != REGEX_MISSED) {
     TSError("Regex failed with error: %d\n", result);
   }
 
-  return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+  return new FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
                     
 }
 
-std::string RegexManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
+std::string RegexManager::generate_response(const TransactionParts& transaction_parts, FilterResponse* response_info)
 {
   (void)transaction_parts; (void)response_info;
   const string Forbidden_Message("<html><header></header><body>Forbidden</body></html>");

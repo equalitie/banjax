@@ -54,7 +54,7 @@ public:
        @param main_root the root of the configuration structure
     */
  ChallengeManager(const string& banjax_dir, const libconfig::Setting& main_root)
-   :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html")
+    :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html")
   {
     load_config(main_root[BANJAX_FILTER_NAME], banjax_dir);
   }
@@ -93,12 +93,12 @@ public:
      overloaded execute to execute the filter, It calls cookie checker
      and if it fails ask for responding by the filter.
   */
-  FilterResponse execute(const TransactionParts& transaction_parts);
+  FilterResponse* execute(const TransactionParts& transaction_parts);
 
   /**
      This basically calls the function to generate the html
    */
-  virtual std::string generate_response(const TransactionParts& transaction_parts, FilterResponse& response_info);
+  virtual std::string generate_response(const TransactionParts& transaction_parts, FilterResponse* response_info);
 
     /**
      * Checks if the cookie is valid: sha256, ip, and time
@@ -115,7 +115,7 @@ public:
 	 */
 	std::string generate_token(std::string client_ip, long time);
 	
-	std::string generate_html(std::string ip, long time, std::string url, std::string host_header, FilterResponse& response_info);
+	std::string generate_html(std::string ip, long time, std::string url, std::string host_header, FilterResponse* response_info);
 
 
    typedef std::map<std::string, libconfig::Setting*> HostSettingsMap;

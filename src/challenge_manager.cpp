@@ -267,7 +267,7 @@ bool ChallengeManager::replace(string &original, string &from, string &to){
 }
 
 string ChallengeManager::generate_html(string ip, long t, string url, string host_header,
-                                       FilterResponse& response_info){
+                                       FilterResponse* response_info){
   if (ChallengeManager::is_captcha_url(url)) {
       unsigned char text[6];
       memset(text, 0, 6);
@@ -287,9 +287,9 @@ string ChallengeManager::generate_html(string ip, long t, string url, string hos
 
       TSDebug("banjax", "generated captcha [%.*s], cookie: [%s]", 6, (const char*)text, (const char*)cookie);
       // TODO(oschaaf): somehow, we must return a cookie and content-type 'image/gif' here
-      response_info.response_code = 200;
+      response_info->response_code = 200;
       // TODO: encapsulate this.
-      response_info.content_type = TSstrdup("image/gif");
+      response_info->set_content_type("image/gif");
       return std::string((const char*)gif, (int)gifsize);
   }
 
@@ -423,7 +423,7 @@ bool ChallengeManager::is_captcha_url(const std::string& url) {
    overloaded execute to execute the filter, It calls cookie checker
    and if it fails ask for responding by the filter.
 */
-FilterResponse 
+FilterResponse* 
 ChallengeManager::execute(const TransactionParts& transaction_parts)
 {
   /*
@@ -450,18 +450,18 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
 
   if (ChallengeManager::is_captcha_url(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
       TSDebug("banjax", "Intercept captcha image request");
-      return FilterResponse(FilterResponse::I_RESPOND);    
+      return new FilterResponse(FilterResponse::I_RESPOND);    
   } else
   if(!ChallengeManager::check_cookie(transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP))) {
       TSDebug("banjax", "cookie is not valid, sending challenge");
-      return FilterResponse(FilterResponse::I_RESPOND);
+      return new FilterResponse(FilterResponse::I_RESPOND);
   }  
 
-  return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+  return new FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
 
 }
 
-std::string ChallengeManager::generate_response(const TransactionParts& transaction_parts, FilterResponse& response_info)
+std::string ChallengeManager::generate_response(const TransactionParts& transaction_parts, FilterResponse* response_info)
 {
   long time_validity = time(NULL) + cookie_life_time; // TODO: one day validity for now, should be changed
 

@@ -16,6 +16,10 @@
  */
 BanjaxContinuation::~BanjaxContinuation()
 {
+    if (response_info != NULL) {
+      delete response_info;
+      response_info = NULL;
+    }
   // TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
 
   // TSCont temp_contp = contp;

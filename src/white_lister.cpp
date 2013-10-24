@@ -38,7 +38,7 @@ WhiteLister::load_config(libconfig::Setting& cfg)
 
 }
 
-FilterResponse WhiteLister::execute(const TransactionParts& transaction_parts)
+FilterResponse* WhiteLister::execute(const TransactionParts& transaction_parts)
 {
 
   for(list<string>::iterator it= white_list.begin(); it != white_list.end(); it++)
@@ -46,11 +46,11 @@ FilterResponse WhiteLister::execute(const TransactionParts& transaction_parts)
       if (*it == transaction_parts.at(TransactionMuncher::IP))
         {
           TSDebug("banjax", "white listed ip: %s", (*it).c_str());
-          return FilterResponse(FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
+          return new FilterResponse(FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
         }
     }
 
-  return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+  return new FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
                     
 }
 

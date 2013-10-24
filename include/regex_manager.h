@@ -66,9 +66,9 @@ class RegexManager : public BanjaxFilter
      overloaded execute to execute the filter, it assemble the
      parts to make ats record and then call the parse log
   */
-  FilterResponse execute(const TransactionParts& transaction_parts);
+  FilterResponse* execute(const TransactionParts& transaction_parts);
 
-  virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
+  virtual std::string generate_response(const TransactionParts& transaction_parts, FilterResponse* response_info);
 
 };
   
