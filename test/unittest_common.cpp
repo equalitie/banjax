@@ -21,6 +21,10 @@ void TSError(const char* fmt, ...)
   (void) fmt;
 }
 
+tsapi TSMutex TSMutexCreate(void)
+{
+  return NULL;
+}
 tsapi TSReturnCode TSMutexLockTry(TSMutex mutexp)
 {
   //each test has its own database, no multi-thread threat

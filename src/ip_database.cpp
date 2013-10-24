@@ -30,8 +30,6 @@ bool IPDatabase::set_ip_state(std::string& ip, FilterIDType filter_id, FilterSta
   IPHashTable::iterator cur_ip_it = _ip_db.find(ip);
   if (cur_ip_it == _ip_db.end()) {
     _ip_db[ip] = IPState();
-    for(unsigned int i = 0; i < NUMBER_OF_STATE_KEEPER_FILTERS; i++)
-      _ip_db[ip].state_array[i] = FilterState();
 
   }
 
