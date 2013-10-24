@@ -28,7 +28,7 @@ const string SwabberInterface::BAN_IP_LOG("/usr/local/trafficserver/logs/ban_ip_
 
 /* initiating the interface */ 
 SwabberInterface::SwabberInterface()
-  :context (1), socket (context, ZMQ_PUB), ban_ip_list(BAN_IP_LOG.c_str())
+  :context (1), socket (context, ZMQ_PUB), ban_ip_list(BAN_IP_LOG.c_str(), ios::out | ios::app)
 {
 
   TSDebug("banjax", "Connecting to swabber server...");
