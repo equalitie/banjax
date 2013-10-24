@@ -9,6 +9,8 @@
 #ifndef SWABBER_INTERFACE_H
 #define SWABBER_INTERFACE_H
 
+#include <fstream>
+
 class SwabberInterface
 {
  protected:
@@ -16,11 +18,15 @@ class SwabberInterface
   static const std::string SWABBER_PORT;
   static const std::string SWABBER_BAN;
 
+  static const std::string BAN_IP_LOG;
+
   static const unsigned int SWABBER_MAX_MSG_SIZE;
 
   //socket stuff
   zmq::context_t context;
   zmq::socket_t socket;
+
+  std::ofstream ban_ip_list;
 
  public:
   //Error list
