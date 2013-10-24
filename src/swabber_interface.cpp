@@ -24,16 +24,16 @@ const string SwabberInterface::SWABBER_BAN = "swabber_bans";
 
 const unsigned int SwabberInterface::SWABBER_MAX_MSG_SIZE = 1024;
 
+const string SwabberInterface::BAN_IP_LOG("/usr/local/trafficserver/logs/ban_ip_list.log");
 
 /* initiating the interface */ 
 SwabberInterface::SwabberInterface()
-  :context (1), socket (context, ZMQ_PUB)
+  :context (1), socket (context, ZMQ_PUB), ban_ip_list(BAN_IP_LOG.c_str())
 {
 
   TSDebug("banjax", "Connecting to swabber server...");
   string test_conn = "tcp://"+SWABBER_SERVER+":"+SWABBER_PORT;
   socket.bind(("tcp://"+SWABBER_SERVER+":"+SWABBER_PORT).c_str());
-
 
 }
 
@@ -78,10 +78,12 @@ SwabberInterface::ban(string bot_ip)
   socket.send(ip_to_ban);
 
   //also asking fail2ban to ban
-  char fail2ban_cmd[1024] = "fail2ban-client set ats-filter banip ";
-  strcat(fail2ban_cmd, bot_ip.c_str());
+  //char fail2ban_cmd[1024] = "fail2ban-client set ats-filter banip ";
+  //char iptable_ban_cmd[1024] = "iptables -A INPUT -j DROP -s ";
+  //strcat(iptable_ban_cmd, bot_ip.c_str());
 
-  TSDebug("banjax", "banning client ip: %s", fail2ban_cmd);
-  system(fail2ban_cmd);
+  //TSDebug("banjax", "banning client ip: %s", iptable_ban_cmd);
+  //system(iptable_ban_cmd);
+  ban_ip_list << bot_ip << endl;
 
 }
