@@ -40,6 +40,9 @@ std::string ChallengeManager::sub_time = "$time";
 std::string ChallengeManager::sub_url = "$url";
 std::string ChallengeManager::sub_zeros = "$zeros";
 
+// TODO(oschaaf): configuration
+const char* CAPTCHA_SECRET = "12345";
+
 /**
   Overload of the load config
   reads all the regular expressions from the database.
@@ -85,6 +88,7 @@ ChallengeManager::load_config(libconfig::Setting& cfg, const std::string& banjax
                  (int)html.size(), host_name.c_str());
        }
        
+       host_config.add("is_captcha", libconfig::Setting::TypeString) = challenge_file == "captcha.html" ? "1":"0";
        host_config.add("challenge_html", libconfig::Setting::TypeString) = html;
      }
 
@@ -267,30 +271,64 @@ bool ChallengeManager::replace(string &original, string &from, string &to){
 }
 
 string ChallengeManager::generate_html(string ip, long t, string url, string host_header,
-                                       FilterResponse* response_info){
+                                       const TransactionParts& transaction_parts, FilterResponse* response_info){  
   if (ChallengeManager::is_captcha_url(url)) {
-      unsigned char text[6];
-      memset(text, 0, 6);
-      
-      // We could also invent a text ourselves here:
-      // text[0]='h';text[1]='e';text[2]='l';text[3]='l';text[4]='o';text[5]='\0'
-      // When we memset the text to 0, libcaptcha will invent a random text for us.
+    unsigned char text[6];
+    memset(text, 0, 6);
+    
+    unsigned char im[70*200];
+    unsigned char gif[gifsize];
+    captcha(im,text);
+    makegif(im,gif);
+    
+    uchar cookie[100];
+    // TODO(oschaaf): 120 seconds for users to answer. configuration!
+    time_t curtime=time(NULL)+120;
+    GenerateCookie((uchar*)text, (uchar*)CAPTCHA_SECRET, curtime, (uchar*)ip.c_str(), cookie);
+    TSDebug("banjax", "generated captcha [%.*s], cookie: [%s]", 6, (const char*)text, (const char*)cookie);
+    response_info->response_code = 200;
+    response_info->set_content_type("image/gif");
+    std::string header;
+    header.append("dflct_c_token=");
+    header.append((char*)cookie);
+    header.append("; path=/;");
+    response_info->set_cookie_header.append(header.c_str());
+    return std::string((const char*)gif, (int)gifsize);
+  } else if (ChallengeManager::is_captcha_answer(url)) {
+    response_info->response_code = 200;
+    response_info->set_content_type("text/html");
+    std::string url = transaction_parts.at(TransactionMuncher::URL_WITH_HOST);
+    size_t found = url.rfind("__validate/");
 
-      unsigned char im[70*200];
-      unsigned char gif[gifsize];
-      captcha(im,text);
-      makegif(im,gif);
-
-      uchar cookie[100];
-      time_t curtime=time(NULL);
-      GenerateCookie((uchar*)text, (uchar*)"12345", curtime, (uchar*)"127.0.0.1", cookie);
-
-      TSDebug("banjax", "generated captcha [%.*s], cookie: [%s]", 6, (const char*)text, (const char*)cookie);
-      // TODO(oschaaf): somehow, we must return a cookie and content-type 'image/gif' here
-      response_info->response_code = 200;
-      // TODO: encapsulate this.
-      response_info->set_content_type("image/gif");
-      return std::string((const char*)gif, (int)gifsize);
+    std::string cookie = transaction_parts.at(TransactionMuncher::COOKIE);
+    std::string answer = url.substr(found + strlen("__validate/"));
+    int result = -100;
+    response_info->response_code = 403;
+    CookieParser cookie_parser;
+    const char* next_cookie = cookie.c_str();
+    while((next_cookie = cookie_parser.parse_a_cookie(next_cookie)) != NULL) {
+      if (!(memcmp(cookie_parser.str, "dflct_c_token", (int)(cookie_parser.nam_end - cookie_parser.str)))) {
+        time_t curtime = time(NULL);
+        result = ValidateCookie((uchar *)answer.c_str(), (uchar*)CAPTCHA_SECRET,
+                                curtime, (uchar*)ip.c_str(), (uchar *)cookie_parser.val_start);        
+        if (result == 1) {
+          response_info->response_code = 200;
+          uchar cookie[100];
+          // TODO(oschaaf): 2 hour validity. configuration!
+          GenerateCookie((uchar*)"", (uchar*)CAPTCHA_SECRET, curtime + 7200, (uchar*)ip.c_str(), cookie);
+          
+          std::string header;
+          header.append("dflct_c_token=");
+          header.append((char*)cookie);
+          header.append("; path=/;");
+          response_info->set_cookie_header.append(header.c_str());
+          return std::string("OK");
+        }
+        break;
+      }
+    }
+    TSDebug("banjax", "Intercept captcha answer: [%s], cookie: [%s], validate: [%d]", answer.c_str(), cookie_parser.val_start, result);    
+    return std::string("X");
   }
 
   // generate the token
@@ -302,26 +340,13 @@ string ChallengeManager::generate_html(string ip, long t, string url, string hos
     libconfig::Setting* setting = it->second;
     challenge_html.assign((const char*)(*setting)["challenge_html"]);
   }
-  // load the page
-  //ifstream ifs("../challenger/solver.html");
-  //TODO: Should not re-read the fiel upon each request
-  //We need to read the whole string from the database infact
-  //TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "Challenge html file for host: [%s] is [%s].",
-  //        host_header.c_str(), ChallengeManager::solver_page.c_str());
 
   stringstream ss(challenge_html.c_str());
-  
   string page( (istreambuf_iterator<char>(ss) ), (istreambuf_iterator<char>()) );
   TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(),
           "ChallengeManager::generate_html lookup for host [%s] found %d bytes of html.",
           host_header.c_str(), (int)page.size());
 
-  // TODO(oschaaf): if we could send these placeholder values as
-  // a cookie header instead of replacing them in the string
-  // the html would never change. Which would mean we could cache it
-  // on the proxy, or at least eliminate some copying / replacing.
-  // This would mean that the cookie has to be checked from javascript to
-  // aquire these values in the challenger html files.
   time_t rawtime = (time_t) t;
   struct tm *timeinfo;
   char buffer [30];
@@ -418,6 +443,10 @@ bool ChallengeManager::is_captcha_url(const std::string& url) {
   size_t found = url.rfind("__captcha");
   return found != std::string::npos;
 }
+bool ChallengeManager::is_captcha_answer(const std::string& url) {
+  size_t found = url.rfind("__validate/");
+  return found != std::string::npos;
+}
 
 /**
    overloaded execute to execute the filter, It calls cookie checker
@@ -429,45 +458,56 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
   /*
    * checking the cookie and serving the js challenge if does not pass
    */
-  /*  TSDebug("banjax", "Checking for challenge");
-
-    url_str = TSUrlStringGet (bufp, url_loc, &url_length);
-    time_validity = time(NULL) + 60*60*24; // TODO: one day validity for now, should be changed
-    //buf_str = ChallengeManager::generate_html(client_ip, time_validity, url_str);
-    buf_str = "This is a test";
-    buf = (char *) TSmalloc(buf_str.length()+1);
-    //strcpy(buf, buf_str.c_str());
-    
-    url_str = TSUrlStringGet (bufp, url_loc, &url_length);
-    time_validity = time(NULL) + 60*60*24; // TODO: one day validity for now, should be     
-  */ 
-  
-  //TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "url: %s", transaction_parts.at(TransactionMuncher::URL_WITH_HOST).c_str());
-  //const char* url = transaction_parts.at(TransactionMuncher::URL_WITH_HOST).c_str();
-  
-  
   TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE).c_str());
 
-  if (ChallengeManager::is_captcha_url(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
-      TSDebug("banjax", "Intercept captcha image request");
+
+  // look up if this host is serving captcha's or not
+  bool do_captcha = false;
+  HostSettingsMap::iterator it = host_settings_.find(transaction_parts.at(TransactionMuncher::HOST));
+  if (it != host_settings_.end()) {
+    libconfig::Setting* setting = it->second;
+    do_captcha = ((const char*)(*setting)["is_captcha"])[0] == '1';
+  }
+
+  if (do_captcha) { 
+    if (ChallengeManager::is_captcha_url(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
       return new FilterResponse(FilterResponse::I_RESPOND);    
-  } else
-  if(!ChallengeManager::check_cookie(transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP))) {
-      TSDebug("banjax", "cookie is not valid, sending challenge");
+    } else if (ChallengeManager::is_captcha_answer(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
       return new FilterResponse(FilterResponse::I_RESPOND);
-  }  
+    }
+    
+    CookieParser cookie_parser;
+    std::string cookie = transaction_parts.at(TransactionMuncher::COOKIE);
+    const char* next_cookie = cookie.c_str();
+    int result = 100;
+    time_t curtime = time(NULL);
+    while((next_cookie = cookie_parser.parse_a_cookie(next_cookie)) != NULL) {
+      if (!(memcmp(cookie_parser.str, "dflct_c_token", (int)(cookie_parser.nam_end - cookie_parser.str)))) {
+        result = ValidateCookie((uchar*)"", (uchar*)CAPTCHA_SECRET,
+                                curtime, (uchar*)transaction_parts.at(TransactionMuncher::IP).c_str(),
+                                (uchar*)cookie_parser.val_start);
+        break;
+      }
+    }
+    if (result == 1) {
+      return new FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+    } else {
+      return new FilterResponse(FilterResponse::I_RESPOND);
+    }
+  }
+  else {
+    if(!ChallengeManager::check_cookie(transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP))) {
+      return new FilterResponse(FilterResponse::I_RESPOND);
+    }
+  }
 
   return new FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
-
 }
 
 std::string ChallengeManager::generate_response(const TransactionParts& transaction_parts, FilterResponse* response_info)
 {
   long time_validity = time(NULL) + cookie_life_time; // TODO: one day validity for now, should be changed
-
   return generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity, transaction_parts.at(TransactionMuncher::URL_WITH_HOST),
-                       transaction_parts.at(TransactionMuncher::HOST), response_info);
-  /*char* buf = (char *) TSmalloc(buf_str.length()+1);
-    strcpy(buf, buf_str.c_str());*/
+                       transaction_parts.at(TransactionMuncher::HOST), transaction_parts, response_info);
 
 }

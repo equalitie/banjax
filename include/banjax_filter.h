@@ -39,6 +39,7 @@ public:
 
    unsigned int response_type;
    void* response_data;
+   std::string set_cookie_header;
    // Returns the set content type. Transfers
    // ownership to the caller.
    char* get_and_release_content_type() {
@@ -112,7 +113,6 @@ class BanjaxFilter
     BANJAX_FILTER_NAME(child_name)
   {
     (void) banjax_dir; (void) main_root;
-    
   }
  
   /**

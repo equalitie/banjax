@@ -24,7 +24,7 @@
        $("#d2").load("/__validate/" + document.getElementById("answer").value, done);
     }
     function done()  {
-      var solved = $("#d1").text() == "OK";
+      var solved = $("#d2").text() == "OK";
       if (solved) { 
         $("#d2").text("Solved! Redirecting to destination..");
         document.location.reload();
@@ -36,15 +36,22 @@
         $("#answer").val("");
       }
     }
+
+    $( function()  { 
+        $("#answer").keypress(function(event) { 
+          if (event.which == 13)  {
+             check();
+          }
+        });
+     } 
+    )
   </script>
   <td align="center" valign="center">
     <span id="d1">
     <p id="intro">Are you human? Proove it. Please enter the displayed text and submit.</p>
     <img width="210" height="70" src="__captcha" id='captchaimg' /><input type="button" value="Regenerate" onclick="document.getElementById('captchaimg').src=document.getElementById('captchaimg').src;"/><br/>
     <div>
-    <form>
-    Captcha text: <input type="text" maxlength="5" id="answer" /><input type="button" value="Send" onclick="check()"/>
-    </form>
+    Captcha text: <input type="text" maxlength="5" id="answer" onkeydown="kd()" /><input type="button" value="Send" onclick="check()"/>
     </div>
     </span>
     <span id="d2" style="display:none">

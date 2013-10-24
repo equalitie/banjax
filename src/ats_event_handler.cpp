@@ -164,6 +164,28 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
 
 }
 
+void add_header(TSMBuffer bufp, TSMLoc hdr_loc, const char * header_name, const char * header_value)
+{
+  TSMLoc field_loc = NULL;//TSMimeHdrFieldFind( bufp, hdr_loc, header_name, -1);
+
+  if (field_loc) {
+    TSMimeHdrFieldValueStringSet(bufp, hdr_loc, field_loc, -1, header_value, -1);
+  } else {
+    if ( TSMimeHdrFieldCreate(bufp, hdr_loc, &field_loc) == TS_SUCCESS ) {
+      TSMimeHdrFieldNameSet(bufp, hdr_loc, field_loc, header_name, -1);
+      TSMimeHdrFieldAppend(bufp, hdr_loc, field_loc);
+      TSMimeHdrFieldValueStringSet(bufp,hdr_loc,field_loc,-1,header_value,-1);
+    } else {
+      TSError("field creation error for field [%s]", header_name);
+      return;
+    }
+  }
+
+  if (field_loc) {
+    TSHandleMLocRelease(bufp,hdr_loc,field_loc);
+  }
+}
+
 void
 ATSEventHandler::handle_response(BanjaxContinuation* cd)
 {
@@ -187,6 +209,12 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
       TSHttpHdrStatusSet(bufp, locp, (TSHttpStatus)cd->response_info->response_code);
       // Blank out the status description
       TSHttpHdrReasonSet(bufp, locp, "", 0);
+
+      if (cd->response_info->set_cookie_header.size()) {
+        add_header(bufp, locp, "Set-Cookie",
+                   cd->response_info->set_cookie_header.c_str());
+      }
+      
       TSHandleMLocRelease (bufp, TS_NULL_MLOC, locp);
     }
     TSHttpTxnErrorBodySet(cd->txnp, buf, len, cd->response_info->get_and_release_content_type());

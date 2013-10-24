@@ -1,5 +1,5 @@
 /*
- * Banjex is an ATS plugin that:
+ * Banjax is an ATS plugin that:
  *                    enforce regex bans 
  *                    store logs in a mysql db
  *                    run SVM on the log result

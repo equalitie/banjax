@@ -5,7 +5,7 @@
  *  Vmon, Setp 2013: Migrate to modular filter structure
  */
 #ifndef CHALLENGE_MANAGER_H
-#define CHALENGE_MANAGER_H
+#define CHALLENGE_MANAGER_H
 
 #include <string>
 #include <vector>
@@ -46,6 +46,7 @@ protected:
 	std::string base64_encode(const std::string &data);
 	std::string base64_decode(const char* data, const char* data_end);
         bool is_captcha_url(const std::string& url);
+        bool is_captcha_answer(const std::string& url);
 public:
     /**
        construtor which receives the config object, set the filter 
@@ -115,7 +116,8 @@ public:
 	 */
 	std::string generate_token(std::string client_ip, long time);
 	
-	std::string generate_html(std::string ip, long time, std::string url, std::string host_header, FilterResponse* response_info);
+	std::string generate_html(std::string ip, long time, std::string url, std::string host_header,
+                                  const TransactionParts& transaction_parts, FilterResponse* response_info);
 
 
    typedef std::map<std::string, libconfig::Setting*> HostSettingsMap;
