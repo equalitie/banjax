@@ -1,16 +1,19 @@
 ACLOCAL_AMFLAGS = -I config-aux --install
 AM_CXXFLAGS = -Werror -Wall -Wextra -Wformat=2 -std=c++0x
-AM_CPPFLAGS = -I../include $(lib_CPPFLAGS)
+AM_CPPFLAGS = -I../include -I/usr/local/trafficserver/include $(lib_CPPFLAGS) -pthread
 
 noinst_PROGRAMS  = unittests
+
+LIBLIST=-lre2 -lzmq -lconfig++
 
 unittests_LDFLAGS = \
 	-module \
 	-shared \
 	-avoid-version \
 	-lconfig++ -lre2 \
+	-lgtest \
 	-lgtest_main \
-	-lgtest
+	$(LIBLIST)
 
 unittests_LDADD =   $(lib_LIBS)
 unittests_SOURCES = unittest_common.cpp \
