@@ -291,7 +291,7 @@ string ChallengeManager::generate_html(string ip, long t, string url, string hos
     std::string header;
     header.append("dflct_c_token=");
     header.append((char*)cookie);
-    header.append("; path=/;");
+    header.append("; path=/; HttpOnly");
     response_info->set_cookie_header.append(header.c_str());
     return std::string((const char*)gif, (int)gifsize);
   } else if (ChallengeManager::is_captcha_answer(url)) {
@@ -308,19 +308,21 @@ string ChallengeManager::generate_html(string ip, long t, string url, string hos
     const char* next_cookie = cookie.c_str();
     while((next_cookie = cookie_parser.parse_a_cookie(next_cookie)) != NULL) {
       if (!(memcmp(cookie_parser.str, "dflct_c_token", (int)(cookie_parser.nam_end - cookie_parser.str)))) {
+        std::string captcha_cookie(cookie_parser.val_start, cookie_parser.val_end - cookie_parser.val_start);
+        TSDebug("banjax", "Challenge cookie: [%s] based on ip[%s]", captcha_cookie.c_str(), transaction_parts.at(TransactionMuncher::IP).c_str());
         time_t curtime = time(NULL);
         result = ValidateCookie((uchar *)answer.c_str(), (uchar*)CAPTCHA_SECRET,
-                                curtime, (uchar*)ip.c_str(), (uchar *)cookie_parser.val_start);        
+                                curtime, (uchar*)ip.c_str(), (uchar *)captcha_cookie.c_str());        
         if (result == 1) {
           response_info->response_code = 200;
           uchar cookie[100];
           // TODO(oschaaf): 2 hour validity. configuration!
           GenerateCookie((uchar*)"", (uchar*)CAPTCHA_SECRET, curtime + 7200, (uchar*)ip.c_str(), cookie);
-          
+          TSDebug("banjax", "Set cookie: [%.*s] based on ip[%s]", 100, (char*)cookie, ip.c_str());
           std::string header;
           header.append("dflct_c_token=");
           header.append((char*)cookie);
-          header.append("; path=/;");
+          header.append("; path=/; HttpOnly");
           response_info->set_cookie_header.append(header.c_str());
           return std::string("OK");
         }
@@ -483,9 +485,11 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
     time_t curtime = time(NULL);
     while((next_cookie = cookie_parser.parse_a_cookie(next_cookie)) != NULL) {
       if (!(memcmp(cookie_parser.str, "dflct_c_token", (int)(cookie_parser.nam_end - cookie_parser.str)))) {
+        std::string captcha_cookie(cookie_parser.val_start, cookie_parser.val_end - cookie_parser.val_start);
+        TSDebug("banjax", "Challenge cookie: [%s] based on ip[%s]", captcha_cookie.c_str(), transaction_parts.at(TransactionMuncher::IP).c_str());
         result = ValidateCookie((uchar*)"", (uchar*)CAPTCHA_SECRET,
                                 curtime, (uchar*)transaction_parts.at(TransactionMuncher::IP).c_str(),
-                                (uchar*)cookie_parser.val_start);
+                                (uchar*)captcha_cookie.c_str());
         break;
       }
     }
