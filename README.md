@@ -97,7 +97,7 @@ running unittests in banjax/test will run the unittests corresponding to banjax 
 
 Debugging
 ----------
-    If you would like to debug banjax in gdb you need to configure it as follow:
+If you would like to debug banjax in gdb you need to configure it as follow:
        ./configure --libdir=/usr/local/trafficserver/modules CXXFLAGS="-g2 -O0"
 
 
