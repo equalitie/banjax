@@ -100,7 +100,6 @@ Debugging
 If you would like to debug banjax in gdb you need to configure it as follow:
        ./configure --libdir=/usr/local/trafficserver/modules CXXFLAGS="-g2 -O0"
 
-
 Available Filters
 =================
 Currently 3 filters are implemented in Banjax. One can configure each filter behavior in banjax.conf. The configuration of each filter should start with the name of the filter followed by colon, then the configuration will stays between {} followed by semi-colon. 
