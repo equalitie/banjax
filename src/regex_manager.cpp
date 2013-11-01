@@ -37,7 +37,7 @@ RegexManager::load_config(libconfig::Setting& cfg)
      //now we compile all of them and store them for later use
  
      for(unsigned int i = 0; i < count; i++) {
-       TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "initiating rule %s", ((const char*) banned_regexes_list[i]["rule"]));
+       TSDebug(BANJAX_PLUGIN_NAME, "initiating rule %s", ((const char*) banned_regexes_list[i]["rule"]));
 
        unsigned int observation_interval = banned_regexes_list[i]["interval"];
        unsigned int threshold  = banned_regexes_list[i]["hits_per_interval"];
@@ -66,7 +66,7 @@ RegexManager::parse_request(string ip, string ats_record)
   for(list<RatedRegex*>::iterator it=rated_banning_regexes.begin(); it != rated_banning_regexes.end(); it++)
     {
       if (RE2::FullMatch(ats_record, *((*it)->re2_regex))) {
-        TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "requests matched %s", (char*)((*it)->re2_regex->pattern()).c_str());
+        TSDebug(BANJAX_PLUGIN_NAME, "requests matched %s", (char*)((*it)->re2_regex->pattern()).c_str());
 
           /* we need to check the rate condition here */
           //getting current time in msec
@@ -80,7 +80,7 @@ RegexManager::parse_request(string ip, string ats_record)
             cur_ip_state.detail.begin_msec = cur_time_msec;
             cur_ip_state.detail.rate = 0;
             ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.state_allocator);
-
+p
           } else { //we have a record, update the rate and ban if necessary.
             //we move the interval by the differences of the "begin_in_ms - cur_time_msec - interval*1000"
             //if it is less than zero we don't do anything
@@ -94,11 +94,11 @@ RegexManager::parse_request(string ip, string ats_record)
               //we are still in the same interval so just increase the hit by 1
               cur_ip_state.detail.rate += 1/(double) (*it)->interval;
             }
-            TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "with rate %f /msec", cur_ip_state.detail.rate);
+            TSDebug(BANJAX_PLUGIN_NAME, "with rate %f /msec", cur_ip_state.detail.rate);
             ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.state_allocator);
           }
           if (cur_ip_state.detail.rate >= (*it)->rate) {
-            TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "exceeding excessive rate %f /msec", (*it)->rate);
+            TSDebug(BANJAX_PLUGIN_NAME, "exceeding excessive rate %f /msec", (*it)->rate);
             return REGEX_MATCHED;
           }
         }
@@ -119,10 +119,10 @@ FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
   ats_record+= ats_record_parts[TransactionMuncher::HOST] + sep;
   ats_record+= ats_record_parts[TransactionMuncher::UA];
 
-  TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "Examining %s for banned matches", ats_record.c_str());
+  TSDebug(BANJAX_PLUGIN_NAME, "Examining %s for banned matches", ats_record.c_str());
   RegexResult result = parse_request(ats_record_parts[TransactionMuncher::IP],ats_record);
   if (result == REGEX_MATCHED) {
-    TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "asking swabber to ban client ip: %s", ats_record_parts[TransactionMuncher::IP].c_str());
+    TSDebug(BANJAX_PLUGIN_NAME, "asking swabber to ban client ip: %s", ats_record_parts[TransactionMuncher::IP].c_str());
     
     //here instead we are calling nosmos's banning client
     swabber_interface.ban(ats_record_parts[TransactionMuncher::IP].c_str());
@@ -136,9 +136,10 @@ FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
                     
 }
 
-std::string RegexManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
+char* RegexManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
 {
   (void)transaction_parts; (void)response_info;
-  const string Forbidden_Message("<html><header></header><body>Forbidden</body></html>");
+  char* forbidden_response = new char[forbidden_message_length+1];
+  memcpy(forbidden_response, forbidden_message, (forbidden_message_length+1)*sizeof(char));
   return Forbidden_Message;
 }
