@@ -118,7 +118,7 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
     //I'm not sure if we need to release URL explicitly
     //my guess is not
     cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL_WITH_HOST, string(url,url_length)));
-    TSDebug("banjax", "resp url %s", cur_trans_parts[TransactionMuncher::URL_WITH_HOST].c_str());
+    TSDebug(BANJAX_PLUGIN_NAME, "resp url %s", cur_trans_parts[TransactionMuncher::URL_WITH_HOST].c_str());
     
     TSHandleMLocRelease(request_header, header_location, url_loc);
     //TSfree(url);
@@ -221,6 +221,30 @@ TransactionMuncher::retrieve_response_parts(uint64_t requested_log_parts)
   if (!response_header) retrieve_response_header();
 
   valid_parts |= requested_log_parts;
+
+  TSHttpStatus resp_status;
+
+  resp_status = TSHttpHdrStatusGet(response_header, response_header_location);
+
+  transaction_parts[CONTENT_LENGTH] = to_string(resp_status);
+
+  if (TS_HTTP_STATUS_OK == ()) {
+
+    field_loc = TSMimeHdrFieldFind(bufp, hdr_loc, "Content-Length", 12);
+    if (!field_loc) {
+      transaction_parts[CONTENT_LENGTH] = "0";
+    }
+    else {
+      int field_length;
+      char* content_length = TSMimeHdrFieldValueStringGet(bufp, response_header_location, field_loc, 0, &field_length);
+      
+      transaction_parts[CONTENT_LENGTH] = string(content_length, field_length);
+
+    }
+        
+  }
+
+  TSHandleMLocRelease(bufp, TS_NULL_MLOC, hdr_loc));
 
   return cur_trans_parts;
 

@@ -10,8 +10,6 @@
 #include "banjax_filter.h"
 #include "transaction_muncher.h"
 
-class Banjax;
-
 class BanjaxContinuation{
 
  public:
@@ -25,7 +23,6 @@ class BanjaxContinuation{
   TSHttpTxn txnp;
   TSCont contp;
 
-  Banjax* cur_banjax_inst;
   TransactionMuncher transaction_muncher;
   FilterResponse response_info;
 

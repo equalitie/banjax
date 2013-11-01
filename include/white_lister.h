@@ -25,6 +25,7 @@ class WhiteLister : public BanjaxFilter
  WhiteLister(const std::string& banjax_dir, const libconfig::Setting& main_root)
    :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME)
   {
+    QueuedTasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&WhiteLister::execute);
     load_config(main_root[BANJAX_FILTER_NAME]);
   }
 
