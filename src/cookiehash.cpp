@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <openssl/sha.h>
+#include <openssl/hmac.h>
 #include <string.h>
+#include <string>
 
 #include "../include/cookiehash.h"
+#include "../include/base64.h"
 
 static char hex_chars[]={'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
 // Generate a cookie hash over :
@@ -22,14 +25,13 @@ void GenerateCookieHash(uchar *captcha,uchar *secret,time_t valid_till_timestamp
 
   memcpy(ibufp,&valid_till_timestamp,sizeof(valid_till_timestamp));
   ibufp+=sizeof(valid_till_timestamp);
-  memcpy(ibufp,secret,SECRET_LENGTH);
-  ibufp+=SECRET_LENGTH;
   memcpy(ibufp,remoteaddress,tlen=strlen((char*)remoteaddress));
   ibufp+=tlen;
   memcpy(ibufp,captcha,tlen=strlen((char*)captcha));
   ibufp+=tlen;
   int totallen=ibufp-ibuf;
-  SHA1(ibuf,totallen,obuf);
+  int retlen=HASH_LENGTH;
+  char *ret=HMAC(EVP_sha1(),secret,SECRET_LENGTH,ibuf,totallen,obuf,&retlen);  
 }
 
 // Generate a cookie over :
@@ -51,17 +53,9 @@ int GenerateCookie(uchar *captcha,uchar *secret,time_t valid_till_timestamp,ucha
   memcpy(cookie+HASH_LENGTH,&valid_till_timestamp,sizeof(time_t));
   // optimize
   char *cookie_outp = (char*)cookiestring_out;
-  for(unsigned int c=0;c<COOKIE_LENGTH;c++)
-  {
-    *cookie_outp++=hex_chars[cookie[c]>>4];
-    *cookie_outp++=hex_chars[cookie[c]&15];
-    //sprintf(cookiestring_out+2*c,"%02x",cookie[c]);
-  }
-  *cookie_outp=0;;
-
-
-
-  //cookiestring_out[2*c]=0;
+  std::string ci=std::string(cookie,COOKIE_LENGTH);
+  std::string co=Base64::Encode(ci);
+  strcpy(cookiestring_out,co.c_str());
   return 1;
 }
 //optimize
@@ -96,12 +90,10 @@ int ValidateCookie(uchar *captcha,uchar *secret,time_t current_timestamp,uchar *
 {
   char cookie[COOKIE_LENGTH];
   char hash[HASH_LENGTH];
-  if (strlen((char*)cookiestring)!=(COOKIE_LENGTH*2))
+  if (strlen((char*)cookiestring)!=(int)((COOKIE_LENGTH*4+3)/3))
     return -3;
-  for (unsigned int c=0;c<COOKIE_LENGTH;c++)
-  {
-    cookie[c]=parsehexbyte(cookiestring+2*c);
-  }
+  std::string cookiedata=Base64::Decode((char *)cookiestring,cookiestring+strlen(cookiestring));
+  memcpy(cookie,cookiedata.c_str(),COOKIE_LENGTH);
   time_t *valid_until_timestamp=(time_t *)(cookie+HASH_LENGTH);
   GenerateCookieHash(captcha,secret,*valid_until_timestamp,remoteaddress,(uchar*)hash);
   if (memcmp(cookie,hash,HASH_LENGTH))
@@ -123,16 +115,18 @@ int main()
 {
   uchar cookie[100];
   time_t curtime=time(NULL);
-  for(int c=0;c<10000000;c++)
+  for(int c=0;c<1000000;c++)
   {
     GenerateCookie("hallo",secret,curtime,"127.0.0.1",cookie);
     int ret=ValidateCookie("hallo",secret,curtime,"127.0.0.1",cookie);
     int fail1=ValidateCookie("hallo2",secret,curtime,"127.0.0.1",cookie);
     int fail2=ValidateCookie("hallo",secret,curtime,"125.0.0.1",cookie);
     int fail3=ValidateCookie("hallo",secret,curtime+100,"127.0.0.1",cookie);
-    if (ret!=1 || fail1!=-1 || fail2!=-1 || fail3!=-2)
+    int fail4=ValidateCookie("hallo",secret,curtime,"127.0.0.1",cookie);
+
+    if (ret!=1 || fail1!=-1 || fail2!=-1 || fail3!=-2 || fail4!=1)
     {
-      printf("%d %d %d %d \n%ld %ld\n ",ret,fail1,fail2,fail3,curtime,curtime+100);
+      printf("%d %d %d %d %d\n%ld %ld\n ",ret,fail1,fail2,fail3,fail4,curtime,curtime+100);
     }
   }
   time_t ct2=time(NULL);
@@ -140,3 +134,4 @@ int main()
 
 }
 */
+
