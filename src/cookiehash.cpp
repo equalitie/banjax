@@ -7,7 +7,6 @@
 #include "../include/cookiehash.h"
 #include "../include/base64.h"
 
-static char hex_chars[]={'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
 // Generate a cookie hash over :
 // captcha, the captcha string, null terminated
 // secret (fixed length secret SECRET_LENGTH)
@@ -29,9 +28,9 @@ void GenerateCookieHash(uchar *captcha,uchar *secret,time_t valid_till_timestamp
   ibufp+=tlen;
   memcpy(ibufp,captcha,tlen=strlen((char*)captcha));
   ibufp+=tlen;
-  int totallen=ibufp-ibuf;
-  int retlen=HASH_LENGTH;
-  char *ret=HMAC(EVP_sha1(),secret,SECRET_LENGTH,ibuf,totallen,obuf,&retlen);  
+  unsigned int totallen=ibufp-ibuf;
+  unsigned int retlen=HASH_LENGTH;
+  HMAC(EVP_sha1(),secret,SECRET_LENGTH,ibuf,totallen,obuf,&retlen);  
 }
 
 // Generate a cookie over :
@@ -52,25 +51,10 @@ int GenerateCookie(uchar *captcha,uchar *secret,time_t valid_till_timestamp,ucha
   memcpy(cookie,hash,HASH_LENGTH);
   memcpy(cookie+HASH_LENGTH,&valid_till_timestamp,sizeof(time_t));
   // optimize
-  char *cookie_outp = (char*)cookiestring_out;
-  std::string ci=std::string(cookie,COOKIE_LENGTH);
+  std::string ci=std::string((char *)cookie,COOKIE_LENGTH);
   std::string co=Base64::Encode(ci);
-  strcpy(cookiestring_out,co.c_str());
+  strcpy((char *)cookiestring_out,co.c_str());
   return 1;
-}
-//optimize
-uchar parsehexbyte(uchar *c)
-{
-  int length=2;
-  uchar ret=0;
-  for (length=2;length!=0;length--,c++)
-  {
-    ret<<=4;
-    if (*c>='a') ret|=*c-('a'-10);
-    else
-      ret|=*c-'0';
-  }
-  return ret;
 }
 
 // validates a cookie over :
@@ -92,7 +76,7 @@ int ValidateCookie(uchar *captcha,uchar *secret,time_t current_timestamp,uchar *
   char hash[HASH_LENGTH];
   if (strlen((char*)cookiestring)!=(int)((COOKIE_LENGTH*4+3)/3))
     return -3;
-  std::string cookiedata=Base64::Decode((char *)cookiestring,cookiestring+strlen(cookiestring));
+  std::string cookiedata=Base64::Decode((const char *)cookiestring,(const char *)(cookiestring+strlen((char *) cookiestring)));
   memcpy(cookie,cookiedata.c_str(),COOKIE_LENGTH);
   time_t *valid_until_timestamp=(time_t *)(cookie+HASH_LENGTH);
   GenerateCookieHash(captcha,secret,*valid_until_timestamp,remoteaddress,(uchar*)hash);
@@ -133,5 +117,5 @@ int main()
   printf("%ld\n",ct2-curtime);
 
 }
-*/
 
+*/
