@@ -62,7 +62,7 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
   std::tm* timeinfo = std::gmtime(&rawtime);
 
   char time_buffer[80];
-  std::strftime(time_buffer,80,"%Y-%m-%d-%H-%M-%S",timeinfo);
+  std::strftime(time_buffer,80,"%Y-%m-%dT%H:%M:%S",timeinfo);
   
   send_zmq_mess(zmqsock, BOTBANGER_LOG, true);
 
@@ -72,6 +72,7 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
   send_zmq_mess(zmqsock, transaction_parts.at(TransactionMuncher::PROTOCOL), true);
   send_zmq_mess(zmqsock, transaction_parts.at(TransactionMuncher::STATUS), true);
   send_zmq_mess(zmqsock, transaction_parts.at(TransactionMuncher::CONTENT_LENGTH), true);
+  send_zmq_mess(zmqsock, transaction_parts.at(TransactionMuncher::UA), true);
   send_zmq_mess(zmqsock, transaction_parts.count(TransactionMuncher::MISS) ? "MISS" : "HIT");
 
   //botbanger_interface.add_log(transaction_parts[IP], cd->url, cd->protocol, stat, (long) cd->request_len, cd->ua, cd->hit);
