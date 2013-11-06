@@ -29,7 +29,7 @@ class BanjaxContinuation{
   //the filter that genenates the response
   BanjaxFilter* responding_filter;
   //the function that should generate the response
-  std::string (BanjaxFilter::*response_generator)(const TransactionParts& transaction_parts, const FilterResponse& response_info);
+  //std::string (BanjaxFilter::*response_generator)(const TransactionParts& transaction_parts, const FilterResponse& response_info);
 
   /* Destructor: Destroys the continuation after response
      has been served */
@@ -38,7 +38,7 @@ class BanjaxContinuation{
      Constructor to set the default values
    */
   BanjaxContinuation(TSHttpTxn cur_txn)
-    : txnp(cur_txn), transaction_muncher(cur_txn), response_generator(NULL)
+    : txnp(cur_txn), transaction_muncher(cur_txn)
     {
     }
 

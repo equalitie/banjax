@@ -80,7 +80,7 @@ RegexManager::parse_request(string ip, string ats_record)
             cur_ip_state.detail.begin_msec = cur_time_msec;
             cur_ip_state.detail.rate = 0;
             ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.state_allocator);
-p
+
           } else { //we have a record, update the rate and ban if necessary.
             //we move the interval by the differences of the "begin_in_ms - cur_time_msec - interval*1000"
             //if it is less than zero we don't do anything
@@ -126,7 +126,7 @@ FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
     
     //here instead we are calling nosmos's banning client
     swabber_interface.ban(ats_record_parts[TransactionMuncher::IP].c_str());
-    return FilterResponse(FilterResponse::I_RESPOND);
+    return FilterResponse(FilterResponse::I_RESPOND, NULL, static_cast<FilterResponse::ResponseGenerator>(&RegexManager::generate_response));
 
   } else if (result != REGEX_MISSED) {
     TSError("Regex failed with error: %d\n", result);
@@ -140,6 +140,6 @@ char* RegexManager::generate_response(const TransactionParts& transaction_parts,
 {
   (void)transaction_parts; (void)response_info;
   char* forbidden_response = new char[forbidden_message_length+1];
-  memcpy(forbidden_response, forbidden_message, (forbidden_message_length+1)*sizeof(char));
-  return Forbidden_Message;
+  memcpy((void*)forbidden_response, (const void*)forbidden_message.c_str(), (forbidden_message_length+1)*sizeof(char));
+  return forbidden_response;
 }

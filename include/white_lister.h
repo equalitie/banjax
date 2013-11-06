@@ -25,7 +25,7 @@ class WhiteLister : public BanjaxFilter
  WhiteLister(const std::string& banjax_dir, const libconfig::Setting& main_root)
    :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME)
   {
-    QueuedTasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&WhiteLister::execute);
+    queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&WhiteLister::execute);
     load_config(main_root[BANJAX_FILTER_NAME]);
   }
 
@@ -48,7 +48,7 @@ class WhiteLister : public BanjaxFilter
   /**
      overloaded execute to execute the filter, it assemble the
      parts to make ats record and then call the parse log
-  */
+   */
   FilterResponse execute(const TransactionParts& transaction_parts);
 
   /**

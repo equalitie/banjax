@@ -4,6 +4,11 @@
  *
  * Vmon: Oct 2013, Initial Version
  */
+#ifndef BANJAX_COMMON_H
+#define BANJAX_COMMON_H
+
 #include <string>
 
 const char BANJAX_PLUGIN_NAME[]="banjax";
+
+#endif

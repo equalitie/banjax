@@ -35,7 +35,7 @@ protected:
     //Hosts that challenger needs to check
     std::vector<std::string> challenged_hosts;
 
-    const std::string solver_page;
+    std::string solver_page;
 	// substrings of the page that needs to be replaced
 	static std::string sub_token;	// token
 	static std::string sub_time;	// time until which the cookie is valid
@@ -59,7 +59,7 @@ public:
  ChallengeManager(const string& banjax_dir, const libconfig::Setting& main_root)
    :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html")
   {
-    QueuedTasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&ChallengeManager::execute);
+    queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&ChallengeManager::execute);
     load_config(main_root[BANJAX_FILTER_NAME]);
   }
 

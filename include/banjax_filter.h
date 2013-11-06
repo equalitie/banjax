@@ -90,7 +90,7 @@ class BanjaxFilter
     TOTAL_NO_OF_QUEUES
   };
   
-  FilterTaskFunction QueuedTasks[BanjaxFilter::TOTAL_NO_OF_QUEUES];
+  FilterTaskFunction queued_tasks[BanjaxFilter::TOTAL_NO_OF_QUEUES];
   
   /**
      A disabled filter won't run, 
@@ -113,10 +113,20 @@ class BanjaxFilter
  BanjaxFilter(const std::string& banjax_dir, const libconfig::Setting& main_root, unsigned int child_id, std::string child_name)
     : BANJAX_FILTER_ID(child_id),
       BANJAX_FILTER_NAME(child_name),
-      QueuedTasks()
+    queued_tasks()
   {
     (void) banjax_dir; (void) main_root; ip_database = NULL;
+  }
 
+  /**
+     Filter should call this function cause nullify in constructor does not 
+     work :( then setting their functions
+   */
+  virtual void set_tasks()
+  {
+    for(unsigned int i = 0; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++) {
+      queued_tasks[i] = NULL;
+    }
   }
 
   /**

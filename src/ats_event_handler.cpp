@@ -36,7 +36,9 @@ using namespace std;
   by the banjax object.*/
 //TSCont Banjax::global_contp;
 //extern TSMutex Banjax::regex_mutex;
+bool ATSEventHandler::banjax_active_queues[BanjaxFilter::TOTAL_NO_OF_QUEUES];
 
+//Banjax* ATSEventHandler::banjax = NULL;
 
 int
 ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *edata)
@@ -81,7 +83,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
   case TS_EVENT_HTTP_SEND_RESPONSE_HDR:
     //TSDebug(BANJAX_PLUGIN_NAME, "response" );
     if (contp != Banjax::global_contp) {
-      cd = (BanjaxContinuation *) TSContDataGet(contp);
+      cd = (BanjaxContinuation*) TSContDataGet(contp);
       handle_response(cd);
     }
     return 0;
@@ -139,7 +141,7 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
   const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(banjax->which_parts_are_requested());
 
   bool continue_filtering = true;
-  for(Banjax::TaskQueue::iterator cur_task = banjax->task_queues[BanjaxFilter::HTTP_START].begin(); continue_filtering && cur_task != banjax->task_queues[BanjaxFilter::HTTP_START].end(); cur_task++) {
+  for(Banjax::TaskQueue::iterator cur_task = banjax->task_queues[BanjaxFilter::HTTP_REQUEST].begin(); continue_filtering && cur_task != banjax->task_queues[BanjaxFilter::HTTP_REQUEST].end(); cur_task++) {
     FilterResponse cur_filter_result = ((*(cur_task->filter)).*(cur_task->task))(cur_trans_parts);
     switch (cur_filter_result.response_type) 
       {
@@ -153,6 +155,7 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
 
       case FilterResponse::I_RESPOND:
         cd->response_info = cur_filter_result;
+        cd->responding_filter = cur_task->filter;
         TSHttpTxnHookAdd(cd->txnp, TS_HTTP_SEND_RESPONSE_HDR_HOOK, cd->contp);
         TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_ERROR);
         return;
@@ -176,10 +179,12 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
 void
 ATSEventHandler::handle_response(BanjaxContinuation* cd)
 {
-  if (cd->response_generator) {
-    cd->transaction_muncher.retrieve_response_parts(cd->responding_filter->response_info());
+  //we need to retrieve response parts for any filter who requested it.
+  cd->transaction_muncher.retrieve_response_parts(banjax->which_response_parts_are_requested());
+
+  if (cd->response_info.response_type == FilterResponse::I_RESPOND) {
     cd->transaction_muncher.set_status(TS_HTTP_STATUS_FORBIDDEN);
-    string alternative_response = ((cd->responding_filter)->*(cd->response_generator))(cd->transaction_muncher.retrieve_parts(banjax->all_filters_requested_part), cd->response_info);
+    string alternative_response = (((cd->responding_filter)->*(cd->response_info.response_generator)))(cd->transaction_muncher.retrieve_parts(banjax->all_filters_requested_part), cd->response_info);
     char* buf = (char *) TSmalloc(alternative_response.length()+1);
     sprintf(buf, "%s", alternative_response.c_str());
 
@@ -219,19 +224,32 @@ ATSEventHandler::handle_txn_start(TSHttpTxn txnp)
   cd->contp = txn_contp;
 
   TSHttpTxnHookAdd(txnp, TS_HTTP_READ_REQUEST_HDR_HOOK, txn_contp);
+  TSHttpTxnHookAdd(txnp, TS_HTTP_SEND_REQUEST_HDR_HOOK, txn_contp);
+  TSHttpTxnHookAdd(txnp, TS_HTTP_SEND_RESPONSE_HDR_HOOK, txn_contp);
   TSHttpTxnHookAdd(txnp, TS_HTTP_TXN_CLOSE_HOOK, txn_contp);
 
   TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
+
 }
 
 /**
    runs if a filter is registered to run a function during an event
 */
 void 
-handle_task_queue(Banjax::TaskQueue& current_queue, BanjaxContinuation* cd)
+ATSEventHandler::handle_task_queue(Banjax::TaskQueue& current_queue, BanjaxContinuation* cd)
 {
+  const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(banjax->which_parts_are_requested());
+
   for(Banjax::TaskQueue::iterator cur_task = current_queue.begin(); cur_task != current_queue.end(); cur_task++)
-    FilterResponse cur_filter_result = ((*(cur_task->filter)).*(cur_task->task))(cur_trans_parts);
+    /*For now we have no plan on doing anything with the result
+      in future we need to receive the filter instruction for 
+      the rest of transation but for the moment only it matters
+      at the begining of the transaction to interfere with the 
+      transaction.
+
+      FilterResponse cur_filter_result =
+     */ 
+    ((*(cur_task->filter)).*(cur_task->task))(cur_trans_parts);
   
 }
 
@@ -249,5 +267,3 @@ ATSEventHandler::destroy_continuation(TSCont contp)
     // delete cd;
   }
 }
-
-

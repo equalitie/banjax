@@ -61,9 +61,11 @@ class Banjax
   void filter_factory(const std::string& banjax_dir, const libconfig::Setting& main_root);
 
   uint64_t all_filters_requested_part;
+  uint64_t all_filters_response_part;
 
  public:
   uint64_t which_parts_are_requested() { return all_filters_requested_part;}
+  uint64_t which_response_parts_are_requested() { return all_filters_response_part;}
   /* Constructor */
   Banjax();
 
