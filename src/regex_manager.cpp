@@ -67,6 +67,13 @@ RegexManager::parse_request(string ip, string ats_record)
     {
       if (RE2::FullMatch(ats_record, *((*it)->re2_regex))) {
         TSDebug(BANJAX_PLUGIN_NAME, "requests matched %s", (char*)((*it)->re2_regex->pattern()).c_str());
+        
+        //if it is a simple regex i.e. with rate 0 we bans immidiately without
+        //wasting time and mem
+        if ((*it)->rate == 0) {
+            TSDebug(BANJAX_PLUGIN_NAME, "simple regex, ban immidiately");
+            return REGEX_MATCHED;
+        }
 
           /* we need to check the rate condition here */
           //getting current time in msec
