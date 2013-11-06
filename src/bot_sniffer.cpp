@@ -19,8 +19,10 @@
 
 using namespace std;
 
-#include "regex_manager.h"
-#include "ip_database.h"
+#include "banjax_common.h"
+#include "util.h"
+#include "bot_sniffer.h"
+#include "ip_database.h" 
 
 /**
   Reads botbanger's port from the config
@@ -30,7 +32,7 @@ BotSniffer::load_config(libconfig::Setting& cfg)
 {
    try
    {
-     botbanger_port = cfg["bot_sniffer"]["botbanger_port"];
+     botbanger_port = cfg["botbanger_port"];
      
    }
    catch(const libconfig::SettingNotFoundException &nfex)
@@ -38,9 +40,8 @@ BotSniffer::load_config(libconfig::Setting& cfg)
        // Ignore.
      }
 
-   TSDebug("banjax", "Connecting to botbanger server...");
-   string test_conn = "tcp://"+BOTBANGER_SERVER+":"+BOTBANGER_PORT;
-   socket.bind(("tcp://"+BOTBANGER_SERVER+":"+BOTBANGER_PORT).c_str());
+   TSDebug(BANJAX_PLUGIN_NAME, "Connecting to botbanger server...");
+   zmqsock.bind(("tcp://"+botbanger_server +":"+to_string(botbanger_port)).c_str());
  
 }
 
@@ -58,18 +59,20 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
 
   std::time_t rawtime;
   std::time(&rawtime);
-  std::tm* timeinfo; = std::gmtime(&rawtime);
+  std::tm* timeinfo = std::gmtime(&rawtime);
 
-  char time_buffer [80];
-  std::strftime(timebuffer,80,"%Y-%m-%d-%H-%M-%S",timeinfo);
+  char time_buffer[80];
+  std::strftime(time_buffer,80,"%Y-%m-%d-%H-%M-%S",timeinfo);
+  
+  send_zmq_mess(zmqsock, BOTBANGER_LOG, true);
 
-  send_zmq_mess(zmqsock, transaction_parts[IP], true);
+  send_zmq_mess(zmqsock, transaction_parts.at(TransactionMuncher::IP), true);
   send_zmq_mess(zmqsock, time_buffer, true);
-  send_zmq_mess(zmqsock, transaction_parts[URL], true);
-  send_zmq_mess(zmqsock, transaction_parts[PROTOCOL], true);
-  send_zmq_mess(zmqsock, transaction_parts[STATUS], true);
-  send_zmq_mess(zmqsock, transaction_parts[SIZE], true);
-  send_zmq_mess(zmqsock, transaction_parts.count(HIT) ? "MISS" : "HIT");
+  send_zmq_mess(zmqsock, transaction_parts.at(TransactionMuncher::URL), true);
+  send_zmq_mess(zmqsock, transaction_parts.at(TransactionMuncher::PROTOCOL), true);
+  send_zmq_mess(zmqsock, transaction_parts.at(TransactionMuncher::STATUS), true);
+  send_zmq_mess(zmqsock, transaction_parts.at(TransactionMuncher::CONTENT_LENGTH), true);
+  send_zmq_mess(zmqsock, transaction_parts.count(TransactionMuncher::MISS) ? "MISS" : "HIT");
 
   //botbanger_interface.add_log(transaction_parts[IP], cd->url, cd->protocol, stat, (long) cd->request_len, cd->ua, cd->hit);
   //botbanger_interface.add_log(cd->client_ip, time_str, cd->url, protocol, status, size, cd->ua, hit);

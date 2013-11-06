@@ -29,6 +29,7 @@ using namespace std;
 #include "regex_manager.h"
 #include "challenge_manager.h"
 #include "white_lister.h"
+#include "bot_sniffer.h"
 
 #include "banjax.h"
 #include "swabber_interface.h"
@@ -38,6 +39,7 @@ extern TSCont Banjax::global_contp;
 
 extern const string Banjax::CONFIG_FILENAME = "banjax.conf";
 
+extern Banjax* ATSEventHandler::banjax;
 /**
    Read the config file and create filters whose name is
    mentioned in the config file. If you make a new filter
@@ -54,18 +56,25 @@ Banjax::filter_factory(const string& banjax_dir, const libconfig::Setting& main_
     if (cur_filter_name == REGEX_BANNER_FILTER_NAME) {
       cur_filter = new RegexManager(banjax_dir, main_root, &ip_database);
     } else if (cur_filter_name == CHALLENGER_FILTER_NAME){
-      filters.push_back(new ChallengeManager(banjax_dir, main_root));
+      cur_filter = new ChallengeManager(banjax_dir, main_root);
     } else if (cur_filter_name == WHITE_LISTER_FILTER_NAME){
-      filters.push_back(new WhiteLister(banjax_dir, main_root));
+      cur_filter = new WhiteLister(banjax_dir, main_root);
+    } else if (cur_filter_name == BOT_SNIFFER_FILTER_NAME){
+      cur_filter = new BotSniffer(banjax_dir, main_root);
     } else {
       //unrecognized filter, warning and pass
       TSDebug(BANJAX_PLUGIN_NAME, "I do not recognize filter %s requested in the config", cur_filter_name.c_str());
       continue;
     }
 
-    for(unsigned int i = BanjaxFilter::HTTP_START; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++)
-        if (cur_filter->QueuedTasks[i])
-          task_queues[i].push_back(FilterTask(cur_filter,cur_filter->QueuedTasks[i]));
+    for(unsigned int i = BanjaxFilter::HTTP_START; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++) {
+      if (cur_filter->queued_tasks[i]) {
+        TSDebug(BANJAX_PLUGIN_NAME, "active task %s %u", cur_filter->BANJAX_FILTER_NAME.c_str(), i);
+        task_queues[i].push_back(FilterTask(cur_filter,cur_filter->queued_tasks[i]));
+      }
+    }
+
+    filters.push_back(cur_filter);
   }
 }
 
@@ -87,9 +96,6 @@ Banjax::Banjax()
   
   TSDebug(BANJAX_PLUGIN_NAME, "in the beginning");
   
-  //Get rid of inactives events
-  for(unsigned int cur_queue = BanjaxFilter::HTTP_START; cur_queue < BanjaxFilter::TOTAL_NO_OF_QUEUES; cur_queue++, ATSEventHandler::banjax_active_queues[cur_queue] = task_queues[cur_queue].empty() ? false : true);
-
   global_contp = TSContCreate(ATSEventHandler::banjax_global_eventhandler, ip_database.db_mutex);
 
   BanjaxContinuation* cd = (BanjaxContinuation *) TSmalloc(sizeof(BanjaxContinuation));
@@ -100,11 +106,18 @@ Banjax::Banjax()
 
   TSHttpHookAdd(TS_HTTP_TXN_START_HOOK, global_contp);
 
+  //creation of filters happen here
   read_configuration();
 
+  //now Get rid of inactives events
+  for(unsigned int cur_queue = BanjaxFilter::HTTP_START; cur_queue < BanjaxFilter::TOTAL_NO_OF_QUEUES; cur_queue++, ATSEventHandler::banjax_active_queues[cur_queue] = task_queues[cur_queue].empty() ? false : true);
+
   //Ask each filter what part of http transaction they are interested in
-  for(list<BanjaxFilter*>::iterator cur_filter = filters.begin(); cur_filter != filters.end(); cur_filter++)
+  for(list<BanjaxFilter*>::iterator cur_filter = filters.begin(); cur_filter != filters.end(); cur_filter++) {
     all_filters_requested_part |= (*cur_filter)->requested_info();
+    all_filters_response_part |= (*cur_filter)->response_info();
+  }
+
 }
 
 void

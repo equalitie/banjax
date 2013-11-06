@@ -71,4 +71,6 @@ class ATSEventHandler
 
 };
 
+//extern Banjax* ATSEventHandler::banjax;
+
 #endif /* ats_event_handler.h */

@@ -10,6 +10,7 @@
 #include <vector>
 #include <sstream>
 #include <fstream>
+#include <streambuf>
 #include <cmath>
 #include <algorithm>
 
@@ -74,6 +75,13 @@ ChallengeManager::load_config(libconfig::Setting& cfg)
      {
        TSDebug(BANJAX_PLUGIN_NAME, "Bad config for filter %s", BANJAX_FILTER_NAME.c_str());
      }
+
+   // load the page
+    //ifstream ifs("../challenger/solver.html");
+   //TODO: Should not re-read the fiel upon each request
+   //We need to read the whole string from the database infact
+   ifstream ifs(ChallengeManager::solver_page.c_str());
+   solver_page.assign( (istreambuf_iterator<char>(ifs)), istreambuf_iterator<char>());
 
 }
 
@@ -172,8 +180,6 @@ bool ChallengeManager::check_sha(const char* cookiestr, const char* cookie_val_e
  * @return        true if the cookie is valid
  */
 bool ChallengeManager::check_cookie(string cookie_jar, string ip){
-
-
   //let find the deflect cookie inside the jar
   CookieParser cookie_parser;
   const char* next_cookie = cookie_jar.c_str();
@@ -189,7 +195,7 @@ bool ChallengeManager::check_cookie(string cookie_jar, string ip){
     return false;
   }
 
-    // separate token from user-found value (token has length 22 in base64 encoding)
+  // separate token from user-found value (token has length 22 in base64 encoding)
   string token = base64_decode(cookie_parser.val_start, cookie_parser.val_end);
 
     // unencode token and separate ip from time
@@ -234,17 +240,13 @@ bool ChallengeManager::replace(string &original, string &from, string &to){
   return true;
 }
 
-void ChallengeManager::generate_html(string ip, long t, string url, string& generated_html){
+void ChallengeManager::generate_html(string ip, long t, string url, string& page){
   
+  //copy the template
+  page = solver_page;
+
   // generate the token
   string token = ChallengeManager::generate_token(ip, t);
-
-  // load the page
-  //ifstream ifs("../challenger/solver.html");
-  //TODO: Should not re-read the fiel upon each request
-  //We need to read the whole string from the database infact
-  ifstream ifs(ChallengeManager::solver_page.c_str());
-  string page( (istreambuf_iterator<char>(ifs) ), (istreambuf_iterator<char>()) );
 
   // set the time in the correct format
   time_t rawtime = (time_t) t;
@@ -263,8 +265,6 @@ void ChallengeManager::generate_html(string ip, long t, string url, string& gene
   replace(page, sub_url, url);
   // set the correct number of zeros
   replace(page, sub_zeros, zeros_in_javascript);
-
-  return page;
 }
 
 const char ChallengeManager::b64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -335,6 +335,7 @@ string ChallengeManager::base64_decode(const char* data, const char* data_end)
       retval += (char)((accumulator >> bits_collected) & 0xffu);
     }
   }
+
   return retval;
 }
 
@@ -367,7 +368,7 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
     {
       TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, sending challenge");
  
-      return FilterResponse(FilterResponse::I_RESPOND);
+      return FilterResponse(FilterResponse::I_RESPOND, NULL, static_cast<FilterResponse::ResponseGenerator>(&ChallengeManager::generate_response));
     }  
 
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
@@ -385,5 +386,7 @@ char* ChallengeManager::generate_response(const TransactionParts& transaction_pa
 
   char* buf = (char *) TSmalloc(buf_str.length()+1);
   strcpy(buf, buf_str.c_str());
+
+  return buf;
 
 }

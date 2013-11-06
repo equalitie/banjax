@@ -77,7 +77,7 @@ class RegexManager : public BanjaxFilter
     forbidden_message("<html><header></header><body>Forbidden</body></html>"),
     forbidden_message_length(forbidden_message.length())
   {
-    QueuedTasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&RegexManager::execute);
+    queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&RegexManager::execute);
     ip_database = global_ip_database;
     load_config(main_root[BANJAX_FILTER_NAME]);
   }
