@@ -1,6 +1,7 @@
 *.lo
 *.so
 *.o
+*.orig
 \#*\#
 .\#*
 *~
@@ -37,8 +38,6 @@ Makefile.in
 /config-aux/install-sh
 /config-aux/missing
 /config-aux/compile
-/install-sh
-/libtool
 
 #libtools
 src/.libs

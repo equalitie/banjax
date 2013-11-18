@@ -1,0 +1,64 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<title>Captcha Challenge</title>
+</head>
+<body>
+<table width="100%" height="100%" cellpadding="30">
+<tr>
+<td align="center" valign="center">
+<h1>Captcha challenge</h1>
+<div style="margin-top:20px;">
+<a href="http://www.deflect.ca/" target="_blank" style="font-size: 12px;">Deflect: DDoS protection for civil society</a>
+</div>
+</td>
+</tr>
+<tr>
+  <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+  <script type="text/javascript">
+    function check() { 
+       $("#d1").hide();
+       $("#d2").show();
+       $("#d2").load("/__validate/" + document.getElementById("answer").value, done);
+    }
+    function done()  {
+      var solved = $("#d2").text() == "OK";
+      if (solved) { 
+        $("#d2").text("Solved! Redirecting to destination..");
+        document.location.reload();
+      } else {
+        document.getElementById('captchaimg').src=document.getElementById('captchaimg').src;
+        $("#d1").show();
+        $("#d2").hide();
+        $("#intro").html("<span style='color:red'>Invalid answer, please try again</span>");
+        $("#answer").val("");
+      }
+    }
+
+    $( function()  { 
+        $("#answer").keypress(function(event) { 
+          if (event.which == 13)  {
+             check();
+          }
+        });
+     } 
+    )
+  </script>
+  <td align="center" valign="center">
+    <span id="d1">
+    <p id="intro">Are you human? Proove it. Please enter the displayed text and submit.</p>
+    <img width="210" height="70" src="__captcha" id='captchaimg' /><input type="button" value="Regenerate" onclick="document.getElementById('captchaimg').src=document.getElementById('captchaimg').src;"/><br/>
+    <div>
+    Captcha text: <input type="text" maxlength="5" id="answer" onkeydown="kd()" /><input type="button" value="Send" onclick="check()"/>
+    </div>
+    </span>
+    <span id="d2" style="display:none">
+      Validating..
+    </span>
+  </td>
+</tr>
+</table>
+</body>
+</html>

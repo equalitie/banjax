@@ -7,7 +7,8 @@
 #ifndef BANJAX_CONTINUATION_H
 #define BANJAX_CONTINUATION_H
 
-class Banjax;
+#include "banjax_filter.h"
+#include "transaction_muncher.h"
 
 class BanjaxContinuation{
 
@@ -22,28 +23,34 @@ class BanjaxContinuation{
   TSHttpTxn txnp;
   TSCont contp;
 
+  TransactionMuncher transaction_muncher;
+  FilterResponse* response_info;
+
+  //the filter that genenates the response
+  BanjaxFilter* responding_filter;
+  //the function that should generate the response
 <<<<<<< HEAD
-  Banjax* cur_banjax_inst;
+  //std::string (BanjaxFilter::*response_generator)(const TransactionParts& transaction_parts, const FilterResponse& response_info);
 =======
-  // int that indicates the kind of response we should send (1=ban, 2=challenge)
-  int response_type;
->>>>>>> Redirct-traffic-to-solver
+  std::string (BanjaxFilter::*response_generator)(const TransactionParts& transaction_parts, FilterResponse* response_info);
+>>>>>>> d1fd421790d613da402f08ad98915200544035e8
 
   /* Destructor: Destroys the continuation after response
      has been served */
   ~BanjaxContinuation();
+
   /**
      Constructor to set the default values
    */
-  BanjaxContinuation()
-    :response_type(0)
+  BanjaxContinuation(TSHttpTxn cur_txn)
+<<<<<<< HEAD
+    : txnp(cur_txn), transaction_muncher(cur_txn)
+=======
+    : txnp(cur_txn), transaction_muncher(cur_txn), response_info(NULL), response_generator(NULL)
+      
+>>>>>>> d1fd421790d613da402f08ad98915200544035e8
     {
     }
-
 };
 
 #endif /*banjax_continuation.h*/
-
-
-
-

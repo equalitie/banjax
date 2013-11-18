@@ -15,6 +15,57 @@
 #include "ip_database.h"
 
 class BanjaxFilter;
+class FilterResponse;
+
+typedef char* (BanjaxFilter::*ResponseGenerator) (const TransactionParts& transactionp_parts, const FilterResponse& response_info);
+
+/**
+   this is the standard extended response that the event handler expect to 
+   process.
+ */
+class FilterExtendedResponse
+{
+ public:
+  ResponseGenerator response_generator;
+  char* content_type_;
+
+  std::string set_cookie_header;
+  // Returns the set content type. Transfers
+  // ownership to the caller.
+  char* get_and_release_content_type() {
+    char * ct = content_type_;
+    content_type_ = NULL;
+    return ct;
+  }
+
+  void set_content_type(const char* x) {
+    if (content_type_ != NULL) {
+      TSfree(content_type_);
+      content_type_ = NULL;
+    }
+    if (x != NULL) {
+      content_type_ = TSstrdup(x);
+    }
+  }
+
+  int response_code;
+
+  /**
+     A constructor that optionally set the response_generator on creation
+   */
+  FilterExtendedResponse(ResponseGenerator requested_response_generator = NULL)
+    : response_generator(requested_response_generator)
+  {}
+
+};
+
+/** we want to keep the FilterResponse struture as light as possible.
+    because lots of filters response with only GO_AHEAD_NO_COMMENT and
+    we want to have that transmitted as fast as possible.
+
+    if a filter needs more space for its communication they can define
+    a class and put the pointer to its object into response_data.
+*/  
 class FilterResponse
 {
 public:
@@ -27,17 +78,27 @@ public:
    };
 
   unsigned int response_type;
-  void* response_data;
-  typedef char* (BanjaxFilter::*ResponseGenerator) (const TransactionParts& transactionp_parts, const FilterResponse& response_info);
+  void* response_data; //because FilterResponse does not have any idea about the 
+  //way this pointer is used it is the filter responsibility to release the memory
+  //it is pointing to at the approperiate moment
+  
+  FilterResponse(unsigned int cur_response_type = GO_AHEAD_NO_COMMENT, void* cur_response_data = NULL)
+    : response_type(cur_response_type), response_data(cur_response_data)
+  {}
 
-  ResponseGenerator response_generator;
-
-  FilterResponse(unsigned int cur_response_type = GO_AHEAD_NO_COMMENT, void* cur_response_data = NULL, ResponseGenerator response_gen_func = NULL)
-    : response_type(cur_response_type), response_data(cur_response_data), response_generator(response_gen_func)
+  /**
+     this constructor is called when all a filter wants is to set the response
+     generator in the extended response. 
+     
+     If you are only intended to call afunction for the matter of information 
+     gathering you should not use the response_generator
+   */
+  FilterResponse(ResponseGenerator cur_response_generator)
+    :response_type(I_RESPOND),
+    response_data((void*) new FilterExtendedResponse(cur_response_generator))
   {}
 
 };
-class BanjaxFilter;
 
 typedef FilterResponse (BanjaxFilter::*FilterTaskFunction) (const TransactionParts& transactionp_parts);
 
@@ -67,8 +128,7 @@ class BanjaxFilter
      @param banjax_dir the directory which contains banjax config files
      @param cfg the object that contains the configuration of the filter
   */
-  virtual void load_config(libconfig::Setting& cfg) {(void) cfg;assert(0);};
-  
+  virtual void load_config(libconfig::Setting& cfg, const std::string& banjax_dir) {(void) cfg; (void)banjax_dir; assert(0);};
  public:
   const unsigned int BANJAX_FILTER_ID;
   const std::string BANJAX_FILTER_NAME;
@@ -79,7 +139,6 @@ class BanjaxFilter
      re-wrting the virtual table, but that makes more sense 
      for now.
   */
-  typedef char* (BanjaxFilter::*ResponseGenerator) (const TransactionParts& transactionp_parts, const FilterResponse& response_info);
   enum ExecutionQueue {
     HTTP_START,
     HTTP_REQUEST,
