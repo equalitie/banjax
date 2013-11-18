@@ -14,11 +14,11 @@ banjax_la_LDFLAGS = \
   -avoid-version \
   $(lib_LIBS) -lconfig++ -lre2
 
-banjax_la_SOURCES = 	banjax.cpp \
+banjax_la_SOURCES = 			banjax.cpp \
 						ats_event_handler.cpp \
 						banjax_continuation.cpp \
 						transaction_muncher.cpp \
-                        util.cpp \
+					util.cpp \
 						ip_database.cpp \
 						swabber_interface.cpp  \
 						cookie_parser.cpp \

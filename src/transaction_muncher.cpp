@@ -14,10 +14,11 @@
 
 #include <map>
 #include <string.h>
-
+#include <stdlib.h>
 #include <assert.h>
 
 #include <ts/ts.h>
+#include <ts/experimental.h>
 //to retrieve the client ip
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -236,19 +237,42 @@ TransactionMuncher::retrieve_response_parts(uint64_t requested_log_parts)
 
   //if (TS_HTTP_STATUS_OK == resp_status) {
 
-    TSMLoc field_loc = TSMimeHdrFieldFind(response_header, response_header_location, "Content-Length", 12);
-    if (!field_loc) {
-      cur_trans_parts[CONTENT_LENGTH] = "0";
-    }
-    else {
+    TSMLoc field_loc = TSMimeHdrFieldFind(response_header, response_header_location, TS_MIME_FIELD_CONTENT_LENGTH, TS_MIME_LEN_CONTENT_LENGTH);
+    cur_trans_parts[CONTENT_LENGTH] = "0";
+    if (field_loc) {
       int field_length;
       const char* content_length = TSMimeHdrFieldValueStringGet(response_header, response_header_location, field_loc, 0, &field_length);
-      
-      cur_trans_parts[CONTENT_LENGTH] = string(content_length, field_length);
+      if (content_length && field_length)  {
+        cur_trans_parts[CONTENT_LENGTH] = string(content_length, field_length);
+      }
+      TSHandleMLocRelease(response_header, response_header_location, field_loc);
 
       //}
         
   }
+
+  field_loc = TSMimeHdrFieldFind(response_header, response_header_location, TS_MIME_FIELD_CONTENT_TYPE, TS_MIME_LEN_CONTENT_TYPE);
+  cur_trans_parts[CONTENT_TYPE] = "";
+  if (field_loc) {
+    int len;
+    const char* val = TSMimeHdrFieldValueStringGet(response_header, response_header_location, field_loc, 0, &len);
+    if (val && len) {
+      cur_trans_parts[CONTENT_TYPE] = string(val, len);
+    }
+    TSHandleMLocRelease(response_header, response_header_location, field_loc);
+  }
+
+  TSHRTime sm_start;
+  TSHRTime now = TShrtime();
+
+  if (TSHttpTxnMilestoneGet(trans_txnp, TS_MILESTONE_SM_START, &sm_start) != TS_SUCCESS) {
+    TSError("Banjax could not get SM_START milestone");
+  }
+
+  long ms_ago_started = (now - sm_start) / 1000000.0;
+  char buffer[65];
+  sprintf(buffer,"%ld",ms_ago_started);
+  cur_trans_parts[TXN_MS_DURATION] = string(buffer);
 
   return cur_trans_parts;
 
