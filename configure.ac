@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.69])
+#AC_PREREQ([2.69])
 AC_INIT(banjax, 0.2, vmon@equalit.ie)
 AC_CONFIG_SRCDIR([src/banjax.cpp])
 AM_INIT_AUTOMAKE()
@@ -28,7 +28,7 @@ PKG_CHECK_MODULES([libconfig], [libconfig++ >= 1.4.8])
 # 0mq pubsub
 PKG_CHECK_MODULES([libzmq], [libzmq >= 2.2.0])
 # fast regex recognition
-PKG_CHECK_MODULES([libre], [libre2 >= 2.0.0])
+#PKG_CHECK_MODULES([libre], [libre2 >= 2.0.0])
 
 LIBS="$libcrypto_LIBS $libconfig_LIBS $libzmq_LIBS $libre2_LIBS"
 
@@ -44,7 +44,7 @@ AC_SUBST(lib_CPPFLAGS)
 AC_CHECK_HEADERS([arpa/inet.h netinet/in.h stdint.h stdlib.h string.h sys/socket.h, ts/ts.h, ])
 
 # Checks for typedefs, structures, and compiler characteristics.
-AC_CHECK_HEADER_STDBOOL
+# AC_CHECK_HEADER_STDBOOL
 AC_C_INLINE
 AC_TYPE_SIZE_T
 AC_TYPE_UINT64_T

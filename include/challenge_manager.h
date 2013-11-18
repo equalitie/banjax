@@ -5,7 +5,7 @@
  *  Vmon, Setp 2013: Migrate to modular filter structure
  */
 #ifndef CHALLENGE_MANAGER_H
-#define CHALENGE_MANAGER_H
+#define CHALLENGE_MANAGER_H
 
 #include <string>
 #include <vector>
@@ -48,7 +48,8 @@ protected:
 
 	std::string base64_encode(const std::string &data);
 	std::string base64_decode(const char* data, const char* data_end);
-
+        bool is_captcha_url(const std::string& url);
+        bool is_captcha_answer(const std::string& url);
 public:
     /**
        construtor which receives the config object, set the filter 
@@ -120,8 +121,13 @@ public:
 	
     //TODO: This needs to be changed to adopt Otto's approach in placing
     //the variable info in cookie header and make the jscript to read them
-	void generate_html(std::string ip, long time, std::string url, string& generated_html);
+    //nonetheless it is more efficient to have the html generated in a
+    //referenece sent to the function rather than copying it in the stack
+    //upon return
+	void generate_html(std::string ip, long time, std::string url, const TransactionParts& transaction_parts, FilterExtendedResponse* response_info, string& generated_html);
 
+   typedef std::map<std::string, libconfig::Setting*> HostSettingsMap;
+   HostSettingsMap host_settings_;
 };
 
 #endif /* challenge_manager.h */

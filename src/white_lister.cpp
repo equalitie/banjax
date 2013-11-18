@@ -50,7 +50,7 @@ FilterResponse WhiteLister::execute(const TransactionParts& transaction_parts)
         }
     }
 
-  return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+  return new FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
                     
 }
 

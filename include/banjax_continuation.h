@@ -41,7 +41,6 @@ class BanjaxContinuation{
     : txnp(cur_txn), transaction_muncher(cur_txn)
     {
     }
-
 };
 
 #endif /*banjax_continuation.h*/
