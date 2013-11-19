@@ -79,7 +79,7 @@ Banjax::filter_factory(const string& banjax_dir, const libconfig::Setting& main_
 }
 
 Banjax::Banjax()
-  :all_filters_requested_part(0)
+  :all_filters_requested_part(0), all_filters_response_part(0)
 {
   //Everything is static in ATSEventHandle so it is more like a namespace
   //than a class (we never instatiate from it). so the only reason

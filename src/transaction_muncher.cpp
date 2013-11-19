@@ -42,6 +42,10 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
   //only turn those bits that are off in valid_parts and off in requested
   uint64_t parts_to_retreive = (~valid_parts) & requested_log_parts;
 
+  //if we have nothing to do let save time
+  if (!parts_to_retreive)
+    return cur_trans_parts;
+
   //we retrieve the header anyway
   if (!request_header)
     if (TSHttpTxnClientReqGet(trans_txnp, &request_header, &header_location) != TS_SUCCESS) {
@@ -221,19 +225,26 @@ const TransactionParts&
 TransactionMuncher::retrieve_response_parts(uint64_t requested_log_parts)
 {
   //only turn those bits that are off in valid_parts and off in requested
-  //uint64_t parts_to_retreive = (~valid_parts) & requested_log_parts;
+  uint64_t parts_to_retreive = (~valid_parts) & requested_log_parts;
+  
+  //if we have nothing to do let save time
+  if (!parts_to_retreive)
+    return cur_trans_parts;
 
   //First check if we need to retrieve the header
   if (!response_header) retrieve_response_header();
 
-  valid_parts |= requested_log_parts;
+  //I need the status to take other actions anyway
+  if (parts_to_retreive & TransactionMuncher::STATUS) {
+    TSHttpStatus resp_status;
 
-  TSHttpStatus resp_status;
+    resp_status = TSHttpHdrStatusGet(response_header, response_header_location);
 
-  resp_status = TSHttpHdrStatusGet(response_header, response_header_location);
+    cur_trans_parts[STATUS] = to_string(resp_status);
+    valid_parts |= STATUS;
+  }
 
-  cur_trans_parts[STATUS] = to_string(resp_status);
-
+ if (parts_to_retreive & TransactionMuncher::CONTENT_LENGTH) {
   //if (TS_HTTP_STATUS_OK == resp_status) {
 
     TSMLoc field_loc = TSMimeHdrFieldFind(response_header, response_header_location, "Content-Length", 12);
@@ -248,9 +259,11 @@ TransactionMuncher::retrieve_response_parts(uint64_t requested_log_parts)
 
       //}
         
-  }
-
-  return cur_trans_parts;
+    }
+    valid_parts |= CONTENT_LENGTH;
+ }
+ 
+ return cur_trans_parts;
 
 }
 

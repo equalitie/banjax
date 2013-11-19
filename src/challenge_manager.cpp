@@ -497,48 +497,52 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
   TSDebug(BANJAX_PLUGIN_NAME, "cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE).c_str());
 
   // look up if this host is serving captcha's or not
-  bool do_captcha = false;
   HostSettingsMap::iterator it = host_settings_.find(transaction_parts.at(TransactionMuncher::HOST));
-  if (it != host_settings_.end()) {
-    do_captcha = (it->second->challenge_type == ChallengeDefinition::CHALLENGE_CAPTCHA);
-  }
+  if (it == host_settings_.end())
+    //no challenge for this host
+    return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
 
-  if (do_captcha) { 
-    if (ChallengeManager::is_captcha_url(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
-      return FilterResponse(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
-    } else if (is_captcha_answer(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
-      return FilterResponse(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
-    }
-    
-    CookieParser cookie_parser;
-    std::string cookie = transaction_parts.at(TransactionMuncher::COOKIE);
-    const char* next_cookie = cookie.c_str();
-    int result = 100;
-    time_t curtime = time(NULL);
-    while((next_cookie = cookie_parser.parse_a_cookie(next_cookie)) != NULL) {
-      if (!(memcmp(cookie_parser.str, "dflct_c_token", (int)(cookie_parser.nam_end - cookie_parser.str)))) {
-        std::string captcha_cookie(cookie_parser.val_start, cookie_parser.val_end - cookie_parser.val_start);
-        TSDebug(BANJAX_PLUGIN_NAME, "Challenge cookie: [%s] based on ip[%s]", captcha_cookie.c_str(), transaction_parts.at(TransactionMuncher::IP).c_str());
-        result = ValidateCookie((uchar*)"", (uchar*)CAPTCHA_SECRET,
-                                curtime, (uchar*)transaction_parts.at(TransactionMuncher::IP).c_str(),
-                                (uchar*)captcha_cookie.c_str());
+  switch((unsigned int)(it->second->challenge_type)) 
+    {
+    case ChallengeDefinition::CHALLENGE_CAPTCHA:
+      {
+        if (ChallengeManager::is_captcha_url(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
+          return FilterResponse(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
+        } else if (is_captcha_answer(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
+          return FilterResponse(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
+        }
+        
+        CookieParser cookie_parser;
+        std::string cookie = transaction_parts.at(TransactionMuncher::COOKIE);
+        const char* next_cookie = cookie.c_str();
+        int result = 100;
+        time_t curtime = time(NULL);
+        while((next_cookie = cookie_parser.parse_a_cookie(next_cookie)) != NULL) {
+          if (!(memcmp(cookie_parser.str, "dflct_c_token", (int)(cookie_parser.nam_end - cookie_parser.str)))) {
+            std::string captcha_cookie(cookie_parser.val_start, cookie_parser.val_end - cookie_parser.val_start);
+            TSDebug(BANJAX_PLUGIN_NAME, "Challenge cookie: [%s] based on ip[%s]", captcha_cookie.c_str(), transaction_parts.at(TransactionMuncher::IP).c_str());
+            result = ValidateCookie((uchar*)"", (uchar*)CAPTCHA_SECRET,
+                                    curtime, (uchar*)transaction_parts.at(TransactionMuncher::IP).c_str(),
+                                    (uchar*)captcha_cookie.c_str());
+            break;
+          }
+        }
+        if (result == 1) {
+          return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+        } else {
+          return FilterResponse(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
+        }
         break;
       }
+
+    case ChallengeDefinition::CHALLENGE_SHA_INVERSE:
+      if(!ChallengeManager::check_cookie(transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP)))
+        {
+          TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, sending challenge");
+          
+          return FilterResponse(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
+        }
     }
-    if (result == 1) {
-      return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
-    } else {
-      return FilterResponse(FilterResponse::I_RESPOND);
-    }
-  }
-  else {
-    if(!ChallengeManager::check_cookie(transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP)))
-    {
-      TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, sending challenge");
- 
-      return FilterResponse(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
-      }
-  }
 
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
 }
@@ -548,10 +552,17 @@ char* ChallengeManager::generate_response(const TransactionParts& transaction_pa
   long time_validity = time(NULL) + cookie_life_time; // TODO: one day validity for now, should be changed
 
   string buf_str; 
+  TSDebug("banjax", "%s", transaction_parts.at(TransactionMuncher::IP).c_str());
+  TSDebug("banjax", "%s", transaction_parts.at(TransactionMuncher::URL_WITH_HOST).c_str());
+  TSDebug("banjax", "%s", transaction_parts.at(TransactionMuncher::HOST).c_str());
+
+  (void) response_info;
+  TransactionParts test_muncher;
   generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity, 
                 transaction_parts.at(TransactionMuncher::URL_WITH_HOST),
-                transaction_parts.at(TransactionMuncher::HOST), transaction_parts, 
-                ((FilterExtendedResponse*)(response_info.response_data)), buf_str);
+                transaction_parts.at(TransactionMuncher::HOST), transaction_parts,
+                //NULL, buf_str);//, 
+            ((FilterExtendedResponse*)(response_info.response_data)), buf_str);
 
   char* buf = (char *) TSmalloc(buf_str.length()+1);
   strcpy(buf, buf_str.c_str());
