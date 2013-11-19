@@ -19,22 +19,16 @@ banjax_la_SOURCES = 	banjax.cpp \
 						banjax_continuation.cpp \
 						transaction_muncher.cpp \
                         util.cpp \
+						base64.cpp \
 						ip_database.cpp \
 						swabber_interface.cpp  \
 						cookie_parser.cpp \
+						cookiehash.cpp \
 						challenge_manager.cpp \
 						white_lister.cpp \
 					 	regex_manager.cpp \
-<<<<<<< variant A
 						bot_sniffer.cpp
 
-
->>>>>>> variant B
-					 	cookiehash.cpp \
-                        util.cpp
-####### Ancestor
-                        util.cpp
-======= end
 
 #libbanjax_la_LDFLAGS = -version-info 0:0:0
 

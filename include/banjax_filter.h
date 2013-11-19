@@ -54,7 +54,8 @@ class FilterExtendedResponse
      A constructor that optionally set the response_generator on creation
    */
   FilterExtendedResponse(ResponseGenerator requested_response_generator = NULL)
-    : response_generator(requested_response_generator)
+    : response_generator(requested_response_generator),
+      content_type_(NULL)
   {}
 
 };
