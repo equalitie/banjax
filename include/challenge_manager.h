@@ -17,6 +17,55 @@
 const size_t AES_KEY_LENGTH = 16;
 //const size_t AES_BLOCK_SIZE;
 
+//Challenges should be declared here
+//the name of challenges should appear in same order they 
+//appears in ChallengType enum
+/**
+   This would have been a namespace instead of class if it was 
+   allowed to postpone the declaration of const members of namespace
+ */
+class ChallengeDefinition
+{
+public:
+  static const unsigned int CHALLENGE_COUNT = 2;
+
+  enum ChallengeType {
+    CHALLENGE_SHA_INVERSE,
+    CHALLENGE_CAPTCHA
+  };
+
+  static const char* CHALLENGE_LIST[];
+  static const char* CHALLENGE_FILE_LIST[];
+
+};
+
+class ChallengeSpec
+{
+public:
+  std::string human_readable_name;
+  std::string default_page_filename;
+  ChallengeDefinition::ChallengeType type;
+
+  ChallengeSpec(std::string challenge_name, std::string challenge_default_file, ChallengeDefinition::ChallengeType challenge_type)
+    :human_readable_name(challenge_name), 
+     default_page_filename(challenge_default_file),
+     type(challenge_type) {};
+};
+/**
+   this class keep the information related that defines
+   the specification of the challenge for each host
+ */
+class HostChallengeSpec {
+ public:
+  //Challenge Types    
+
+  std::string host_name; //this is actually redundant as we are indexing by hostname
+  ChallengeDefinition::ChallengeType challenge_type;
+  
+  std::string challenge_stream;
+
+};
+
 class ChallengeManager : public BanjaxFilter {
 protected:	
 	// AES key. 
@@ -46,10 +95,14 @@ protected:
 	static const char b64_table[65];
 	static const char reverse_table[128];
 
-	std::string base64_encode(const std::string &data);
-	std::string base64_decode(const char* data, const char* data_end);
-        bool is_captcha_url(const std::string& url);
-        bool is_captcha_answer(const std::string& url);
+  std::string base64_encode(const std::string &data);
+  std::string base64_decode(const char* data, const char* data_end);
+  bool is_captcha_url(const std::string& url);
+  bool is_captcha_answer(const std::string& url);
+
+  std::map<std::string, ChallengeDefinition::ChallengeType> challenge_type;
+  ChallengeSpec* challenge_specs[ChallengeDefinition::CHALLENGE_COUNT];
+
 public:
     /**
        construtor which receives the config object, set the filter 
@@ -61,7 +114,15 @@ public:
    :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html")
   {
     queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&ChallengeManager::execute);
-    load_config(main_root[BANJAX_FILTER_NAME]);
+
+    //mapping the string to the index
+    for(unsigned int i = 0; i < ChallengeDefinition::CHALLENGE_COUNT; i++) {
+      challenge_specs[i] = new ChallengeSpec(ChallengeDefinition::CHALLENGE_LIST[i], ChallengeDefinition::CHALLENGE_FILE_LIST[i],(ChallengeDefinition::ChallengeType)i);
+      challenge_type[ChallengeDefinition::CHALLENGE_LIST[i]] = (ChallengeDefinition::ChallengeType)i;
+    }
+    
+    load_config(main_root[BANJAX_FILTER_NAME], banjax_dir);
+    
   }
 
   /**
@@ -71,7 +132,7 @@ public:
 
     @param cfg the config node for "challenger"
   */
-  virtual void load_config(libconfig::Setting& cfg);
+  virtual void load_config(libconfig::Setting& cfg, const std::string& banjax_dir);
 
   /**
      Overloaded to tell banjax that we need url, host 
@@ -124,9 +185,9 @@ public:
     //nonetheless it is more efficient to have the html generated in a
     //referenece sent to the function rather than copying it in the stack
     //upon return
-	void generate_html(std::string ip, long time, std::string url, const TransactionParts& transaction_parts, FilterExtendedResponse* response_info, string& generated_html);
+  void generate_html(std::string ip, long time, std::string url, string host_header, const TransactionParts& transaction_parts, FilterExtendedResponse* response_info, string& generated_html);
 
-   typedef std::map<std::string, libconfig::Setting*> HostSettingsMap;
+   typedef std::map<std::string, HostChallengeSpec*> HostSettingsMap;
    HostSettingsMap host_settings_;
 };
 
