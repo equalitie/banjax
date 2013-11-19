@@ -133,7 +133,7 @@ FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
     
     //here instead we are calling nosmos's banning client
     swabber_interface.ban(ats_record_parts[TransactionMuncher::IP].c_str());
-    return FilterResponse(FilterResponse::I_RESPOND, NULL, static_cast<FilterResponse::ResponseGenerator>(&RegexManager::generate_response));
+    return FilterResponse(static_cast<ResponseGenerator>(&RegexManager::generate_response));
 
   } else if (result != REGEX_MISSED) {
     TSError("Regex failed with error: %d\n", result);

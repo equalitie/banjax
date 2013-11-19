@@ -95,7 +95,7 @@ public:
    */
   FilterResponse(ResponseGenerator cur_response_generator)
     :response_type(I_RESPOND),
-    response_data((void*) new FilterExtendedResponse(cur_response_generator))
+     response_data((void*) new FilterExtendedResponse(cur_response_generator))
   {}
 
 };

@@ -36,6 +36,14 @@ using namespace std;
 #include "challenge_manager.h"
 #include "cookiehash.h"
 
+//The name of Challenges should be declared here
+//the name of challenges should appear in same order they 
+//appears in ChallengType enum in challenge_manager.h
+const char* ChallengeDefinition::CHALLENGE_LIST[] = {"sha_inverse",
+                                                      "captcha"};
+const char* ChallengeDefinition::CHALLENGE_FILE_LIST[] = {"solver.html",
+                                     "captcha.html"};
+
 string ChallengeManager::zeros_in_javascript = "00"; // needs to be in accordance with the number above
 
 std::string ChallengeManager::sub_token = "$token";
@@ -52,7 +60,7 @@ const char* CAPTCHA_SECRET = "12345";
   and compile them
 */
 void
-ChallengeManager::load_config(libconfig::Setting& cfg)
+ChallengeManager::load_config(libconfig::Setting& cfg, const std::string& banjax_dir)
 {
    try
    {
@@ -62,37 +70,43 @@ ChallengeManager::load_config(libconfig::Setting& cfg)
      //now we compile all of them and store them for later use
      for(unsigned int i = 0; i < count; i++) {
        libconfig::Setting& host_config = challenger_hosts[i];
-       std::string host_name = host_config["name"];
+       HostChallengeSpec* host_challenge_spec = new HostChallengeSpec;
+       
+       host_challenge_spec->host_name = (const char*)host_config["name"];
+
+       //it is fundamental to establish what type of challenge we are dealing
+       //with
+       std::string requested_challenge_type = host_config["challenge_type"];
+       host_challenge_spec->challenge_type = challenge_type[requested_challenge_type];
+       
        // TODO(oschaaf): host name can be configured twice, and could except here
-       host_settings_[host_name] = &host_config;
        std::string challenge_file;
-       if (host_config.exists("challenge")) {
+       if (host_config.exists("challenge"))
          challenge_file = (const char*)host_config["challenge"];
-       }
+
        // If no file is configured, default to hard coded solver_page.
        if (challenge_file.size() == 0) {
-         challenge_file.append(ChallengeManager::solver_page.c_str());
+         challenge_file.append(challenge_specs[host_challenge_spec->challenge_type]->default_page_filename);
        }
        
        std::string challenge_path = banjax_dir + "/" + challenge_file;
-       TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "Host [%s] uses challenge file [%s]",
-               host_name.c_str(), challenge_path.c_str());
+       TSDebug(BANJAX_PLUGIN_NAME, "Host [%s] uses challenge file [%s]",
+               host_challenge_spec->host_name.c_str(), challenge_path.c_str());
        
        ifstream ifs(challenge_path);
-       std::stringstream buffer;
-       buffer << ifs.rdbuf();
-       std::string html(buffer.str());
+       host_challenge_spec->challenge_stream.assign((istreambuf_iterator<char>(ifs)), istreambuf_iterator<char>());
        
-       if (html.size() == 0) {
-         TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "Warning, [%s] looks empty", challenge_path.c_str());
+       if (host_challenge_spec->challenge_stream.size() == 0) {
+         TSDebug(BANJAX_PLUGIN_NAME, "Warning, [%s] looks empty", challenge_path.c_str());
          TSError("Warning, [%s] looks empty", challenge_path.c_str());
-       } else {
-         TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "Assigning %d bytes of html for [%s]",
-                 (int)html.size(), host_name.c_str());
+       } else {  
+         TSDebug(BANJAX_PLUGIN_NAME, "Assigning %d bytes of html for [%s]",
+                 (int)host_challenge_spec->challenge_stream.size(), host_challenge_spec->host_name.c_str());
        }
+
+       //add it to the host map
+       host_settings_[host_challenge_spec->host_name] = host_challenge_spec;
        
-       host_config.add("is_captcha", libconfig::Setting::TypeString) = challenge_file == "captcha.html" ? "1":"0";
-       host_config.add("challenge_html", libconfig::Setting::TypeString) = html;
      }
 
      //we use SHA256 to generate a key from the user passphrase
@@ -109,17 +123,24 @@ ChallengeManager::load_config(libconfig::Setting& cfg)
  
      cookie_life_time = cfg["cookie_life_time"];
    }
-   catch(const libconfig::SettingNotFoundException &nfex)
-     {
-       TSDebug(BANJAX_PLUGIN_NAME, "Bad config for filter %s", BANJAX_FILTER_NAME.c_str());
-     }
+   catch(const libconfig::SettingNotFoundException &nfex) {
+     TSDebug(BANJAX_PLUGIN_NAME, "Bad config for filter %s", BANJAX_FILTER_NAME.c_str());
+   }
 
    // load the page
     //ifstream ifs("../challenger/solver.html");
    //TODO: Should not re-read the fiel upon each request
    //We need to read the whole string from the database infact
-   ifstream ifs(ChallengeManager::solver_page.c_str());
-   solver_page.assign( (istreambuf_iterator<char>(ifs)), istreambuf_iterator<char>());
+  //  ifstream ifs(ChallengeManager::solver_page.c_str());
+  //  solver_page.assign( (istreambuf_iterator<char>(ifs)), istreambuf_iterator<char>());
+
+  // // set the time in the correct format
+  // stringstream ss(challenge_html.c_str());
+  // string page( (istreambuf_iterator<char>(ss) ), (istreambuf_iterator<char>()) );
+  // TSDebug(BANJAX_PLUGIN_NAME,
+  //         "ChallengeManager::generate_html lookup for host [%s] found %d bytes of html.",
+  //         host_header.c_str(), (int)page.size());
+
 
 }
 
@@ -278,13 +299,9 @@ bool ChallengeManager::replace(string &original, string &from, string &to){
   return true;
 }
 
-string ChallengeManager::generate_html(string ip, long t, string url, string host_header,
-                                       const TransactionParts& transaction_parts,
-                                       FilterResponse* response_info, string& page){
+void ChallengeManager::generate_html(string ip, long t, string url, string host_header,                                       const TransactionParts& transaction_parts,
+                                       FilterExtendedResponse* response_info, string& page){
   
-  //copy the template
-  page = solver_page;
-
   if (ChallengeManager::is_captcha_url(url)) {
     unsigned char text[6];
     memset(text, 0, 6);
@@ -306,7 +323,8 @@ string ChallengeManager::generate_html(string ip, long t, string url, string hos
     header.append((char*)cookie);
     header.append("; path=/; HttpOnly");
     response_info->set_cookie_header.append(header.c_str());
-    return std::string((const char*)gif, (int)gifsize);
+    page = std::string((const char*)gif, (int)gifsize);
+    return;
   } else if (ChallengeManager::is_captcha_answer(url)) {
     response_info->response_code = 200;
     response_info->set_content_type("text/html");
@@ -347,56 +365,41 @@ string ChallengeManager::generate_html(string ip, long t, string url, string hos
     }
     TSDebug(BANJAX_PLUGIN_NAME, "Intercept captcha answer: [%s], cookie: [%s], validate: [%d]", answer.c_str(), cookie_parser.val_start, result);    
     
-    page = "X"
+    page = "X";
     return;
   }
   
   //if the challenge is solvig SHA inverse image
+  //copy the template
+  page = host_settings_[transaction_parts.at(TransactionMuncher::HOST)]->challenge_stream;
   // generate the token
   string token = ChallengeManager::generate_token(ip, t);
   HostSettingsMap::iterator it = host_settings_.find(host_header);
   // TODO(oschaaf): see if we can avoid the copy here
   string challenge_html;
   if (it != host_settings_.end()) {
-    libconfig::Setting* setting = it->second;
-    challenge_html.assign((const char*)(*setting)["challenge_html"]);
+    //HostChallengeSpec* setting = it->second; //this looks redundant for 
+    //now as we don't do anything related to the host but in future this will
+    //be used for validity time, etc.
+
+    // set the time in the correct format
+    time_t rawtime = (time_t) t;
+    struct tm *timeinfo;
+    char buffer [30];
+    timeinfo = gmtime(&rawtime);
+    const char *format = "%a, %d %b %G %T GMT";
+    strftime(buffer, 30, format, timeinfo);
+    string t_str(buffer);
+
+    // replace the time
+    replace(page, sub_time, t_str);
+    // replace the token
+    replace(page, sub_token, token);
+    // replace the url
+    replace(page, sub_url, url);
+    // set the correct number of zeros
+    replace(page, sub_zeros, zeros_in_javascript);
   }
-
-<<<<<<< variant A
-  // set the time in the correct format
->>>>>>> variant B
-  stringstream ss(challenge_html.c_str());
-  string page( (istreambuf_iterator<char>(ss) ), (istreambuf_iterator<char>()) );
-  TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(),
-          "ChallengeManager::generate_html lookup for host [%s] found %d bytes of html.",
-          host_header.c_str(), (int)page.size());
-
-####### Ancestor
-  // load the page
-  //ifstream ifs("../challenger/solver.html");
-  //TODO: Should not re-read the fiel upon each request
-  //We need to read the whole string from the database infact
-  ifstream ifs(ChallengeManager::solver_page.c_str());
-  string page( (istreambuf_iterator<char>(ifs) ), (istreambuf_iterator<char>()) );
-
-  // set the time in the correct format
-======= end
-  time_t rawtime = (time_t) t;
-  struct tm *timeinfo;
-  char buffer [30];
-  timeinfo = gmtime(&rawtime);
-  const char *format = "%a, %d %b %G %T GMT";
-  strftime(buffer, 30, format, timeinfo);
-  string t_str(buffer);
-
-  // replace the time
-  replace(page, sub_time, t_str);
-  // replace the token
-  replace(page, sub_token, token);
-  // replace the url
-  replace(page, sub_url, url);
-  // set the correct number of zeros
-  replace(page, sub_zeros, zeros_in_javascript);
 }
 
 const char ChallengeManager::b64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -491,46 +494,20 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
   /*
    * checking the cookie and serving the js challenge if does not pass
    */
-<<<<<<< variant A
-  /*  TSDebug(BANJAX_PLUGIN_NAME, "Checking for challenge");
->>>>>>> variant B
-  TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE).c_str());
-####### Ancestor
-  /*  TSDebug(BANJAX_PLUGIN_NAME, "Checking for challenge");
-======= end
-
-
-<<<<<<< variant A
   TSDebug(BANJAX_PLUGIN_NAME, "cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE).c_str());
-  if(!ChallengeManager::check_cookie(transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP)))
-    {
-      TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, sending challenge");
- 
-      return FilterResponse(FilterResponse::I_RESPOND, NULL, static_cast<FilterResponse::ResponseGenerator>(&ChallengeManager::generate_response));
-    }  
->>>>>>> variant B
+
   // look up if this host is serving captcha's or not
   bool do_captcha = false;
   HostSettingsMap::iterator it = host_settings_.find(transaction_parts.at(TransactionMuncher::HOST));
   if (it != host_settings_.end()) {
-    libconfig::Setting* setting = it->second;
-    do_captcha = ((const char*)(*setting)["is_captcha"])[0] == '1';
+    do_captcha = (it->second->challenge_type == ChallengeDefinition::CHALLENGE_CAPTCHA);
   }
-####### Ancestor
-  TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE).c_str());
-  if(!ChallengeManager::check_cookie(transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP)))
-    {
-      TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, sending challenge");
- 
-      return FilterResponse(FilterResponse::I_RESPOND);
-    }  
-======= end
 
   if (do_captcha) { 
     if (ChallengeManager::is_captcha_url(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
-      return new FilterResponse(FilterResponse::I_RESPOND);    
-    } else if (ChallengeManager::is_captcha_answer(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
-      return new FilterResponse(FilterResponse::I_RESPOND);
+      return FilterResponse(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
+    } else if (is_captcha_answer(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
+      return FilterResponse(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
     }
     
     CookieParser cookie_parser;
@@ -549,42 +526,36 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
       }
     }
     if (result == 1) {
-      return new FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+      return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
     } else {
-      return new FilterResponse(FilterResponse::I_RESPOND);
+      return FilterResponse(FilterResponse::I_RESPOND);
     }
   }
   else {
-    if(!ChallengeManager::check_cookie(transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP))) {
-      return new FilterResponse(FilterResponse::I_RESPOND);
-    }
+    if(!ChallengeManager::check_cookie(transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP)))
+    {
+      TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, sending challenge");
+ 
+      return FilterResponse(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
+      }
   }
 
-  return new FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+  return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
 }
 
 char* ChallengeManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
 {
-
-  (void) response_info;
   long time_validity = time(NULL) + cookie_life_time; // TODO: one day validity for now, should be changed
-<<<<<<< variant A
 
   string buf_str; 
-  generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity, transaction_parts.at(TransactionMuncher::URL_WITH_HOST), buf_str);
+  generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity, 
+                transaction_parts.at(TransactionMuncher::URL_WITH_HOST),
+                transaction_parts.at(TransactionMuncher::HOST), transaction_parts, 
+                ((FilterExtendedResponse*)(response_info.response_data)), buf_str);
 
   char* buf = (char *) TSmalloc(buf_str.length()+1);
   strcpy(buf, buf_str.c_str());
 
   return buf;
->>>>>>> variant B
-  return generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity, transaction_parts.at(TransactionMuncher::URL_WITH_HOST),
-                       transaction_parts.at(TransactionMuncher::HOST), transaction_parts, response_info);
-####### Ancestor
-
-  return generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity, transaction_parts.at(TransactionMuncher::URL_WITH_HOST));
-  /*char* buf = (char *) TSmalloc(buf_str.length()+1);
-    strcpy(buf, buf_str.c_str());*/
-======= end
 
 }
