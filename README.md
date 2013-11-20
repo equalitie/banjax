@@ -219,6 +219,16 @@ const FilterIDType filter_to_column[] = {
 
 You'll get 16 bytes of memory for each ip, if you need more memory to keep the state you need to allocate it yourself and store a pointer to it in ip_database.
 
+You need to edit the constructor of the filter to receive a pointer to the ip_database:
+
+    RegexManager(const std::string& banjax_dir, const libconfig::Setting& main_root, IPDatabase* global_ip_database)
+    
+And you need to store it in ip_database member variable of BanjaxFilter (the parent of your filter) for further use. Finally you need edit 
+
+    Banjax::filter_factory
+    
+and tell banjax to send the pointer to your filter upon creation.
+
 How does regex_banner works
 ---------------------------
 Regex Banner uses the following method to keep the approximate rate of hit of each IP without storing every instance of hit. 
