@@ -532,6 +532,7 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
           }
         }
         if (result == 1) {
+          report_success(transaction_parts.at(TransactionMuncher::IP));
           return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
         } else {
           //record challenge failure
@@ -557,6 +558,7 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
         }
     }
 
+  report_success(transaction_parts.at(TransactionMuncher::IP));
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
 }
 
@@ -600,7 +602,8 @@ char* ChallengeManager::generate_response(const TransactionParts& transaction_pa
  *
  * @return true if no_of_failures exceeded the threshold
  */
-bool ChallengeManager::report_failure(std::string client_ip, unsigned int host_failure_threshold)
+bool
+ChallengeManager::report_failure(std::string client_ip, unsigned int host_failure_threshold)
 {
 
   ChallengerStateUnion cur_ip_state;
@@ -617,5 +620,19 @@ bool ChallengeManager::report_failure(std::string client_ip, unsigned int host_f
 
   ip_database->set_ip_state(client_ip, CHALLENGER_FILTER_ID, cur_ip_state.state_allocator);
   return banned;
+
+}
+
+/**
+ * Should be called upon successful solution of a challenge to wipe up the
+ * the ip's failure record
+ *
+ * @param client_ip: string representing the failed requester ip
+ */
+void 
+ChallengeManager::report_success(std::string client_ip)
+{
+  ChallengerStateUnion cur_ip_state;
+  ip_database->set_ip_state(client_ip, CHALLENGER_FILTER_ID, cur_ip_state.state_allocator);
 
 }
