@@ -120,7 +120,8 @@ class RegexManagerTest : public testing::Test {
   virtual void TearDown() {
    string rm_command("rm ");
    rm_command += TEST_CONF_FILE;
-   system(rm_command.c_str());
+   int r = system(rm_command.c_str());
+   (void)r;
 
    delete test_regex_manager;
   }
