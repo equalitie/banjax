@@ -23,6 +23,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "banjax_common.h" 
 #include "transaction_muncher.h"
 
 using namespace std;
@@ -63,7 +64,8 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
       //TSfree(client_address);
   }
 
-  if (parts_to_retreive & TransactionMuncher::URL) {
+  //it is just worth it to retrieve the scheme at the same time
+  if (parts_to_retreive & TransactionMuncher::URL || parts_to_retreive & TransactionMuncher::PROTOCOL) {
     TSMLoc url_loc;
     if (TSHttpHdrUrlGet(request_header, header_location, &url_loc) != TS_SUCCESS) {
       TSError("couldn't retrieve request url\n");
@@ -73,7 +75,7 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
 
     int url_length;
     const char* url = TSUrlStringGet(request_header, url_loc, &url_length);
-      
+    
     if (!url){
       TSError("couldn't retrieve request url string\n");
       TSHandleMLocRelease(request_header, header_location, url_loc);
@@ -83,6 +85,10 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
     //I'm not sure if we need to release URL explicitly
     //my guess is not
     cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL, string(url,url_length)));
+
+    int protocol_length;
+    const char* protocol = TSUrlSchemeGet(request_header, url_loc , &protocol_length);
+    cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::PROTOCOL, string(protocol,protocol_length)));
     
     TSHandleMLocRelease(request_header, header_location, url_loc);
     //TSfree(url);
@@ -118,7 +124,7 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
     //I'm not sure if we need to release URL explicitly
     //my guess is not
     cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL_WITH_HOST, string(url,url_length)));
-    TSDebug("banjax", "resp url %s", cur_trans_parts[TransactionMuncher::URL_WITH_HOST].c_str());
+    TSDebug(BANJAX_PLUGIN_NAME, "resp url %s", cur_trans_parts[TransactionMuncher::URL_WITH_HOST].c_str());
     
     TSHandleMLocRelease(request_header, header_location, url_loc);
     //TSfree(url);
@@ -222,6 +228,28 @@ TransactionMuncher::retrieve_response_parts(uint64_t requested_log_parts)
 
   valid_parts |= requested_log_parts;
 
+  TSHttpStatus resp_status;
+
+  resp_status = TSHttpHdrStatusGet(response_header, response_header_location);
+
+  cur_trans_parts[STATUS] = to_string(resp_status);
+
+  //if (TS_HTTP_STATUS_OK == resp_status) {
+
+    TSMLoc field_loc = TSMimeHdrFieldFind(response_header, response_header_location, "Content-Length", 12);
+    if (!field_loc) {
+      cur_trans_parts[CONTENT_LENGTH] = "0";
+    }
+    else {
+      int field_length;
+      const char* content_length = TSMimeHdrFieldValueStringGet(response_header, response_header_location, field_loc, 0, &field_length);
+      
+      cur_trans_parts[CONTENT_LENGTH] = string(content_length, field_length);
+
+      //}
+        
+  }
+
   return cur_trans_parts;
 
 }
@@ -240,7 +268,6 @@ TransactionMuncher::retrieve_response_header()
 void
 TransactionMuncher::set_status(TSHttpStatus status)
 {
-
   //First check if we need to retrieve the header
   if (!response_header) 
     retrieve_response_header();
@@ -251,7 +278,6 @@ TransactionMuncher::set_status(TSHttpStatus status)
                        strlen(TSHttpHdrReasonLookup(status)));
 
 }
-
 
 /**
   Add the value of host field to url. This is useful when 

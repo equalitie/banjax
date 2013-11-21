@@ -14,10 +14,19 @@ class ATSEventHandler;
 class BanjaxFilter;
 
 #include "ip_database.h"
+#include "transaction_muncher.h"
+#include "banjax_filter.h"
 
+//Everything is static in ATSEventHandler so the only reason
+//we have to create this object is to set the static reference to banjax into 
+//ATSEventHandler, it is somehow the acknowledgementt that only one banjax 
+//object can exist
 class Banjax
 {
   friend class ATSEventHandler;
+
+ public:
+  typedef std::list<FilterTask> TaskQueue;
   
  protected:
   //requests
@@ -27,7 +36,7 @@ class Banjax
   IPDatabase ip_database;
   
   std::list<BanjaxFilter*> filters;
-
+  TaskQueue task_queues[BanjaxFilter::TOTAL_NO_OF_QUEUES];
 
   //configuration
   static const std::string CONFIG_FILENAME;
@@ -52,11 +61,11 @@ class Banjax
   void filter_factory(const std::string& banjax_dir, const libconfig::Setting& main_root);
 
   uint64_t all_filters_requested_part;
+  uint64_t all_filters_response_part;
 
  public:
   uint64_t which_parts_are_requested() { return all_filters_requested_part;}
-  //The name of pluging to be used for TSDebug and folders, etc.
-  static const std::string BANJAX_PLUGIN_NAME;
+  uint64_t which_response_parts_are_requested() { return all_filters_response_part;}
   /* Constructor */
   Banjax();
 

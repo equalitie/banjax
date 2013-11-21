@@ -40,15 +40,20 @@ class TransactionMuncher{
    */
 
   void retrieve_response_header();
+
  public:
     enum TransactionPart{
-      IP             = 0x01,
-      URL            = 0x02,
-      HOST           = 0x04,
-      UA             = 0x08,
-      COOKIE         = 0x10,
-      URL_WITH_HOST  = 0x20,
-      METHOD         = 0x40
+      IP             = 0x001,
+      URL            = 0x002,
+      HOST           = 0x004,
+      UA             = 0x008,
+      COOKIE         = 0x010,
+      URL_WITH_HOST  = 0x020,
+      METHOD         = 0x040,
+      MISS           = 0x080,
+      STATUS         = 0x100,
+      PROTOCOL       = 0x200,
+      CONTENT_LENGTH = 0x400
     };
 
     enum PARTS_ERROR {
@@ -66,7 +71,6 @@ class TransactionMuncher{
        @return A map of transaction parts
      */
     const TransactionParts& retrieve_parts(uint64_t requested_log_parts);
-
 
     /**
        same as retrieve_parts but needs to be called in reponse handle 
@@ -92,6 +96,15 @@ class TransactionMuncher{
     */
     void set_url_host(std::string* hostname = NULL);
 
+    /**
+       Indicate that the transction missed the cache. Should be 
+       called by ATSEventHandler when the hook for missing the 
+       cache is called.
+     */
+    void miss()
+    {
+      cur_trans_parts[MISS] = std::string();
+    }
     /**
        Constructor
        

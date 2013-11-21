@@ -29,6 +29,7 @@ using namespace std;
 #include "regex_manager.h"
 #include "challenge_manager.h"
 #include "white_lister.h"
+#include "bot_sniffer.h"
 
 #include "banjax.h"
 #include "swabber_interface.h"
@@ -37,8 +38,8 @@ using namespace std;
 extern TSCont Banjax::global_contp;
 
 extern const string Banjax::CONFIG_FILENAME = "banjax.conf";
-extern const string Banjax::BANJAX_PLUGIN_NAME = "banjax";
 
+extern Banjax* ATSEventHandler::banjax;
 /**
    Read the config file and create filters whose name is
    mentioned in the config file. If you make a new filter
@@ -47,35 +48,53 @@ extern const string Banjax::BANJAX_PLUGIN_NAME = "banjax";
 void
 Banjax::filter_factory(const string& banjax_dir, const libconfig::Setting& main_root)
 {
-  int filter_count = main_root.getLength();
+  unsigned int filter_count = main_root.getLength();
   
-  for(int i = 0; i < filter_count; i++) {
+  for(unsigned int i = 0; i < filter_count; i++) {
     string cur_filter_name = main_root[i].getName();
+    BanjaxFilter* cur_filter;
     if (cur_filter_name == REGEX_BANNER_FILTER_NAME) {
-      filters.push_back(new RegexManager(banjax_dir, main_root, &ip_database));
+      cur_filter = new RegexManager(banjax_dir, main_root, &ip_database);
     } else if (cur_filter_name == CHALLENGER_FILTER_NAME){
-      filters.push_back(new ChallengeManager(banjax_dir, main_root));
+      cur_filter = new ChallengeManager(banjax_dir, main_root);
     } else if (cur_filter_name == WHITE_LISTER_FILTER_NAME){
-      filters.push_back(new WhiteLister(banjax_dir, main_root));
+      cur_filter = new WhiteLister(banjax_dir, main_root);
+    } else if (cur_filter_name == BOT_SNIFFER_FILTER_NAME){
+      cur_filter = new BotSniffer(banjax_dir, main_root);
     } else {
       //unrecognized filter, warning and pass
-      TSDebug(BANJAX_PLUGIN_NAME.c_str(), "I do not recognize filter %s requested in the config", cur_filter_name.c_str());
+      TSDebug(BANJAX_PLUGIN_NAME, "I do not recognize filter %s requested in the config", cur_filter_name.c_str());
+      continue;
     }
-  }
 
+    for(unsigned int i = BanjaxFilter::HTTP_START; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++) {
+      if (cur_filter->queued_tasks[i]) {
+        TSDebug(BANJAX_PLUGIN_NAME, "active task %s %u", cur_filter->BANJAX_FILTER_NAME.c_str(), i);
+        task_queues[i].push_back(FilterTask(cur_filter,cur_filter->queued_tasks[i]));
+      }
+    }
+
+    filters.push_back(cur_filter);
+  }
 }
 
 Banjax::Banjax()
-  : all_filters_requested_part(0)
+  :all_filters_requested_part(0)
 {
+  //Everything is static in ATSEventHandle so it is more like a namespace
+  //than a class (we never instatiate from it). so the only reason
+  //we have to create this object is to set the static reference to banjax into 
+  //ATSEventHandler, it is somehow the acknowledgementt that only one banjax 
+  //object can exist
+  ATSEventHandler::banjax = this;
+
   /* create an TSTextLogObject to log blacklisted requests to */
-  TSReturnCode error = TSTextLogObjectCreate(BANJAX_PLUGIN_NAME.c_str(), TS_LOG_MODE_ADD_TIMESTAMP, &log);
+  TSReturnCode error = TSTextLogObjectCreate(BANJAX_PLUGIN_NAME, TS_LOG_MODE_ADD_TIMESTAMP, &log);
   if (!log || error == TS_ERROR) {
-    TSDebug(BANJAX_PLUGIN_NAME.c_str(), "error while creating log");
+    TSDebug(BANJAX_PLUGIN_NAME, "error while creating log");
   }
   
-  TSDebug(BANJAX_PLUGIN_NAME.c_str(), "in the beginning");
-
+  TSDebug(BANJAX_PLUGIN_NAME, "in the beginning");
   
   global_contp = TSContCreate(ATSEventHandler::banjax_global_eventhandler, ip_database.db_mutex);
 
@@ -84,15 +103,20 @@ Banjax::Banjax()
   TSContDataSet(global_contp, cd);
 
   cd->contp = global_contp;
-  cd->cur_banjax_inst = this;
 
   TSHttpHookAdd(TS_HTTP_TXN_START_HOOK, global_contp);
 
+  //creation of filters happen here
   read_configuration();
 
+  //now Get rid of inactives events
+  for(unsigned int cur_queue = BanjaxFilter::HTTP_START; cur_queue < BanjaxFilter::TOTAL_NO_OF_QUEUES; cur_queue++, ATSEventHandler::banjax_active_queues[cur_queue] = task_queues[cur_queue].empty() ? false : true);
+
   //Ask each filter what part of http transaction they are interested in
-  for(list<BanjaxFilter*>::iterator cur_filter = filters.begin(); cur_filter != filters.end(); cur_filter++)
+  for(list<BanjaxFilter*>::iterator cur_filter = filters.begin(); cur_filter != filters.end(); cur_filter++) {
     all_filters_requested_part |= (*cur_filter)->requested_info();
+    all_filters_response_part |= (*cur_filter)->response_info();
+  }
 
 }
 
@@ -110,12 +134,12 @@ Banjax::read_configuration()
   }
   catch(const libconfig::FileIOException &fioex)
   {
-    TSDebug(BANJAX_PLUGIN_NAME.c_str(), "I/O error while reading config file %s.", CONFIG_FILENAME.c_str());
+    TSDebug(BANJAX_PLUGIN_NAME, "I/O error while reading config file %s.", CONFIG_FILENAME.c_str());
     return;
   }
   catch(const libconfig::ParseException &pex)
   {
-    TSDebug(BANJAX_PLUGIN_NAME.c_str(), "Parse error while reading the config file");
+    TSDebug(BANJAX_PLUGIN_NAME, "Parse error while reading the config file");
     return;
   }
 
@@ -133,7 +157,7 @@ TSPluginInit(int argc, const char *argv[])
   (void) argc; (void)argv;
   TSPluginRegistrationInfo info;
 
-  info.plugin_name = (char*) Banjax::BANJAX_PLUGIN_NAME.c_str();
+  info.plugin_name = (char*) BANJAX_PLUGIN_NAME;
   info.vendor_name = (char*) "eQualit.ie";
   info.support_email = (char*) "info@deflect.ca";
 

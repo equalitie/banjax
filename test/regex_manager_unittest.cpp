@@ -234,7 +234,7 @@ TEST_F(RegexManagerTest, forbidden_response)
 
   EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
 
-  EXPECT_EQ("<html><header></header><body>Forbidden</body></html>", test_regex_manager->generate_response(mock_transaction, cur_filter_result));
+  EXPECT_FALSE(strcmp("<html><header></header><body>Forbidden</body></html>", test_regex_manager->generate_response(mock_transaction, cur_filter_result)));
 
 }
 

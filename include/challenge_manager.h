@@ -35,7 +35,7 @@ protected:
     //Hosts that challenger needs to check
     std::vector<std::string> challenged_hosts;
 
-    const std::string solver_page;
+    std::string solver_page;
 	// substrings of the page that needs to be replaced
 	static std::string sub_token;	// token
 	static std::string sub_time;	// time until which the cookie is valid
@@ -59,6 +59,7 @@ public:
  ChallengeManager(const string& banjax_dir, const libconfig::Setting& main_root)
    :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html")
   {
+    queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&ChallengeManager::execute);
     load_config(main_root[BANJAX_FILTER_NAME]);
   }
 
@@ -100,7 +101,7 @@ public:
   /**
      This basically calls the function to generate the html
    */
-  virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
+  virtual char* generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
 
     /**
      * Checks if the cookie is valid: sha256, ip, and time
@@ -117,7 +118,9 @@ public:
 	 */
 	std::string generate_token(std::string client_ip, long time);
 	
-	std::string generate_html(std::string ip, long time, std::string url);
+    //TODO: This needs to be changed to adopt Otto's approach in placing
+    //the variable info in cookie header and make the jscript to read them
+	void generate_html(std::string ip, long time, std::string url, string& generated_html);
 
 };
 
