@@ -3,10 +3,9 @@
 
 using namespace std;
 
+#include "banjax_common.h"
 #include "banjax.h"
 #include "unittest_common.h"
-
-extern const string Banjax::BANJAX_PLUGIN_NAME = "banjax";
 
 /**
    mock TSDebug for the sake of compiling tests independence from ATS
@@ -25,6 +24,7 @@ tsapi TSMutex TSMutexCreate(void)
 {
   return NULL;
 }
+
 tsapi TSReturnCode TSMutexLockTry(TSMutex mutexp)
 {
   //each test has its own database, no multi-thread threat

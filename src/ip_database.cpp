@@ -23,7 +23,7 @@ using namespace std;
 bool IPDatabase::set_ip_state(std::string& ip, FilterIDType filter_id, FilterState state)
 {
   if (TSMutexLockTry(db_mutex) != TS_SUCCESS) {
-    TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "Unable to get lock on the ip db");
+    TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the ip db");
     return false;
   }
 

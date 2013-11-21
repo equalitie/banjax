@@ -16,15 +16,16 @@ banjax_la_LDFLAGS = \
 
 banjax_la_SOURCES = 	banjax.cpp \
 						ats_event_handler.cpp \
-						challenge_manager.cpp \
-						swabber_interface.cpp  \
-						white_lister.cpp \
 						banjax_continuation.cpp \
-						cookie_parser.cpp \
 						transaction_muncher.cpp \
-					 	regex_manager.cpp \
                         util.cpp \
-						ip_database.cpp
+						ip_database.cpp \
+						swabber_interface.cpp  \
+						cookie_parser.cpp \
+						challenge_manager.cpp \
+						white_lister.cpp \
+					 	regex_manager.cpp \
+						bot_sniffer.cpp
 
 
 

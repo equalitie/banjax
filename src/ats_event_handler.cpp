@@ -3,6 +3,7 @@
  * AUTHORS:
  *   Vmon: May 2013, moving Bill's code to C++
  */
+
 #include <stdio.h>
 #include <ts/ts.h>
 #include <regex.h>
@@ -35,7 +36,9 @@ using namespace std;
   by the banjax object.*/
 //TSCont Banjax::global_contp;
 //extern TSMutex Banjax::regex_mutex;
+bool ATSEventHandler::banjax_active_queues[BanjaxFilter::TOTAL_NO_OF_QUEUES];
 
+//Banjax* ATSEventHandler::banjax = NULL;
 
 int
 ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *edata)
@@ -43,44 +46,65 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
   TSHttpTxn txnp = (TSHttpTxn) edata;
   BanjaxContinuation *cd;
 
-  //raise(SIGINT);
   switch (event) {
-  case TS_EVENT_HTTP_READ_REQUEST_HDR:
-    //TSDebug("banjax", "request" );
-    if(contp != Banjax::global_contp) {
-      cd = (BanjaxContinuation *) TSContDataGet(contp);
-      handle_request(cd);
-      return 0;
-    } else {
-      break;
-    }
   case TS_EVENT_HTTP_TXN_START:
-    TSDebug("banjax", "txn start" );
-	txnp = (TSHttpTxn) edata;
-    handle_txn_start(contp, txnp);
+    //If we are here it means this is the global continuation
+    //we never subscribe subsequent continuations to this event
+    handle_txn_start((TSHttpTxn) edata);
+    /*if (banjax_active_queues[HTTP_START])
+      handle_task_queue(HTTP_START, (BanjaxContinuation *) TSContDataGet(contp));*/
+
     return 0;
+
+  case TS_EVENT_HTTP_READ_REQUEST_HDR:
+    if(contp != Banjax::global_contp)
+      handle_request((BanjaxContinuation *) TSContDataGet(contp));
+      return 0;
+
+  case TS_EVENT_HTTP_READ_CACHE_HDR:
+    /* on hit we don't do anything for now
+       lack of miss means hit to me 
+       if (contp != Banjax::global_contp) {
+       cd = (BanjaxContinuation *) TSContDataGet(contp);
+       cd->hit = 1;
+       }*/
+    TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
+    return 0;
+
+  case TS_EVENT_HTTP_SEND_REQUEST_HDR:
+    TSDebug(BANJAX_PLUGIN_NAME, "miss");
+    if (contp != Banjax::global_contp) {
+	    cd = (BanjaxContinuation *) TSContDataGet(contp);
+	    cd->transaction_muncher.miss();
+    }
+    TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
+    return 0;
+
+  case TS_EVENT_HTTP_SEND_RESPONSE_HDR:
+    //TSDebug(BANJAX_PLUGIN_NAME, "response" );
+    if (contp != Banjax::global_contp) {
+      cd = (BanjaxContinuation*) TSContDataGet(contp);
+      handle_response(cd);
+    }
+    return 0;
+
   case TS_EVENT_HTTP_TXN_CLOSE:
-    TSDebug("banjax", "txn close" );
-    txnp = (TSHttpTxn) edata;
+    TSDebug(BANJAX_PLUGIN_NAME, "txn close" );
     if (contp != Banjax::global_contp) {
       cd = (BanjaxContinuation *) TSContDataGet(contp); 
-      TSDebug("banjax", "continuation data being destroyed at %lu", (unsigned long)cd);
+      if (banjax_active_queues[BanjaxFilter::HTTP_CLOSE])
+        handle_task_queue(banjax->task_queues[BanjaxFilter::HTTP_CLOSE], cd);
+
+      //killing the continuation
       cd->~BanjaxContinuation(); //leave mem manage to ATS
       //TSfree(cd); I think TS is taking care of this
       destroy_continuation(contp);
     }
     break;
-  case TS_EVENT_HTTP_SEND_RESPONSE_HDR:
-    //TSDebug("banjax", "response" );
-    if (contp != Banjax::global_contp) {
-      cd = (BanjaxContinuation *) TSContDataGet(contp);
-      handle_response(cd);
-      return 0;
-    } else {
-      break;
-    }
+
   case TS_EVENT_TIMEOUT:
-    TSDebug("banjax", "timeout" );
+    //TODO: This code does not make sense and needs to be revisited
+    TSDebug(BANJAX_PLUGIN_NAME, "timeout" );
     /* when mutex lock is not acquired and continuation is rescheduled,
        the plugin is called back with TS_EVENT_TIMEOUT with a NULL
        edata. We need to decide, in which function did the MutexLock
@@ -88,12 +112,12 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
     if (contp != Banjax::global_contp) {
       cd = (BanjaxContinuation *) TSContDataGet(contp);
       switch (cd->cf) {
-      case BanjaxContinuation::HANDLE_REQUEST:
-        handle_request(cd);
-        return 0;
-      default:
-        TSDebug("banjax", "This event was unexpected: %d\n", event);
-        break;
+        case BanjaxContinuation::HANDLE_REQUEST:
+          handle_request(cd);
+          return 0;
+        default:
+          TSDebug(BANJAX_PLUGIN_NAME, "This event was unexpected: %d\n", event);
+          break;
       }
     } else {
       //regardless, it even doesn't make sense to read the list here
@@ -101,9 +125,9 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
       return 0;
     }
 
-  default:
-    TSDebug("banjax", "default" );
-    break;
+    default:
+      TSDebug(BANJAX_PLUGIN_NAME, "Unsolicitated event call?" );
+      break;
   }
 
   return 0;
@@ -113,30 +137,25 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
 void
 ATSEventHandler::handle_request(BanjaxContinuation* cd)
 {
-
-  Banjax* banjax = cd->cur_banjax_inst;
-
   //retreiving part of header requested by the filters
   const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(banjax->which_parts_are_requested());
 
-
   bool continue_filtering = true;
-  for(list<BanjaxFilter*>::iterator cur_filter = banjax->filters.begin(); continue_filtering && cur_filter != banjax->filters.end(); cur_filter++) {
-    FilterResponse cur_filter_result = (*cur_filter)->execute(cur_trans_parts);
+  for(Banjax::TaskQueue::iterator cur_task = banjax->task_queues[BanjaxFilter::HTTP_REQUEST].begin(); continue_filtering && cur_task != banjax->task_queues[BanjaxFilter::HTTP_REQUEST].end(); cur_task++) {
+    FilterResponse cur_filter_result = ((*(cur_task->filter)).*(cur_task->task))(cur_trans_parts);
     switch (cur_filter_result.response_type) 
       {
       case FilterResponse::GO_AHEAD_NO_COMMENT:
         continue;
         
-      case FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY: //This is when the requester is white listed
+      case FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY: 
+        //This is when the requester is white listed
         continue_filtering = false;
         break;
 
-
       case FilterResponse::I_RESPOND:
         cd->response_info = cur_filter_result;
-        cd->responding_filter = *cur_filter;
-        cd->response_generator = &BanjaxFilter::generate_response;
+        cd->responding_filter = cur_task->filter;
         TSHttpTxnHookAdd(cd->txnp, TS_HTTP_SEND_RESPONSE_HDR_HOOK, cd->contp);
         TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_ERROR);
         return;
@@ -160,11 +179,12 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
 void
 ATSEventHandler::handle_response(BanjaxContinuation* cd)
 {
+  //we need to retrieve response parts for any filter who requested it.
+  cd->transaction_muncher.retrieve_response_parts(banjax->which_response_parts_are_requested());
 
-  if (cd->response_generator) {
-    cd->transaction_muncher.retrieve_response_parts(cd->responding_filter->response_info());
+  if (cd->response_info.response_type == FilterResponse::I_RESPOND) {
     cd->transaction_muncher.set_status(TS_HTTP_STATUS_FORBIDDEN);
-    string alternative_response = ((cd->responding_filter)->*(cd->response_generator))(cd->transaction_muncher.retrieve_parts(cd->cur_banjax_inst->all_filters_requested_part), cd->response_info);
+    string alternative_response = (((cd->responding_filter)->*(cd->response_info.response_generator)))(cd->transaction_muncher.retrieve_parts(banjax->all_filters_requested_part), cd->response_info);
     char* buf = (char *) TSmalloc(alternative_response.length()+1);
     sprintf(buf, "%s", alternative_response.c_str());
 
@@ -172,6 +192,10 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
     TSHttpTxnErrorBodySet(cd->txnp, buf, strlen(buf), NULL);
 
   }
+  //Now we should take care of registerd filters in the queue these are not
+  //going to generate the response at least that is the plan
+  if (banjax_active_queues[BanjaxFilter::HTTP_START])
+    handle_task_queue(banjax->task_queues[BanjaxFilter::HTTP_RESPONSE], cd);
 
   TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_CONTINUE);
 
@@ -182,28 +206,51 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
    , so the new continuation gets the main banjax object
  */
 void
-ATSEventHandler::handle_txn_start(TSCont global_contp, TSHttpTxn txnp)
+ATSEventHandler::handle_txn_start(TSHttpTxn txnp)
 {
+  TSDebug(BANJAX_PLUGIN_NAME, "txn start" );
+
   TSCont txn_contp;
-  BanjaxContinuation* global_cont_data = (BanjaxContinuation *) TSContDataGet(global_contp);;
   BanjaxContinuation *cd;
 
   //retreive the banjax obej
-
   txn_contp = TSContCreate((TSEventFunc) banjax_global_eventhandler, TSMutexCreate());
   /* create the data that'll be associated with the continuation */
   cd = (BanjaxContinuation *) TSmalloc(sizeof(BanjaxContinuation));
   cd = new(cd) BanjaxContinuation(txnp);
-  //TSDebug("banjax", "New continuation data at %lu", (unsigned long)cd);
+  //TSDebug(BANJAX_PLUGIN_NAME, "New continuation data at %lu", (unsigned long)cd);
   TSContDataSet(txn_contp, cd);
 
   cd->contp = txn_contp;
-  cd->cur_banjax_inst = global_cont_data->cur_banjax_inst;
 
   TSHttpTxnHookAdd(txnp, TS_HTTP_READ_REQUEST_HDR_HOOK, txn_contp);
+  TSHttpTxnHookAdd(txnp, TS_HTTP_SEND_REQUEST_HDR_HOOK, txn_contp);
+  TSHttpTxnHookAdd(txnp, TS_HTTP_SEND_RESPONSE_HDR_HOOK, txn_contp);
   TSHttpTxnHookAdd(txnp, TS_HTTP_TXN_CLOSE_HOOK, txn_contp);
 
   TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
+
+}
+
+/**
+   runs if a filter is registered to run a function during an event
+*/
+void 
+ATSEventHandler::handle_task_queue(Banjax::TaskQueue& current_queue, BanjaxContinuation* cd)
+{
+  const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(banjax->which_parts_are_requested());
+
+  for(Banjax::TaskQueue::iterator cur_task = current_queue.begin(); cur_task != current_queue.end(); cur_task++)
+    /*For now we have no plan on doing anything with the result
+      in future we need to receive the filter instruction for 
+      the rest of transation but for the moment only it matters
+      at the begining of the transaction to interfere with the 
+      transaction.
+
+      FilterResponse cur_filter_result =
+     */ 
+    ((*(cur_task->filter)).*(cur_task->task))(cur_trans_parts);
+  
 }
 
 void
@@ -220,5 +267,3 @@ ATSEventHandler::destroy_continuation(TSCont contp)
     // delete cd;
   }
 }
-
-

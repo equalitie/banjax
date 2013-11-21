@@ -45,7 +45,7 @@ FilterResponse WhiteLister::execute(const TransactionParts& transaction_parts)
     {
       if (*it == transaction_parts.at(TransactionMuncher::IP))
         {
-          TSDebug("banjax", "white listed ip: %s", (*it).c_str());
+          TSDebug(BANJAX_PLUGIN_NAME, "white listed ip: %s", (*it).c_str());
           return FilterResponse(FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
         }
     }

@@ -30,7 +30,7 @@ Debugging:
 
 You also need google test framework to be installed
 
-wget http://googletest.googlecode.com/files/gtest-1.7.0.zip
+wget http://googletest.googlecode.com/files/gtest-1.7.0.zip:
 unzip gtest-1.7.0.zip
 cd gtest-1.7.0
 ./configure

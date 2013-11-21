@@ -10,6 +10,7 @@
 #include <vector>
 #include <sstream>
 #include <fstream>
+#include <streambuf>
 #include <cmath>
 #include <algorithm>
 
@@ -72,8 +73,15 @@ ChallengeManager::load_config(libconfig::Setting& cfg)
    }
    catch(const libconfig::SettingNotFoundException &nfex)
      {
-       TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "Bad config for filter %s", BANJAX_FILTER_NAME.c_str());
+       TSDebug(BANJAX_PLUGIN_NAME, "Bad config for filter %s", BANJAX_FILTER_NAME.c_str());
      }
+
+   // load the page
+    //ifstream ifs("../challenger/solver.html");
+   //TODO: Should not re-read the fiel upon each request
+   //We need to read the whole string from the database infact
+   ifstream ifs(ChallengeManager::solver_page.c_str());
+   solver_page.assign( (istreambuf_iterator<char>(ifs)), istreambuf_iterator<char>());
 
 }
 
@@ -153,11 +161,11 @@ bool ChallengeManager::check_sha(const char* cookiestr, const char* cookie_val_e
   }
   outputBuffer[64] = 0;
 
-  //TSDebug("banjax", "SHA256 = %s", outputBuffer);
+  //TSDebug(BANJAX_PLUGIN_NAME, "SHA256 = %s", outputBuffer);
 
   for(unsigned i=0; i<number_of_trailing_zeros/4; i++){
     if(outputBuffer[i] != '0'){
-      //TSDebug("banjax", "i= %d, out = %c", i, outputBuffer[i]);
+      //TSDebug(BANJAX_PLUGIN_NAME, "i= %d, out = %c", i, outputBuffer[i]);
       return false;
     }
   } 
@@ -172,8 +180,6 @@ bool ChallengeManager::check_sha(const char* cookiestr, const char* cookie_val_e
  * @return        true if the cookie is valid
  */
 bool ChallengeManager::check_cookie(string cookie_jar, string ip){
-
-
   //let find the deflect cookie inside the jar
   CookieParser cookie_parser;
   const char* next_cookie = cookie_jar.c_str();
@@ -181,15 +187,15 @@ bool ChallengeManager::check_cookie(string cookie_jar, string ip){
         if (!(memcmp(cookie_parser.str, "deflect", cookie_parser.nam_end - cookie_parser.str)))
       break;
 
-  TSDebug("banjax", "cookie_val: '%s'",cookie_parser.val_start);
+  TSDebug(BANJAX_PLUGIN_NAME, "cookie_val: '%s'",cookie_parser.val_start);
 
   // check the SHA256 of the cookie
   if(!check_sha(cookie_parser.val_start, cookie_parser.val_end)){
-    TSDebug("banjax", "ChMng: SHA256 not valid");
+    TSDebug(BANJAX_PLUGIN_NAME, "ChMng: SHA256 not valid");
     return false;
   }
 
-    // separate token from user-found value (token has length 22 in base64 encoding)
+  // separate token from user-found value (token has length 22 in base64 encoding)
   string token = base64_decode(cookie_parser.val_start, cookie_parser.val_end);
 
     // unencode token and separate ip from time
@@ -200,7 +206,7 @@ bool ChallengeManager::check_cookie(string cookie_jar, string ip){
   vector<string> x = split(ip, '.');
   for(unsigned int i=0; i<x.size(); i++){
     if ( ((int) *(original+i)) != atoi(x[i].c_str()) ){
-      TSDebug("banjax", "ChMng: ip not valid");
+      TSDebug(BANJAX_PLUGIN_NAME, "ChMng: ip not valid");
       return false;
     }
   }
@@ -212,7 +218,7 @@ bool ChallengeManager::check_cookie(string cookie_jar, string ip){
     token_time += (long) *(original+i);
   }
   if(token_time < time(NULL)){
-    TSDebug("banjax", "ChMng: time not valid");
+    TSDebug(BANJAX_PLUGIN_NAME, "ChMng: time not valid");
     return false;
   }
 
@@ -234,17 +240,13 @@ bool ChallengeManager::replace(string &original, string &from, string &to){
   return true;
 }
 
-string ChallengeManager::generate_html(string ip, long t, string url){
+void ChallengeManager::generate_html(string ip, long t, string url, string& page){
   
+  //copy the template
+  page = solver_page;
+
   // generate the token
   string token = ChallengeManager::generate_token(ip, t);
-
-  // load the page
-  //ifstream ifs("../challenger/solver.html");
-  //TODO: Should not re-read the fiel upon each request
-  //We need to read the whole string from the database infact
-  ifstream ifs(ChallengeManager::solver_page.c_str());
-  string page( (istreambuf_iterator<char>(ifs) ), (istreambuf_iterator<char>()) );
 
   // set the time in the correct format
   time_t rawtime = (time_t) t;
@@ -263,8 +265,6 @@ string ChallengeManager::generate_html(string ip, long t, string url){
   replace(page, sub_url, url);
   // set the correct number of zeros
   replace(page, sub_zeros, zeros_in_javascript);
-
-  return page;
 }
 
 const char ChallengeManager::b64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -335,6 +335,7 @@ string ChallengeManager::base64_decode(const char* data, const char* data_end)
       retval += (char)((accumulator >> bits_collected) & 0xffu);
     }
   }
+
   return retval;
 }
 
@@ -349,7 +350,7 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
   /*
    * checking the cookie and serving the js challenge if does not pass
    */
-  /*  TSDebug("banjax", "Checking for challenge");
+  /*  TSDebug(BANJAX_PLUGIN_NAME, "Checking for challenge");
 
     url_str = TSUrlStringGet (bufp, url_loc, &url_length);
     time_validity = time(NULL) + 60*60*24; // TODO: one day validity for now, should be changed
@@ -362,26 +363,30 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
     time_validity = time(NULL) + 60*60*24; // TODO: one day validity for now, should be     
   */ 
 
-  TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE).c_str());
+  TSDebug(BANJAX_PLUGIN_NAME, "cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE).c_str());
   if(!ChallengeManager::check_cookie(transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP)))
     {
-      TSDebug("banjax", "cookie is not valid, sending challenge");
+      TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, sending challenge");
  
-      return FilterResponse(FilterResponse::I_RESPOND);
+      return FilterResponse(FilterResponse::I_RESPOND, NULL, static_cast<FilterResponse::ResponseGenerator>(&ChallengeManager::generate_response));
     }  
 
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
 
 }
 
-std::string ChallengeManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
+char* ChallengeManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
 {
 
   (void) response_info;
   long time_validity = time(NULL) + cookie_life_time; // TODO: one day validity for now, should be changed
 
-  return generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity, transaction_parts.at(TransactionMuncher::URL_WITH_HOST));
-  /*char* buf = (char *) TSmalloc(buf_str.length()+1);
-    strcpy(buf, buf_str.c_str());*/
+  string buf_str; 
+  generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity, transaction_parts.at(TransactionMuncher::URL_WITH_HOST), buf_str);
+
+  char* buf = (char *) TSmalloc(buf_str.length()+1);
+  strcpy(buf, buf_str.c_str());
+
+  return buf;
 
 }

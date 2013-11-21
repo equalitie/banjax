@@ -9,11 +9,12 @@
 #include <assert.h>
 #include <libconfig.h++>
 
+#include "banjax_common.h"
 #include "transaction_muncher.h"
 #include "filter_list.h"
 #include "ip_database.h"
-#include "banjax.h"
 
+class BanjaxFilter;
 class FilterResponse
 {
 public:
@@ -25,13 +26,34 @@ public:
         CALL_ME_ON_RESPONSE
    };
 
-   unsigned int response_type;
-   void* response_data;
+  unsigned int response_type;
+  void* response_data;
+  typedef char* (BanjaxFilter::*ResponseGenerator) (const TransactionParts& transactionp_parts, const FilterResponse& response_info);
 
- FilterResponse(unsigned int cur_response_type = GO_AHEAD_NO_COMMENT, void* cur_response_data = NULL)
-   : response_type(cur_response_type), response_data(cur_response_data)
-   {}
+  ResponseGenerator response_generator;
 
+  FilterResponse(unsigned int cur_response_type = GO_AHEAD_NO_COMMENT, void* cur_response_data = NULL, ResponseGenerator response_gen_func = NULL)
+    : response_type(cur_response_type), response_data(cur_response_data), response_generator(response_gen_func)
+  {}
+
+};
+class BanjaxFilter;
+
+typedef FilterResponse (BanjaxFilter::*FilterTaskFunction) (const TransactionParts& transactionp_parts);
+
+struct  FilterTask
+{
+  BanjaxFilter* filter;
+  FilterTaskFunction task;
+
+  FilterTask(BanjaxFilter* cur_filter, FilterTaskFunction cur_task)
+    : filter(cur_filter), task(cur_task) {}
+
+  //Default constructor just to make everthing null
+  FilterTask()
+    : filter(NULL),
+      task(NULL) {}
+      
 };
 
 class BanjaxFilter
@@ -43,7 +65,7 @@ class BanjaxFilter
      It should be overriden by the filter to load its specific configurations
      
      @param banjax_dir the directory which contains banjax config files
-     @param cfg        the object that contains the configuration of the filter
+     @param cfg the object that contains the configuration of the filter
   */
   virtual void load_config(libconfig::Setting& cfg) {(void) cfg;assert(0);};
   
@@ -51,6 +73,25 @@ class BanjaxFilter
   const unsigned int BANJAX_FILTER_ID;
   const std::string BANJAX_FILTER_NAME;
 
+  /**
+     this is a set of pointer to functions that the filter
+     needs to be called on each queue, we are basically
+     re-wrting the virtual table, but that makes more sense 
+     for now.
+  */
+  typedef char* (BanjaxFilter::*ResponseGenerator) (const TransactionParts& transactionp_parts, const FilterResponse& response_info);
+  enum ExecutionQueue {
+    HTTP_START,
+    HTTP_REQUEST,
+    HTTP_READ_CACHE,
+    HTTP_SEND_TO_ORIGIN,
+    HTTP_RESPONSE,
+    HTTP_CLOSE,
+    TOTAL_NO_OF_QUEUES
+  };
+  
+  FilterTaskFunction queued_tasks[BanjaxFilter::TOTAL_NO_OF_QUEUES];
+  
   /**
      A disabled filter won't run, 
      Banjax calls the execution function of an enabled filter
@@ -71,10 +112,21 @@ class BanjaxFilter
   */
  BanjaxFilter(const std::string& banjax_dir, const libconfig::Setting& main_root, unsigned int child_id, std::string child_name)
     : BANJAX_FILTER_ID(child_id),
-    BANJAX_FILTER_NAME(child_name)
+      BANJAX_FILTER_NAME(child_name),
+    queued_tasks()
   {
     (void) banjax_dir; (void) main_root; ip_database = NULL;
+  }
 
+  /**
+     Filter should call this function cause nullify in constructor does not 
+     work :( then setting their functions
+   */
+  virtual void set_tasks()
+  {
+    for(unsigned int i = 0; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++) {
+      queued_tasks[i] = NULL;
+    }
   }
 
   /**
@@ -118,13 +170,13 @@ class BanjaxFilter
   /**
      The functoin will be called if the filter reply with I_RESPOND
    */
-  virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
+  virtual char* generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
   { 
     //Just in case that the filter has nothing to do with the response
     //we should not make them to overload this
     //but shouldn't be called anyway.
     (void) transaction_parts; (void) response_info;
-    TSDebug(Banjax::BANJAX_PLUGIN_NAME.c_str(), "You shouldn't have called me at the first place.");
+    TSDebug(BANJAX_PLUGIN_NAME, "You shouldn't have called me at the first place.");
     assert(NULL);
   }
 

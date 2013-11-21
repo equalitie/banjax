@@ -8,6 +8,7 @@
 
 #include "banjax_filter.h"
 #include "swabber_interface.h"
+
 struct RatedRegex
 {
   RE2* re2_regex;
@@ -39,6 +40,12 @@ union RegexBannerStateUnion
 class RegexManager : public BanjaxFilter
 {
  protected:
+  //We store the forbidden message at the begining so we can copy it fast 
+  //everytime. It is being stored here for being used again
+  //ATS barf if you give it the message in const memory
+  const std::string forbidden_message;
+  const size_t forbidden_message_length;
+
   //list of compiled banning_regex, called for matching everytime
   //the filter get a new connection
   //the idea is that the regex can add stuff at the end
@@ -66,8 +73,11 @@ class RegexManager : public BanjaxFilter
 
   */
  RegexManager(const std::string& banjax_dir, const libconfig::Setting& main_root, IPDatabase* global_ip_database)
-   :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME)
+   :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME),
+    forbidden_message("<html><header></header><body>Forbidden</body></html>"),
+    forbidden_message_length(forbidden_message.length())
   {
+    queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&RegexManager::execute);
     ip_database = global_ip_database;
     load_config(main_root[BANJAX_FILTER_NAME]);
   }
@@ -98,7 +108,7 @@ class RegexManager : public BanjaxFilter
   */
   FilterResponse execute(const TransactionParts& transaction_parts);
 
-  virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
+  virtual char* generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
 
 };
   
