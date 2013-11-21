@@ -57,7 +57,8 @@ class FilterExtendedResponse
   FilterExtendedResponse(ResponseGenerator requested_response_generator = NULL)
     : response_generator(requested_response_generator),
       content_type_(NULL),
-      banned_ip(false)
+      banned_ip(false),
+      response_code(403)
   {}
 
 };
