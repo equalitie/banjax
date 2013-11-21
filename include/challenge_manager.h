@@ -148,6 +148,15 @@ protected:
   bool report_failure(std::string client_ip, unsigned int host_failure_threshold);
 
   /**
+   * Should be called upon successful solution of a challenge to wipe up the
+   * the ip's failure record
+   *
+   * @param client_ip: string representing the failed requester ip
+   *
+   */
+  void report_success(std::string client_ip);
+
+  /**
    * Checks if the cookie is valid: sha256, ip, and time
    * @param  cookie the value of the cookie
    * @param  ip     the client ip
