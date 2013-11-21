@@ -14,6 +14,7 @@ class ATSEventHandler;
 class BanjaxFilter;
 
 #include "ip_database.h"
+#include "swabber_interface.h"
 #include "transaction_muncher.h"
 #include "banjax_filter.h"
 
@@ -34,6 +35,7 @@ class Banjax
   static TSCont global_contp;
   
   IPDatabase ip_database;
+  SwabberInterface swabber_interface;
   
   std::list<BanjaxFilter*> filters;
   TaskQueue task_queues[BanjaxFilter::TOTAL_NO_OF_QUEUES];

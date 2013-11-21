@@ -28,6 +28,7 @@ class FilterExtendedResponse
  public:
   ResponseGenerator response_generator;
   char* content_type_;
+  bool banned_ip;
 
   std::string set_cookie_header;
   // Returns the set content type. Transfers
@@ -55,7 +56,8 @@ class FilterExtendedResponse
    */
   FilterExtendedResponse(ResponseGenerator requested_response_generator = NULL)
     : response_generator(requested_response_generator),
-      content_type_(NULL)
+      content_type_(NULL),
+      banned_ip(false)
   {}
 
 };

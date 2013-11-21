@@ -18,8 +18,10 @@
 
 //list of filter with db storage requirement (state keepers
 const FilterIDType filter_to_column[] = {
-  REGEX_BANNER_FILTER_ID
-  };
+  REGEX_BANNER_FILTER_ID,
+  CHALLENGER_FILTER_ID
+
+};
 /* const unsigned  filters_to_column[] = { */
 /*   0 */
 /* }; */

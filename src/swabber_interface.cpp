@@ -47,13 +47,15 @@ SwabberInterface::~SwabberInterface()
 {
   socket.close();
 }
+
 /**
    Asks Swabber to ban the bot ip
-
+   
    @param bot_ip the ip address to be banned
+   @param banning_reason the reason for the request to be stored in the log
 */
 void 
-SwabberInterface::ban(string bot_ip)
+SwabberInterface::ban(string bot_ip, std::string banning_reason)
 {
   /*zmq_msg_t msg_to_send, ip_to_send;
   
@@ -94,6 +96,6 @@ SwabberInterface::ban(string bot_ip)
   else
     TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the swabber socket");
 
-  ban_ip_list << bot_ip << endl;
+  ban_ip_list << bot_ip << ", " << banning_reason << endl;
 
 }

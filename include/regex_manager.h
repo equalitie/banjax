@@ -52,7 +52,7 @@ class RegexManager : public BanjaxFilter
   std::list<RatedRegex*> rated_banning_regexes;
 
   //swabber object used for banning bots
-  SwabberInterface swabber_interface;
+  SwabberInterface* swabber_interface;
 
  public:
   enum RegexResult{
@@ -72,10 +72,11 @@ class RegexManager : public BanjaxFilter
      subsequently it reads all the regexs
 
   */
- RegexManager(const std::string& banjax_dir, const libconfig::Setting& main_root, IPDatabase* global_ip_database)
+ RegexManager(const std::string& banjax_dir, const libconfig::Setting& main_root, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
    :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME),
     forbidden_message("<html><header></header><body>Forbidden</body></html>"),
-    forbidden_message_length(forbidden_message.length())
+    forbidden_message_length(forbidden_message.length()),
+    swabber_interface(global_swabber_interface)
   {
     queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&RegexManager::execute);
     ip_database = global_ip_database;

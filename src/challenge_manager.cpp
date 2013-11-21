@@ -78,7 +78,11 @@ ChallengeManager::load_config(libconfig::Setting& cfg, const std::string& banjax
        //with
        std::string requested_challenge_type = host_config["challenge_type"];
        host_challenge_spec->challenge_type = challenge_type[requested_challenge_type];
-       
+
+       //how much failure are we going to tolerate
+       //0 means infinite tolerance
+       if (host_config.exists("no_of_fails_to_ban"))
+         host_challenge_spec->fail_tolerance_threshold = (unsigned int)host_config["no_of_fails_to_ban"];
        // TODO(oschaaf): host name can be configured twice, and could except here
        std::string challenge_file;
        if (host_config.exists("challenge"))
@@ -491,16 +495,16 @@ bool ChallengeManager::is_captcha_answer(const std::string& url) {
 FilterResponse 
 ChallengeManager::execute(const TransactionParts& transaction_parts)
 {
-  /*
-   * checking the cookie and serving the js challenge if does not pass
-   */
-  TSDebug(BANJAX_PLUGIN_NAME, "cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE).c_str());
-
   // look up if this host is serving captcha's or not
   HostSettingsMap::iterator it = host_settings_.find(transaction_parts.at(TransactionMuncher::HOST));
   if (it == host_settings_.end())
     //no challenge for this host
     return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+
+  /*
+   * checking the cookie and serving the js challenge if does not pass
+   */
+  TSDebug(BANJAX_PLUGIN_NAME, "cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE).c_str());
 
   switch((unsigned int)(it->second->challenge_type)) 
     {
@@ -530,7 +534,12 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
         if (result == 1) {
           return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
         } else {
-          return FilterResponse(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
+          //record challenge failure
+          FilterResponse failure_response(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
+          if (it->second->fail_tolerance_threshold)
+            ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), ((unsigned int)(it->second)->fail_tolerance_threshold));
+            
+          return failure_response;
         }
         break;
       }
@@ -539,8 +548,12 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
       if(!ChallengeManager::check_cookie(transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP)))
         {
           TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, sending challenge");
-          
-          return FilterResponse(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
+          //record challenge failure
+          FilterResponse failure_response(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
+          if (it->second->fail_tolerance_threshold)
+            ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), it->second->fail_tolerance_threshold);
+            
+          return failure_response;
         }
     }
 
@@ -549,6 +562,13 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
 
 char* ChallengeManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
 {
+
+  if (((FilterExtendedResponse*)(response_info.response_data))->banned_ip) {
+    char* too_many_failures_response = new char[too_many_failures_message_length+1];
+    memcpy((void*)too_many_failures_response, (const void*)too_many_failures_message.c_str(), (too_many_failures_message_length+1)*sizeof(char));
+    return too_many_failures_response;
+  }
+
   long time_validity = time(NULL) + cookie_life_time; // TODO: one day validity for now, should be changed
 
   string buf_str; 
@@ -568,5 +588,34 @@ char* ChallengeManager::generate_response(const TransactionParts& transaction_pa
   strcpy(buf, buf_str.c_str());
 
   return buf;
+
+}
+
+/**
+ * Should be called upon failure of providing solution. Checks the ip_database
+ * for current number of failure of solution for an ip, increament and store it
+ * report to swabber in case of excessive failure
+ *
+ * @param client_ip: string representing the failed requester ip
+ *
+ * @return true if no_of_failures exceeded the threshold
+ */
+bool ChallengeManager::report_failure(std::string client_ip, unsigned int host_failure_threshold)
+{
+
+  ChallengerStateUnion cur_ip_state;
+  bool banned(false);
+  cur_ip_state.state_allocator =  ip_database->get_ip_state(client_ip, CHALLENGER_FILTER_ID);
+  cur_ip_state.detail.no_of_failures++; //incremet failure
+
+  if (cur_ip_state.detail.no_of_failures >= host_failure_threshold) {
+    banned = true;
+    swabber_interface->ban(client_ip.c_str(), "excessive challenge failure");
+    //reset the number of failures for future
+    cur_ip_state.detail.no_of_failures = 0;
+  }
+
+  ip_database->set_ip_state(client_ip, CHALLENGER_FILTER_ID, cur_ip_state.state_allocator);
+  return banned;
 
 }

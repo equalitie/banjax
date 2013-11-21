@@ -9,6 +9,7 @@
 #ifndef SWABBER_INTERFACE_H
 #define SWABBER_INTERFACE_H
 
+#include <zmq.hpp>
 #include <fstream>
 
 class SwabberInterface
@@ -52,8 +53,9 @@ class SwabberInterface
      Asks Swabber to ban the bot ip
 
      @param bot_ip the ip address to be banned
+     @param banning_reason the reason for the request to be stored in the log
   */
-  void ban(std::string bot_ip);
+  void ban(std::string bot_ip, std::string banning_reason);
   
 };
 

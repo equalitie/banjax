@@ -55,6 +55,7 @@
 #include "unittest_common.h"
 #include "regex_manager.h"
 
+#include "swabber_interface.h"
 #include "ip_database.h"
 
 using namespace std;
@@ -75,6 +76,7 @@ class RegexManagerTest : public testing::Test {
   BanjaxFilter* test_regex_manager;
   
   IPDatabase test_ip_database;
+  SwabberInterface test_swabber_interface;
 
   virtual void SetUp() {
 
@@ -137,7 +139,7 @@ class RegexManagerTest : public testing::Test {
     }
 
     const libconfig::Setting& config_root = cfg.getRoot();
-    test_regex_manager = new RegexManager(TEMP_DIR, config_root, &test_ip_database);
+    test_regex_manager = new RegexManager(TEMP_DIR, config_root, &test_ip_database, &test_swabber_interface);
 
   }
 
