@@ -54,9 +54,9 @@ Banjax::filter_factory(const string& banjax_dir, const libconfig::Setting& main_
     string cur_filter_name = main_root[i].getName();
     BanjaxFilter* cur_filter;
     if (cur_filter_name == REGEX_BANNER_FILTER_NAME) {
-      cur_filter = new RegexManager(banjax_dir, main_root, &ip_database);
+      cur_filter = new RegexManager(banjax_dir, main_root, &ip_database, &swabber_interface);
     } else if (cur_filter_name == CHALLENGER_FILTER_NAME){
-      cur_filter = new ChallengeManager(banjax_dir, main_root);
+      cur_filter = new ChallengeManager(banjax_dir, main_root, &ip_database, &swabber_interface);
     } else if (cur_filter_name == WHITE_LISTER_FILTER_NAME){
       cur_filter = new WhiteLister(banjax_dir, main_root);
     } else if (cur_filter_name == BOT_SNIFFER_FILTER_NAME){
@@ -65,6 +65,7 @@ Banjax::filter_factory(const string& banjax_dir, const libconfig::Setting& main_
       //unrecognized filter, warning and pass
       TSDebug(BANJAX_PLUGIN_NAME, "I do not recognize filter %s requested in the config", cur_filter_name.c_str());
       continue;
+
     }
 
     for(unsigned int i = BanjaxFilter::HTTP_START; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++) {
