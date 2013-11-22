@@ -562,7 +562,7 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
 }
 
-char* ChallengeManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
+std::string ChallengeManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
 {
 
   if (((FilterExtendedResponse*)(response_info.response_data))->banned_ip) {
@@ -585,11 +585,7 @@ char* ChallengeManager::generate_response(const TransactionParts& transaction_pa
                 transaction_parts.at(TransactionMuncher::HOST), transaction_parts,
                 //NULL, buf_str);//, 
             ((FilterExtendedResponse*)(response_info.response_data)), buf_str);
-
-  char* buf = (char *) TSmalloc(buf_str.length()+1);
-  strcpy(buf, buf_str.c_str());
-
-  return buf;
+  return buf_str;
 
 }
 

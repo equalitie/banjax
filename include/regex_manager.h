@@ -109,7 +109,7 @@ class RegexManager : public BanjaxFilter
   */
   FilterResponse execute(const TransactionParts& transaction_parts);
 
-  virtual char* generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
+  virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
 
 };
   

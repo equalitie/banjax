@@ -44,3 +44,5 @@ src/.libs
 *.la
 
 /test/unittests
+install-sh
+libtool
