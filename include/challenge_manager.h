@@ -244,7 +244,7 @@ public:
   /**
      This basically calls the function to generate the html
    */
-  virtual char* generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
+  virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
 
 };
 
