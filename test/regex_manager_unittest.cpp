@@ -120,7 +120,8 @@ class RegexManagerTest : public testing::Test {
   virtual void TearDown() {
    string rm_command("rm ");
    rm_command += TEST_CONF_FILE;
-   system(rm_command.c_str());
+   int r = system(rm_command.c_str());
+   (void)r;
 
    delete test_regex_manager;
   }
@@ -236,7 +237,7 @@ TEST_F(RegexManagerTest, forbidden_response)
 
   EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
 
-  EXPECT_FALSE(strcmp("<html><header></header><body>Forbidden</body></html>", test_regex_manager->generate_response(mock_transaction, cur_filter_result)));
+  EXPECT_FALSE(strcmp("<html><header></header><body>Forbidden</body></html>", test_regex_manager->generate_response(mock_transaction, cur_filter_result).c_str()));
 
 }
 
