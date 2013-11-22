@@ -158,7 +158,9 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
         // from here on, cur_filter_result is owned by the continuation data.
         cd->response_info = cur_filter_result;
         cd->responding_filter = cur_task->filter;
-        TSHttpTxnHookAdd(cd->txnp, TS_HTTP_SEND_RESPONSE_HDR_HOOK, cd->contp);
+        // TODO(oschaaf): commented this. @vmon: we already hook this globally,
+        // is there a reason we need to hook it again here?
+        //TSHttpTxnHookAdd(cd->txnp, TS_HTTP_SEND_RESPONSE_HDR_HOOK, cd->contp);
         TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_ERROR);
         return;
 
@@ -186,7 +188,7 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
 
   if (cd->response_info.response_type == FilterResponse::I_RESPOND) {
     cd->transaction_muncher.set_status(TS_HTTP_STATUS_FORBIDDEN);
-    char* buf = (((cd->responding_filter)->*(((FilterExtendedResponse*)cd->response_info.response_data)->response_generator)))(cd->transaction_muncher.retrieve_parts(banjax->all_filters_requested_part), cd->response_info);
+    std::string buf = (((cd->responding_filter)->*(((FilterExtendedResponse*)cd->response_info.response_data)->response_generator)))(cd->transaction_muncher.retrieve_parts(banjax->all_filters_requested_part), cd->response_info);
 
     cd->transaction_muncher.set_status(
         (TSHttpStatus)(((FilterExtendedResponse*)cd->response_info.response_data))->response_code);
@@ -195,8 +197,10 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
       cd->transaction_muncher.append_header(
           "Set-Cookie", (((FilterExtendedResponse*)cd->response_info.response_data))->set_cookie_header.c_str());
     }
-    
-    TSHttpTxnErrorBodySet(cd->txnp, buf, strlen(buf), (((FilterExtendedResponse*)cd->response_info.response_data))->get_and_release_content_type());
+    char* b = (char*) TSmalloc(buf.size());
+    memcpy(b, buf.data(), buf.size());
+    TSHttpTxnErrorBodySet(cd->txnp, b, buf.size(),
+                          (((FilterExtendedResponse*)cd->response_info.response_data))->get_and_release_content_type());
   }
   //Now we should take care of registerd filters in the queue these are not
   //going to generate the response at least that is the plan
