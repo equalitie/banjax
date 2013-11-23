@@ -11,7 +11,7 @@
 #ifndef IP_DATABASE_H
 #define IP_DATABASE_H
 
-#include <map> //IP DB is a hash table
+#include <unordered_map> //IP DB is a hash table
 #include <ts/ts.h> //for locking business
 
 #include "filter_list.h"
@@ -41,7 +41,7 @@ struct IPState
   FilterState state_array[NUMBER_OF_STATE_KEEPER_FILTERS];
 
 };
-typedef std::map<std::string, IPState> IPHashTable;
+typedef std::unordered_map<std::string, IPState> IPHashTable;
 
 class IPDatabase
 {
