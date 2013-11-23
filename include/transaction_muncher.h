@@ -87,6 +87,14 @@ class TransactionMuncher{
     void set_status(TSHttpStatus status);
 
     /**
+       Appends a name/value to the response headers
+       
+       @param name The name of the response header
+       @param value The value of the response header       
+    */
+    void append_header(const std::string& name, const std::string& value);
+    
+    /**
        Add the value of host field to url. This is useful when 
        the filter tries to generate the original address entered in
        the browser bar for redirect purposes.

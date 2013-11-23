@@ -17,7 +17,7 @@
 class BanjaxFilter;
 class FilterResponse;
 
-typedef char* (BanjaxFilter::*ResponseGenerator) (const TransactionParts& transactionp_parts, const FilterResponse& response_info);
+typedef std::string (BanjaxFilter::*ResponseGenerator) (const TransactionParts& transactionp_parts, const FilterResponse& response_info);
 
 /**
    this is the standard extended response that the event handler expect to 
@@ -57,7 +57,8 @@ class FilterExtendedResponse
   FilterExtendedResponse(ResponseGenerator requested_response_generator = NULL)
     : response_generator(requested_response_generator),
       content_type_(NULL),
-      banned_ip(false)
+      banned_ip(false),
+      response_code(403)
   {}
 
 };
@@ -232,7 +233,7 @@ class BanjaxFilter
   /**
      The functoin will be called if the filter reply with I_RESPOND
    */
-  virtual char* generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
+  virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
   { 
     //Just in case that the filter has nothing to do with the response
     //we should not make them to overload this
