@@ -140,7 +140,7 @@ FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
                     
 }
 
-char* RegexManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
+std::string RegexManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
 {
   (void)transaction_parts; (void)response_info;
   char* forbidden_response = new char[forbidden_message_length+1];

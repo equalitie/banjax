@@ -292,6 +292,26 @@ TransactionMuncher::set_status(TSHttpStatus status)
 
 }
 
+void
+TransactionMuncher::append_header(const std::string& name, const std::string& value)
+{
+  if (!response_header) 
+    retrieve_response_header();
+  
+  TSMLoc field_location = NULL;
+
+  if ( TSMimeHdrFieldCreate(response_header, response_header_location, &field_location) == TS_SUCCESS ) {
+    TSMimeHdrFieldNameSet(response_header, response_header_location, field_location, name.c_str(), name.size());
+    TSMimeHdrFieldAppend(response_header, response_header_location, field_location);
+    TSMimeHdrFieldValueStringSet(response_header, response_header_location, field_location,
+                                 -1, value.c_str(), value.size());
+    // TODO(oschaaf): Do we need additional bookkeeping here?
+  } else {
+    TSError("field creation error for field [%s]", name.c_str());
+    return;
+  }
+}
+
 /**
   Add the value of host field to url. This is useful when 
   the filter tries to generate the original address entered in
