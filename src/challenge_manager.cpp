@@ -37,6 +37,8 @@ using namespace std;
 #include "challenge_manager.h"
 #include "cookiehash.h"
 
+#define COOKIE_SIZE 100
+
 //The name of Challenges should be declared here
 //the name of challenges should appear in same order they 
 //appears in ChallengType enum in challenge_manager.h
@@ -163,61 +165,17 @@ vector<string> ChallengeManager::split(const string &s, char delim) {
 }
 
 /**
- * Generates the token from the client ip and the cookie's validity
- * @param  ip client ip
- * @param  t  time until which the cookie will be valid
- * @return    the encrypted token
- */
-string ChallengeManager::generate_token(string ip, long t){
-  //we are not padding for now so we only need to make sure
-  //we are using less than AES_BLOCK_SIZE
-  //const unsigned token_data_length = 8;
-
-
-  // concatenate the ip and the time
-  //TODO: If we get the ip as the ip struct
-  //it is already numerical so we don't need to
-  //waste time here
-  vector<string> x = split(ip, '.');
-  if(x.size() != 4){
-        // TODO: change this to ATS logging
-        // cerr << "ChallengeManager::generate_token : ip has " << x.size() << " elements.\n";
-  }
-
-  unsigned char uncrypted[AES_BLOCK_SIZE], encrypted_token[AES_BLOCK_SIZE+1];
-  encrypted_token[AES_BLOCK_SIZE] = '\0';
-    // add the ip
-  for(unsigned int i=0; i<x.size(); i++){
-    *(uncrypted+i) = (unsigned char) atoi(x[i].c_str());
-  }
-    // add the time
-  for(int i=7; i>=4; i--){
-    *(uncrypted+i) = (unsigned char) t%256;
-    t >>= 8;
-  }
-
-  //this might be necessary as we are using ECB mode
-  //BYTES_rand(uncrypted + token_data_length, AES_BLOCK_SIZE - token_data_length);
-  AES_encrypt(uncrypted, encrypted_token, &enc_key);
-  // encode the token and transform it in base64
-  string result = Base64::Encode((char*)encrypted_token);
- 
-  return result;
-}
-
-/**
  * Checks if the SHA256 of the cookie has the correct number of zeros
  * @param  cookie the value of the cookie
  * @return        true if the SHA256 of the cookie verifies the challenge
  */
-bool ChallengeManager::check_sha(const char* cookiestr, const char* cookie_val_end){
-
+bool ChallengeManager::check_sha(const char* cookiestr){
   char outputBuffer[65];
 
   unsigned char hash[SHA256_DIGEST_LENGTH];
   SHA256_CTX sha256;
   SHA256_Init(&sha256);
-  SHA256_Update(&sha256, cookiestr, cookie_val_end - cookiestr);
+  SHA256_Update(&sha256, cookiestr, strlen(cookiestr));
   SHA256_Final(hash, &sha256);
 
   for(int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
@@ -243,51 +201,33 @@ bool ChallengeManager::check_sha(const char* cookiestr, const char* cookie_val_e
  * @param  ip     the client ip
  * @return        true if the cookie is valid
  */
-bool ChallengeManager::check_cookie(string cookie_jar, string ip){
-  //let find the deflect cookie inside the jar
+bool ChallengeManager::check_cookie(string answer, string cookie_jar, string ip, bool validate_sha) {
   CookieParser cookie_parser;
   const char* next_cookie = cookie_jar.c_str();
-  while((next_cookie = cookie_parser.parse_a_cookie(next_cookie)) != NULL)
-        if (!(memcmp(cookie_parser.str, "deflect", cookie_parser.nam_end - cookie_parser.str)))
-      break;
-
-  TSDebug(BANJAX_PLUGIN_NAME, "cookie_val: '%s'",cookie_parser.val_start);
-
-  // check the SHA256 of the cookie
-  if(!check_sha(cookie_parser.val_start, cookie_parser.val_end)){
-    TSDebug(BANJAX_PLUGIN_NAME, "ChMng: SHA256 not valid");
-    return false;
-  }
-
-  // separate token from user-found value (token has length 22 in base64 encoding)
-  string token = Base64::Decode(cookie_parser.val_start, cookie_parser.val_end);
-
-    // unencode token and separate ip from time
-  unsigned char original[AES_BLOCK_SIZE];
-  AES_decrypt((const unsigned char*)token.c_str(), original, &dec_key);
-
-  // check the ip against the client's ip
-  vector<string> x = split(ip, '.');
-  for(unsigned int i=0; i<x.size(); i++){
-    if ( ((int) *(original+i)) != atoi(x[i].c_str()) ){
-      TSDebug(BANJAX_PLUGIN_NAME, "ChMng: ip not valid");
-      return false;
+  
+  while((next_cookie = cookie_parser.parse_a_cookie(next_cookie)) != NULL) {
+    if (!(memcmp(cookie_parser.str, "deflect", (int)(cookie_parser.nam_end - cookie_parser.str)))) {
+      std::string captcha_cookie(cookie_parser.val_start, cookie_parser.val_end - cookie_parser.val_start);
+      bool sha_ok = true;
+      if (validate_sha) { 
+        sha_ok = check_sha(captcha_cookie.c_str());
+      }
+      int result = 100 /*something not equal to 1, which means OK*/;
+      // see GenerateCookie for the length calculation
+      int expected_length = (int)(COOKIE_LENGTH*4+3)/3;
+      if (captcha_cookie.size() > (size_t)expected_length) {
+        captcha_cookie = captcha_cookie.substr(0, expected_length);
+      }
+      result = ValidateCookie((uchar *)answer.c_str(), (uchar*)CAPTCHA_SECRET,
+                              time(NULL), (uchar*)ip.c_str(), (uchar *)captcha_cookie.c_str());
+      TSDebug(BANJAX_PLUGIN_NAME, "Challenge cookie: [%s] based on ip[%s] - sha_ok [%s] - result: %d (l:%d)",
+              captcha_cookie.c_str(), ip.c_str(),
+              sha_ok ? "Y" : "N", result, (int)strlen(captcha_cookie.c_str()));
+      return sha_ok && result == 1;
     }
   }
-
-  // check the time
-  long token_time = 0;
-  for(int i=4; i<8; i++){
-    token_time <<= 8;
-    token_time += (long) *(original+i);
-  }
-  if(token_time < time(NULL)){
-    TSDebug(BANJAX_PLUGIN_NAME, "ChMng: time not valid");
-    return false;
-  }
-
-  return true;
-
+  
+  return false;
 }
 
 /**
@@ -316,7 +256,7 @@ void ChallengeManager::generate_html(string ip, long t, string url, string host_
     captcha(im,text);
     makegif(im,gif);
     
-    uchar cookie[100];
+    uchar cookie[COOKIE_SIZE];
     // TODO(oschaaf): 120 seconds for users to answer. configuration!
     time_t curtime=time(NULL)+120;
     GenerateCookie((uchar*)text, (uchar*)CAPTCHA_SECRET, curtime, (uchar*)ip.c_str(), cookie);
@@ -324,7 +264,7 @@ void ChallengeManager::generate_html(string ip, long t, string url, string host_
     response_info->response_code = 200;
     response_info->set_content_type("image/gif");
     std::string header;
-    header.append("dflct_c_token=");
+    header.append("deflect=");
     header.append((char*)cookie);
     header.append("; path=/; HttpOnly");
     response_info->set_cookie_header.append(header.c_str());
@@ -338,37 +278,22 @@ void ChallengeManager::generate_html(string ip, long t, string url, string host_
 
     std::string cookie = transaction_parts.at(TransactionMuncher::COOKIE);
     std::string answer = url.substr(found + strlen("__validate/"));
-    int result = -100;
     response_info->response_code = 403;
-    CookieParser cookie_parser;
-    const char* next_cookie = cookie.c_str();
-    while((next_cookie = cookie_parser.parse_a_cookie(next_cookie)) != NULL) {
-      if (!(memcmp(cookie_parser.str, "dflct_c_token", (int)(cookie_parser.nam_end - cookie_parser.str)))) {
-        std::string captcha_cookie(cookie_parser.val_start, cookie_parser.val_end - cookie_parser.val_start);
-        TSDebug(BANJAX_PLUGIN_NAME, "Challenge cookie: [%s] based on ip[%s]", captcha_cookie.c_str(), transaction_parts.at(TransactionMuncher::IP).c_str());
-        time_t curtime = time(NULL);
-        result = ValidateCookie((uchar *)answer.c_str(), (uchar*)CAPTCHA_SECRET,
-                                curtime, (uchar*)ip.c_str(), (uchar *)captcha_cookie.c_str());        
-        if (result == 1) {
-          response_info->response_code = 200;
-          uchar cookie[100];
-          // TODO(oschaaf): 2 hour validity. configuration!
-          GenerateCookie((uchar*)"", (uchar*)CAPTCHA_SECRET, curtime + 7200, (uchar*)ip.c_str(), cookie);
-          TSDebug(BANJAX_PLUGIN_NAME, "Set cookie: [%.*s] based on ip[%s]", 100, (char*)cookie, ip.c_str());
-          std::string header;
-          header.append("dflct_c_token=");
-          header.append((char*)cookie);
-          header.append("; path=/; HttpOnly");
-          response_info->set_cookie_header.append(header.c_str());
 
-          //no return
-          page = "OK";
-          return;
-        }
-        break;
-      }
+    if (ChallengeManager::check_cookie(answer.c_str(), cookie, transaction_parts.at(TransactionMuncher::IP), false)) {      
+      response_info->response_code = 200;
+      uchar cookie[COOKIE_SIZE];
+      // TODO(oschaaf): 2 hour validity. configuration!
+      GenerateCookie((uchar*)"", (uchar*)CAPTCHA_SECRET, time(NULL) + 7200, (uchar*)ip.c_str(), cookie);
+      TSDebug(BANJAX_PLUGIN_NAME, "Set cookie: [%.*s] based on ip[%s]", (int)strlen((char*)cookie), (char*)cookie, ip.c_str());
+      std::string header;
+      header.append("deflect=");
+      header.append((char*)cookie);
+      header.append("; path=/; HttpOnly");
+      response_info->set_cookie_header.append(header.c_str());      
+      page = "OK";
+      return;
     }
-    TSDebug(BANJAX_PLUGIN_NAME, "Intercept captcha answer: [%s], cookie: [%s], validate: [%d]", answer.c_str(), cookie_parser.val_start, result);    
     
     page = "X";
     return;
@@ -378,7 +303,9 @@ void ChallengeManager::generate_html(string ip, long t, string url, string host_
   //copy the template
   page = host_settings_[transaction_parts.at(TransactionMuncher::HOST)]->challenge_stream;
   // generate the token
-  string token = ChallengeManager::generate_token(ip, t);
+  uchar cookie[COOKIE_SIZE];
+  GenerateCookie((uchar*)"", (uchar*)CAPTCHA_SECRET, t, (uchar*)ip.c_str(), cookie);
+  string token((const char*)cookie);
   HostSettingsMap::iterator it = host_settings_.find(host_header);
   // TODO(oschaaf): see if we can avoid the copy here
   string challenge_html;
@@ -395,7 +322,7 @@ void ChallengeManager::generate_html(string ip, long t, string url, string host_
     const char *format = "%a, %d %b %G %T GMT";
     strftime(buffer, 30, format, timeinfo);
     string t_str(buffer);
-
+    TSDebug("banjax", "write cookie [%d]->[%s]", (int)COOKIE_SIZE, token.c_str());
     // replace the time
     replace(page, sub_time, t_str);
     // replace the token
@@ -443,23 +370,7 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
         } else if (is_captcha_answer(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
           return FilterResponse(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
         }
-        
-        CookieParser cookie_parser;
-        std::string cookie = transaction_parts.at(TransactionMuncher::COOKIE);
-        const char* next_cookie = cookie.c_str();
-        int result = 100;
-        time_t curtime = time(NULL);
-        while((next_cookie = cookie_parser.parse_a_cookie(next_cookie)) != NULL) {
-          if (!(memcmp(cookie_parser.str, "dflct_c_token", (int)(cookie_parser.nam_end - cookie_parser.str)))) {
-            std::string captcha_cookie(cookie_parser.val_start, cookie_parser.val_end - cookie_parser.val_start);
-            TSDebug(BANJAX_PLUGIN_NAME, "Challenge cookie: [%s] based on ip[%s]", captcha_cookie.c_str(), transaction_parts.at(TransactionMuncher::IP).c_str());
-            result = ValidateCookie((uchar*)"", (uchar*)CAPTCHA_SECRET,
-                                    curtime, (uchar*)transaction_parts.at(TransactionMuncher::IP).c_str(),
-                                    (uchar*)captcha_cookie.c_str());
-            break;
-          }
-        }
-        if (result == 1) {
+        if (ChallengeManager::check_cookie("", transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP), false)) {
           report_success(transaction_parts.at(TransactionMuncher::IP));
           return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
         } else {
@@ -474,14 +385,16 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
       }
 
     case ChallengeDefinition::CHALLENGE_SHA_INVERSE:
-      if(!ChallengeManager::check_cookie(transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP)))
-        {
+      if(!ChallengeManager::check_cookie("", transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP), true))
+      {
           TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, sending challenge");
           //record challenge failure
           FilterResponse failure_response(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
           if (it->second->fail_tolerance_threshold)
             ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), it->second->fail_tolerance_threshold);
-            
+          // We need to clear out the cookie here, to make sure switching from
+          // challenge type (captcha->computational) doesn't end up in an infinite reload
+          ((FilterExtendedResponse*)(failure_response.response_data))->set_cookie_header.append("deflect=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly");
           return failure_response;
         }
     }
