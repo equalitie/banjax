@@ -117,8 +117,6 @@ protected:
 	static const char b64_table[65];
 	static const char reverse_table[128];
 
-  std::string base64_encode(const std::string &data);
-  std::string base64_decode(const char* data, const char* data_end);
   bool is_captcha_url(const std::string& url);
   bool is_captcha_answer(const std::string& url);
 
