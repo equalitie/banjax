@@ -27,7 +27,9 @@ banjax_la_SOURCES = 	banjax.cpp \
 						challenge_manager.cpp \
 						white_lister.cpp \
 					 	regex_manager.cpp \
-						bot_sniffer.cpp
+						bot_sniffer.cpp 
+						
+						
 
 
 #libbanjax_la_LDFLAGS = -version-info 0:0:0
