@@ -82,7 +82,7 @@ ChallengeManager::load_config(libconfig::Setting& cfg, const std::string& banjax
        std::string requested_challenge_type = host_config["challenge_type"];
        host_challenge_spec->challenge_type = challenge_type[requested_challenge_type];
 
-       host_challenge_spec->challenge_validity_period = (unsigned long)host_config["validity_period"];
+       host_challenge_spec->challenge_validity_period = (unsigned int)host_config["validity_period"];
 
        //how much failure are we going to tolerate
        //0 means infinite tolerance
@@ -453,7 +453,7 @@ ChallengeManager::report_failure(std::string client_ip, HostChallengeSpec* faile
 
   if (cur_ip_state.detail.no_of_failures >= failed_host->fail_tolerance_threshold) {
     banned = true;
-    string banning_reason = "failed challenge " + challenge_specs[failed_host->challenge_type]->human_readable_name + " " + "for host " + failed_host->host_name + " " + to_string(cur_ip_state.detail.no_of_failures);
+    string banning_reason = "failed challenge " + challenge_specs[failed_host->challenge_type]->human_readable_name + " " + "for host " + failed_host->host_name + " " + to_string(cur_ip_state.detail.no_of_failures) + " times";
     swabber_interface->ban(client_ip.c_str(), banning_reason);
     //reset the number of failures for future
     cur_ip_state.detail.no_of_failures = 0;
