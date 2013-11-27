@@ -197,6 +197,11 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
       cd->transaction_muncher.append_header(
           "Set-Cookie", (((FilterExtendedResponse*)cd->response_info.response_data))->set_cookie_header.c_str());
     }
+    if (buf.size() == 0) {
+      // When we get here, no valid response body was generated somehow.
+      // Insert one, to prevent triggering an assert in TSHttpTxnErrorBodySet
+      buf.append("Not authorized");
+    }
     char* b = (char*) TSmalloc(buf.size());
     memcpy(b, buf.data(), buf.size());
     TSHttpTxnErrorBodySet(cd->txnp, b, buf.size(),
