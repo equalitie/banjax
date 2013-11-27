@@ -82,6 +82,8 @@ ChallengeManager::load_config(libconfig::Setting& cfg, const std::string& banjax
        std::string requested_challenge_type = host_config["challenge_type"];
        host_challenge_spec->challenge_type = challenge_type[requested_challenge_type];
 
+       host_challenge_spec->challenge_validity_period = (unsigned long)host_config["validity_period"];
+
        //how much failure are we going to tolerate
        //0 means infinite tolerance
        if (host_config.exists("no_of_fails_to_ban"))
@@ -121,14 +123,11 @@ ChallengeManager::load_config(libconfig::Setting& cfg, const std::string& banjax
      string challenger_key = cfg["key"];
      unsigned char hashed_key[SHA256_DIGEST_LENGTH];
      SHA256((const unsigned char*)challenger_key.c_str(), challenger_key.length(), hashed_key);
-     AES_set_encrypt_key(hashed_key, 128, &enc_key);
-     AES_set_decrypt_key(hashed_key, 128, &dec_key);
  
      number_of_trailing_zeros = cfg["difficulty"];
      assert(!(number_of_trailing_zeros % 4));
      zeros_in_javascript = string(number_of_trailing_zeros / 4, '0');
  
-     cookie_life_time = cfg["cookie_life_time"];
    }
    catch(const libconfig::SettingNotFoundException &nfex) {
      TSDebug(BANJAX_PLUGIN_NAME, "Bad config for filter %s", BANJAX_FILTER_NAME.c_str());
@@ -244,8 +243,9 @@ bool ChallengeManager::replace(string &original, string &from, string &to){
   return true;
 }
 
-void ChallengeManager::generate_html(string ip, long t, string url, string host_header,                                       const TransactionParts& transaction_parts,
-                                       FilterExtendedResponse* response_info, string& page){
+void ChallengeManager::generate_html(string ip, long t, string url,
+				     const TransactionParts& transaction_parts,
+				     FilterExtendedResponse* response_info, string& page){
   
   if (ChallengeManager::is_captcha_url(url)) {
     unsigned char text[6];
@@ -284,7 +284,7 @@ void ChallengeManager::generate_html(string ip, long t, string url, string host_
       response_info->response_code = 200;
       uchar cookie[COOKIE_SIZE];
       // TODO(oschaaf): 2 hour validity. configuration!
-      GenerateCookie((uchar*)"", (uchar*)CAPTCHA_SECRET, time(NULL) + 7200, (uchar*)ip.c_str(), cookie);
+      GenerateCookie((uchar*)"", (uchar*)CAPTCHA_SECRET, t, (uchar*)ip.c_str(), cookie);
       TSDebug(BANJAX_PLUGIN_NAME, "Set cookie: [%.*s] based on ip[%s]", (int)strlen((char*)cookie), (char*)cookie, ip.c_str());
       std::string header;
       header.append("deflect=");
@@ -306,32 +306,34 @@ void ChallengeManager::generate_html(string ip, long t, string url, string host_
   uchar cookie[COOKIE_SIZE];
   GenerateCookie((uchar*)"", (uchar*)CAPTCHA_SECRET, t, (uchar*)ip.c_str(), cookie);
   string token((const char*)cookie);
-  HostSettingsMap::iterator it = host_settings_.find(host_header);
-  // TODO(oschaaf): see if we can avoid the copy here
-  string challenge_html;
-  if (it != host_settings_.end()) {
-    //HostChallengeSpec* setting = it->second; //this looks redundant for 
-    //now as we don't do anything related to the host but in future this will
-    //be used for validity time, etc.
 
-    // set the time in the correct format
-    time_t rawtime = (time_t) t;
-    struct tm *timeinfo;
-    char buffer [30];
-    timeinfo = gmtime(&rawtime);
-    const char *format = "%a, %d %b %G %T GMT";
-    strftime(buffer, 30, format, timeinfo);
-    string t_str(buffer);
-    TSDebug("banjax", "write cookie [%d]->[%s]", (int)COOKIE_SIZE, token.c_str());
-    // replace the time
-    replace(page, sub_time, t_str);
-    // replace the token
-    replace(page, sub_token, token);
-    // replace the url
-    replace(page, sub_url, url);
-    // set the correct number of zeros
-    replace(page, sub_zeros, zeros_in_javascript);
-  }
+  TSDebug("banjax", "write cookie [%d]->[%s]", (int)COOKIE_SIZE, token.c_str());
+  // replace the time
+  string t_str = format_validity_time_for_cookie(t);
+  replace(page, sub_time, t_str);
+  // replace the token
+  replace(page, sub_token, token);
+  // replace the url
+  replace(page, sub_url, url);
+  // set the correct number of zeros
+  replace(page, sub_zeros, zeros_in_javascript);
+}
+
+/**
+ * gets a time in long format in future and turn it into browser and human
+ * understandable point in time
+ */
+string
+ChallengeManager::format_validity_time_for_cookie(long validity_time)
+{
+  // set the time in the correct format
+  time_t rawtime = (time_t) validity_time;
+  struct tm *timeinfo;
+  char buffer [30];
+  timeinfo = gmtime(&rawtime);
+  const char *format = "%a, %d %b %G %T GMT";
+  strftime(buffer, 30, format, timeinfo);
+  return string(buffer);
 }
 
 bool ChallengeManager::is_captcha_url(const std::string& url) {
@@ -377,7 +379,7 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
           //record challenge failure
           FilterResponse failure_response(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
           if (it->second->fail_tolerance_threshold)
-            ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), ((unsigned int)(it->second)->fail_tolerance_threshold));
+            ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), it->second);
             
           return failure_response;
         }
@@ -391,7 +393,7 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
           //record challenge failure
           FilterResponse failure_response(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
           if (it->second->fail_tolerance_threshold)
-            ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), it->second->fail_tolerance_threshold);
+            ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), it->second);
           // We need to clear out the cookie here, to make sure switching from
           // challenge type (captcha->computational) doesn't end up in an infinite reload
           ((FilterExtendedResponse*)(failure_response.response_data))->set_cookie_header.append("deflect=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly");
@@ -412,7 +414,7 @@ std::string ChallengeManager::generate_response(const TransactionParts& transact
     return too_many_failures_response;
   }
 
-  long time_validity = time(NULL) + cookie_life_time; // TODO: one day validity for now, should be changed
+  long time_validity = time(NULL) + host_settings_[transaction_parts.at(TransactionMuncher::HOST)]->challenge_validity_period; // TODO: one day validity for now, should be changed
 
   string buf_str; 
   TSDebug("banjax", "%s", transaction_parts.at(TransactionMuncher::IP).c_str());
@@ -423,7 +425,7 @@ std::string ChallengeManager::generate_response(const TransactionParts& transact
   TransactionParts test_muncher;
   generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity, 
                 transaction_parts.at(TransactionMuncher::URL_WITH_HOST),
-                transaction_parts.at(TransactionMuncher::HOST), transaction_parts,
+                transaction_parts,
                 //NULL, buf_str);//, 
             ((FilterExtendedResponse*)(response_info.response_data)), buf_str);
   return buf_str;
@@ -436,21 +438,23 @@ std::string ChallengeManager::generate_response(const TransactionParts& transact
  * report to swabber in case of excessive failure
  *
  * @param client_ip: string representing the failed requester ip
+ * @param failed_host_spec: the specification of the challenge for the host 
+ *        that client failed to solve
  *
  * @return true if no_of_failures exceeded the threshold
  */
 bool
-ChallengeManager::report_failure(std::string client_ip, unsigned int host_failure_threshold)
+ChallengeManager::report_failure(std::string client_ip, HostChallengeSpec* failed_host)
 {
-
   ChallengerStateUnion cur_ip_state;
   bool banned(false);
   cur_ip_state.state_allocator =  ip_database->get_ip_state(client_ip, CHALLENGER_FILTER_ID);
   cur_ip_state.detail.no_of_failures++; //incremet failure
 
-  if (cur_ip_state.detail.no_of_failures >= host_failure_threshold) {
+  if (cur_ip_state.detail.no_of_failures >= failed_host->fail_tolerance_threshold) {
     banned = true;
-    swabber_interface->ban(client_ip.c_str(), "excessive challenge failure");
+    string banning_reason = "failed challenge " + challenge_specs[failed_host->challenge_type]->human_readable_name + " " + "for host " + failed_host->host_name + " " + to_string(cur_ip_state.detail.no_of_failures);
+    swabber_interface->ban(client_ip.c_str(), banning_reason);
     //reset the number of failures for future
     cur_ip_state.detail.no_of_failures = 0;
   }

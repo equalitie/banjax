@@ -36,12 +36,13 @@ RegexManager::load_config(libconfig::Setting& cfg)
 
      //now we compile all of them and store them for later use
      for(unsigned int i = 0; i < count; i++) {
-       TSDebug(BANJAX_PLUGIN_NAME, "initiating rule %s", ((const char*) banned_regexes_list[i]["rule"]));
+       string cur_rule = (const char*) banned_regexes_list[i]["rule"];
+       TSDebug(BANJAX_PLUGIN_NAME, "initiating rule %s", cur_rule.c_str());
 
        unsigned int observation_interval = banned_regexes_list[i]["interval"];
        unsigned int threshold  = banned_regexes_list[i]["hits_per_interval"];
        
-       rated_banning_regexes.push_back(new RatedRegex(new RE2((const char*)(banned_regexes_list[i]["regex"])), observation_interval * 1000, threshold /(double)(observation_interval* 1000)));
+       rated_banning_regexes.push_back(new RatedRegex(cur_rule, new RE2((const char*)(banned_regexes_list[i]["regex"])), observation_interval * 1000, threshold /(double)(observation_interval* 1000)));
        
      }
 
@@ -59,7 +60,7 @@ RegexManager::load_config(libconfig::Setting& cfg)
   @param ats_record: the full request record including time url agent etc
   @return: 1 match 0 not match < 0 error.
 */
-RegexManager::RegexResult
+pair<RegexManager::RegexResult,RatedRegex*>
 RegexManager::parse_request(string ip, string ats_record)
 {
   for(list<RatedRegex*>::iterator it=rated_banning_regexes.begin(); it != rated_banning_regexes.end(); it++) {
@@ -69,7 +70,7 @@ RegexManager::parse_request(string ip, string ats_record)
         //wasting time and mem
         if ((*it)->rate == 0) {
             TSDebug(BANJAX_PLUGIN_NAME, "simple regex, ban immidiately");
-            return REGEX_MATCHED;
+            return make_pair(REGEX_MATCHED, (*it));
         }
 
         /* we need to check the rate condition here */
@@ -103,13 +104,13 @@ RegexManager::parse_request(string ip, string ats_record)
         }
         if (cur_ip_state.detail.rate >= (*it)->rate) {
           TSDebug(BANJAX_PLUGIN_NAME, "exceeding excessive rate %f /msec", (*it)->rate);
-          return REGEX_MATCHED;
+          return make_pair(REGEX_MATCHED, (*it));
         }
       }
   }
 
   //no match
-  return REGEX_MISSED;
+  return make_pair(REGEX_MISSED, (RatedRegex*)NULL);
 
 }
 
@@ -124,16 +125,17 @@ FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
   ats_record+= ats_record_parts[TransactionMuncher::UA];
 
   TSDebug(BANJAX_PLUGIN_NAME, "Examining %s for banned matches", ats_record.c_str());
-  RegexResult result = parse_request(ats_record_parts[TransactionMuncher::IP],ats_record);
-  if (result == REGEX_MATCHED) {
+  pair<RegexResult,RatedRegex*> result = parse_request(ats_record_parts[TransactionMuncher::IP],ats_record);
+  if (result.first == REGEX_MATCHED) {
     TSDebug(BANJAX_PLUGIN_NAME, "asking swabber to ban client ip: %s", ats_record_parts[TransactionMuncher::IP].c_str());
     
     //here instead we are calling nosmos's banning client
-    swabber_interface->ban(ats_record_parts[TransactionMuncher::IP].c_str(), "matched regex");
+    string banning_reason = "matched regex rule " + result.second->rule_name;
+    swabber_interface->ban(ats_record_parts[TransactionMuncher::IP], banning_reason);
     return FilterResponse(static_cast<ResponseGenerator>(&RegexManager::generate_response));
 
-  } else if (result != REGEX_MISSED) {
-    TSError("Regex failed with error: %d\n", result);
+  } else if (result.first != REGEX_MISSED) {
+    TSError("Regex failed with error: %d\n", result.first);
   }
 
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
