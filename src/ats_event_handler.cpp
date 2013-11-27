@@ -277,11 +277,9 @@ ATSEventHandler::destroy_continuation(TSCont contp)
 
   //save the txn before destroying the continuation so we can continue
   TSHttpTxn txn_keeper = cd->txnp;
+  TSfree(cd);
+
   TSContDestroy(contp);
   TSHttpTxnReenable(txn_keeper, TS_EVENT_HTTP_CONTINUE);
 
-  if (cd != NULL) {
-    TSfree(cd);
-    // delete cd;
-  }
 }
