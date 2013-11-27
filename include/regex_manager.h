@@ -6,16 +6,20 @@
 #ifndef REGEX_MANAGER_H
 #define REGEX_MANAGER_H
 
+#include <utility> //for pair
+
 #include "banjax_filter.h"
 #include "swabber_interface.h"
 
 struct RatedRegex
 {
+  std::string rule_name;
   RE2* re2_regex;
   unsigned int interval; //interval to look in mseconds
   float rate; //threshold /interval
 
-  RatedRegex(RE2* regex, unsigned int observation_interval, float excessive_rate):
+  RatedRegex(std::string new_rule_name, RE2* regex, unsigned int observation_interval, float excessive_rate):
+    rule_name(new_rule_name),
     re2_regex(regex),
     interval(observation_interval),
     rate(excessive_rate) {}
@@ -63,10 +67,11 @@ class RegexManager : public BanjaxFilter
     applies all regex to an ATS record
 
     @param ats_record: the full request record including time url agent etc
-    @return: 1 match 0 not match < 0 error.
+    @return: pair of 1 match 0 not match < 0 error and
+             the matched regex (for loging) or NULL in miss
   */
 
-  enum RegexResult parse_request(std::string ip, std::string ats_record);
+  std::pair<RegexResult,RatedRegex*> parse_request(std::string ip, std::string ats_record);
   /**
      receives the db object need to read the regex list,
      subsequently it reads all the regexs

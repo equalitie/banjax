@@ -274,8 +274,11 @@ ATSEventHandler::destroy_continuation(TSCont contp)
   BanjaxContinuation *cd = NULL;
 
   cd = (BanjaxContinuation *) TSContDataGet(contp);
+
+  //save the txn before destroying the continuation so we can continue
+  TSHttpTxn txn_keeper = cd->txnp;
   TSContDestroy(contp);
-  TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_CONTINUE);
+  TSHttpTxnReenable(txn_keeper, TS_EVENT_HTTP_CONTINUE);
 
   if (cd != NULL) {
     TSfree(cd);

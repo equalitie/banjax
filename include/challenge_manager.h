@@ -68,6 +68,8 @@ class HostChallengeSpec {
   unsigned int fail_tolerance_threshold; //if an ip fails to show a solution after no of attemps
   //greater than this threshold, it will be reported to swabber for bannig, threshold
   //of 0 means: infinite failure allowed, don't keep state
+
+  unsigned long challenge_validity_period; //how many second the challenge is valid for this host
   HostChallengeSpec()
     : fail_tolerance_threshold() {}
 
@@ -140,10 +142,12 @@ protected:
    * report to swabber in case of excessive failure
    *
    * @param client_ip: string representing the failed requester ip
+   * @param failed_host_spec: the specification of the challenge for the host 
+   *        that client failed to solve
    *
    * @return true if no_of_failures exceeded the threshold
    */
-  bool report_failure(std::string client_ip, unsigned int host_failure_threshold);
+  bool report_failure(std::string client_ip, HostChallengeSpec* failed_host);
 
   /**
    * Should be called upon successful solution of a challenge to wipe up the
@@ -168,8 +172,13 @@ protected:
   //nonetheless it is more efficient to have the html generated in a
   //referenece sent to the function rather than copying it in the stack
   //upon return
-  void generate_html(std::string ip, long time, std::string url, string host_header, const TransactionParts& transaction_parts, FilterExtendedResponse* response_info, string& generated_html);
-  
+  void generate_html(std::string ip, long time, std::string url, const TransactionParts& transaction_parts, FilterExtendedResponse* response_info, string& generated_html);
+
+  /**
+     gets a time in long format in future and turn it into browser and human
+     understandable point in time
+   */
+  std::string format_validity_time_for_cookie(long validity_time);
 public:
     /**
        construtor which receives the config object, set the filter 
