@@ -10,6 +10,9 @@
 <tr>
 <td align="center" valign="center">
 <h1>Captcha challenge</h1>
+<noscript>
+  <h1 style="color:red;"><strong>Please turn JavaScript on and reload the page.</strong></h1>
+</noscript>
 <div style="margin-top:20px;">
 <a href="http://www.deflect.ca/" target="_blank" style="font-size: 12px;">Deflect: DDoS protection for civil society</a>
 </div>
@@ -48,7 +51,7 @@
   </script>
   <td align="center" valign="center">
     <span id="d1">
-    <p id="intro">Are you human? Proove it. Please enter the displayed text and submit.</p>
+    <p id="intro">Are you human? Prove it. Please enter the displayed text and submit.</p>
     <img width="210" height="70" src="__captcha" id='captchaimg' /><input type="button" value="Regenerate" onclick="document.getElementById('captchaimg').src=document.getElementById('captchaimg').src;"/><br/>
     <div>
     Captcha text: <input type="text" maxlength="5" id="answer" onkeydown="kd()" /><input type="button" value="Send" onclick="check()"/>
