@@ -12,6 +12,9 @@ AC_ENABLE_SHARED
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL()
 
+#pthread
+
+
 #AC_CONFIG_HEADERS([config.h])
 AC_LANG([C++])
 
@@ -19,6 +22,21 @@ AC_LANG([C++])
 AC_PROG_CXX
 AC_PROG_CC
 AC_PROG_INSTALL
+
+#WEAMPKS:debug stuff
+
+AC_ARG_ENABLE(debug,
+AS_HELP_STRING([--enable-debug],
+               [enable debugging, default: no]),
+[case "${enableval}" in
+             yes) debug=true ;;
+             no)  debug=false ;;
+             *)   AC_MSG_ERROR([bad value ${enableval} for --enable-debug]) ;;
+esac],
+[debug=false])
+
+AM_CONDITIONAL(DEBUG, test x"$debug" = x"true")
+
 
 # Checks for libraries.
 # We require version 1.0.1 for SHA256 support.
@@ -30,7 +48,8 @@ PKG_CHECK_MODULES([libzmq], [libzmq >= 2.2.0])
 # fast regex recognition
 #PKG_CHECK_MODULES([libre], [libre2 >= 2.0.0])
 
-LIBS="$libcrypto_LIBS $libconfig_LIBS $libzmq_LIBS $libre2_LIBS"
+
+LIBS="$libcrypto_LIBS $libconfig_LIBS $libzmq_LIBS $libre2_LIBS -lpthread"
 
 lib_CPPFLAGS="$libcrypto_CFLAGS $libconfig_CFLAGS"
 AC_SUBST(lib_CPPFLAGS)
@@ -62,6 +81,6 @@ AC_CONFIG_SRCDIR([src/banjax.cpp])
 AC_LANG([C++])
 
 #AC_CONFIG_FILES([Makefile])
-AC_OUTPUT(Makefile src/Makefile doc/Makefile test/Makefile)
+AC_OUTPUT(Makefile src/Makefile doc/Makefile test/Makefile src/processor/Makefile)
 
  
