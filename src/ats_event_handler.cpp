@@ -197,6 +197,12 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
       cd->transaction_muncher.append_header(
           "Set-Cookie", (((FilterExtendedResponse*)cd->response_info.response_data))->set_cookie_header.c_str());
     }
+
+    // Forcefully disable cacheing
+    cd->transaction_muncher.append_header("Expires", "Mon, 23 Aug 1982 12:00:00 GMT");
+    cd->transaction_muncher.append_header("Cache-Control", "no-store, no-cache, must-revalidate");
+    cd->transaction_muncher.append_header("Pragma", "no-cache");
+    
     if (buf.size() == 0) {
       // When we get here, no valid response body was generated somehow.
       // Insert one, to prevent triggering an assert in TSHttpTxnErrorBodySet
