@@ -27,7 +27,28 @@ banjax_la_SOURCES = 	banjax.cpp \
 						challenge_manager.cpp \
 						white_lister.cpp \
 					 	regex_manager.cpp \
-						bot_sniffer.cpp 
+						bot_sniffer.cpp \
+						processor/BotBangerAggregator.cpp \
+						processor/BotBangerLogger.cpp \
+						processor/BotBangerModelListener.cpp \
+						processor/FeatureAveragePayloadSize.cpp \
+						processor/FeatureAverageTimeBetweenRequests.cpp \
+						processor/FeatureCyclingUserAgent.cpp \
+						processor/FeatureHtmlToImageRatio.cpp \
+						processor/FeatureHTTPStatusRatio.cpp \
+						processor/FeaturePercentageConsecutiveRequests.cpp \
+						processor/FeatureRequestDepth.cpp \
+						processor/FeatureSessionLength.cpp \
+						processor/FeatureVarianceRequestInterval.cpp \
+						processor/FeatureRequestDepthStd.cpp \
+						processor/HostHitMissActions.cpp \
+						processor/HostHitMissAggregator.cpp \
+						processor/HostHitMissFeature.cpp \
+						processor/HostHitMissLogger.cpp \
+						processor/Main.cpp \
+						processor/utils/stringutils.cpp \
+						processor/svm/svm.cpp \
+						processor/hashfunctions/crc32.cpp 
 						
 						
 

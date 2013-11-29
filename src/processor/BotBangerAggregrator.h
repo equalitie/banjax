@@ -21,6 +21,7 @@ class BotBangerEventListener
 {
 public:
 	virtual void OnFeatureEvent(char *key,float *features,int numFeatures)=0;	
+	virtual void OnEvictEvent(string key) {UNUSED(key);} // not mandatory to implement
 	virtual ~BotBangerEventListener() {;}
 };
 
@@ -32,9 +33,15 @@ class BotBangerAggregator:LogAggregator,FeatureProviderInterface
 	int _featureMemoryNeeded;
 
 	vector<BotBangerEventListener *> _eventListeners;
+	unsigned int _maxEntries;
+
+	int _sessionLength;
+
 	void Cleanup();
+	void Prune();
+
 public:
-	BotBangerAggregator();
+	BotBangerAggregator(int maxEntries,int sessionLength=1800);
 	virtual ~BotBangerAggregator();
 	void RegisterFeature(Feature *,int index);
 	void RegisterEventListener(BotBangerEventListener *l) {_eventListeners.push_back(l);}

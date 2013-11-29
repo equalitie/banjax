@@ -10,10 +10,7 @@ LIBLIST=-lre2 -lzmq -lconfig++
 LogProcessor_LDFLAGS = \
 	-module \
 	-shared \
-	-avoid-version \
-	-lconfig++ -lre2 \
-	-lgtest \
-	-lgtest_main \
+	-avoid-version \	
 	$(LIBLIST)
 
 LogProcessor_LDADD =   $(lib_LIBS)
