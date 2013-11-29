@@ -1,3 +1,5 @@
+#ifndef PROCESSOR_H
+#define PROCESSOR_H
 #include <string>
 #include <iostream>
 #include <ios>
@@ -537,6 +539,21 @@ public:
 
 
 	}
+	static bool ReadFromSettings(LogEntryProcessor *lp,Config *configuration,vector<string> &warnings)
+	{
+		try
+		{
+
+			Setting &hitMissSettings=configuration->lookup("hitmiss");
+			Setting &botBangerSettings=configuration->lookup("bot_banger");
+			return ReadFromSettings(lp,&hitMissSettings,&botBangerSettings,warnings,0);
+		}
+		catch(SettingException &err)
+		{
+			warnings.push_back(string(err.getPath()+string(" ")+err.what()));
+			return false;
+		}
+	}
 	static bool ReadFromSettings(LogEntryProcessor *lp,Setting *hitMissSettings,Setting *botBangerSettings,vector<string> &warnings, int consoleSettings=0)
 	{
 		UNUSED(botBangerSettings);
@@ -684,3 +701,4 @@ public:
 	}
 }
 ;
+#endif
