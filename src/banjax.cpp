@@ -35,6 +35,9 @@ using namespace std;
 #include "swabber_interface.h"
 #include "ats_event_handler.h"
 
+#include "processor/LogProcessorAction2Banjax.h"
+#include "processor/Processor.h"
+
 extern TSCont Banjax::global_contp;
 
 extern const string Banjax::CONFIG_FILENAME = "banjax.conf";
@@ -80,7 +83,7 @@ Banjax::filter_factory(const string& banjax_dir, const libconfig::Setting& main_
 }
 
 Banjax::Banjax()
-  :all_filters_requested_part(0), all_filters_response_part(0)
+  :leProcessor(NULL), all_filters_requested_part(0), all_filters_response_part(0)
 {
   //Everything is static in ATSEventHandle so it is more like a namespace
   //than a class (we never instatiate from it). so the only reason
@@ -110,6 +113,20 @@ Banjax::Banjax()
   //creation of filters happen here
   read_configuration();
 
+  vector<string> warnings;
+  leProcessor=new LogEntryProcessor();
+  if (!LogEntryProcessorConfig::ReadFromSettings(leProcessor,&cfg,warnings) || warnings.size())
+  {
+	  for(auto i=warnings.begin();i!=warnings.end();i++)
+		  TSDebug(BANJAX_PLUGIN_NAME,"Configuration %s",(*i).c_str());
+	  delete leProcessor;
+	  leProcessor=NULL;
+
+  }
+  if (leProcessor) leProcessor->RegisterEventListener(new LogProcessorAction2Banjax());
+
+
+
   //now Get rid of inactives events
   for(unsigned int cur_queue = BanjaxFilter::HTTP_START; cur_queue < BanjaxFilter::TOTAL_NO_OF_QUEUES; cur_queue++, ATSEventHandler::banjax_active_queues[cur_queue] = task_queues[cur_queue].empty() ? false : true);
 
@@ -120,6 +137,10 @@ Banjax::Banjax()
   }
 
 }
+
+void Banjax::StartLogProcessor() {if (leProcessor) leProcessor->Start(true);}
+void Banjax::SendLogEntryToLogProcessor(LogEntry *le) {if (leProcessor) leProcessor->AddLogEntry(le);}
+
 
 void
 Banjax::read_configuration()
@@ -175,4 +196,7 @@ TSPluginInit(int argc, const char *argv[])
   /* create the banjax object that control the whole procedure */
   p_banjax_plugin = (Banjax*)TSmalloc(sizeof(Banjax));
   p_banjax_plugin = new(p_banjax_plugin) Banjax;
+
+  p_banjax_plugin->StartLogProcessor();
+
 }
