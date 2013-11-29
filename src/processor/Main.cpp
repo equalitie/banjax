@@ -7,7 +7,10 @@
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
+#include "Processor.h"
+
 #include "utils/stringutils.h"
+
 #include "HostHitMissAggregator.h"
 #include "HostHitMissFeature.h"
 #include "HostHitMissDumper.h"
@@ -142,10 +145,10 @@ void ParseLogLine(LogEntry &le,char *line)
 	strlcpy(le.contenttype,values[10],80); // lcase
 	strlwr(le.contenttype);
 	//strcpy(le.cacheLookupStatus,80,values[9]); // TCP_HIT, TCP_MISS
-	if (strcmp(values[9],"TCP_HIT"))
+	if (strcmp(values[9],"TCP_HIT")==0)
 		le.cacheLookupStatus=CacheLookupStatus::Hit;
 	else
-	if (strcmp(values[9],"TCP_MISS"))
+	if (strcmp(values[9],"TCP_MISS")==0)
 		le.cacheLookupStatus=CacheLookupStatus::Miss;
 	else
 		le.cacheLookupStatus=CacheLookupStatus::Error;		
@@ -171,45 +174,24 @@ void ParseLogLine(LogEntry &le,char *line)
 	
 }
 
-class FeatureDumper:public BotBangerEventListener, public StringDumper
+
+
+class VerboseLogger:public BotBangerEventListener
 {
 public:
-	FeatureDumper(string &output):
-		StringDumper(output)
+	VerboseLogger()
 	{
+	}
+	virtual void OnEvictEvent(string key)
+	{
+		cout << key << " evicted" << endl;
 	}
 	virtual void OnFeatureEvent(char *key,float *features,int numFeatures)
 	{
 		UNUSED(key);
-		for(int i=0;i<numFeatures;i++)
-		{
-			char db[100];
-			sprintf(db,"%d:%f",i+1,features[i]);
-			addToDump(db);
-		}
+		UNUSED(features);
+		UNUSED(numFeatures);
 	}
-};
-class ModelDumper:public BotBangerModelListener,public StringDumper
-{
-public:
-	ModelDumper(string filename,string &output):
-		BotBangerModelListener(filename.c_str()),
-		StringDumper(output)
-
-	{
-	}
-	virtual void OnModelValue(char *key,double value)
-	{
-		UNUSED(key);
-		UNUSED(value);
-		char buffer[40];
-
-		sprintf(buffer,"%s\t%f",key,value);
-		addToDump(buffer);
-
-
-	}
-
 };
 
 int main(int argc, char* argv[])
@@ -217,9 +199,10 @@ int main(int argc, char* argv[])
 	string configfile;
 	string logfile;
 	string modelfilename;
+
 	bool showhelp=false;	
-	enum traceType {none,HitMiss=1,Features=2,Model=4,Output=8,Actions=16,BotBanger=32,LogEntries=64};
-	int trace=traceType::none;
+	//enum traceType {none,HitMiss=1,Features=2,Model=4,Output=8,Actions=16,BotBanger=32,LogEntries=64,Verbose=128};
+	int consoleSettings=0;
 
 
 	for (int n=1;n<argc;n++)
@@ -238,84 +221,93 @@ int main(int argc, char* argv[])
 			}
 		}
 		else
-		if (val=="--hitmiss")
+		if (val=="--hitmissratio")
 		{
-			trace|=traceType::HitMiss;
+			consoleSettings|=TraceHitMissRatio;
 		}
 		else
-		if (val=="--tracebotbanger")
+		if (val=="--hitmissaction")
 		{
-			trace|=traceType::BotBanger;
+			consoleSettings|=TraceHitMissAction;
 		}
 		else
-		if (val=="--features")
+		if (val=="--bbfeatures")
 		{
-			trace|=traceType::Features|traceType::BotBanger;
+			consoleSettings|=TraceBotBangerFeatures;
 
 		}
 		else
-		if (val=="--model")
+		if (val=="--bbmodelvalues")
 		{
-			trace|=traceType::Model|traceType::BotBanger;
-			if (n<(argc-1))
-			{
-				modelfilename=string(argv[n+1]);
-				n++;
-			}
+			consoleSettings|=TraceBotBangerModelValues;
 		}
 		else
-		if (val=="--traceoutput")
+		if (val=="--bbmodelinputs")
 		{
-			trace|=traceType::Output;
+			consoleSettings|=TraceBotBangerModelInputs;
 		}
 		else
-		if (val=="--actions")
+		if (val=="--bbaction")
 		{
-			trace|=traceType::Actions;
+			consoleSettings|=TraceBotBangerAction;
 		}
 		else
-		if (val=="--logentry")
+		if (val=="--logentries")
 		{
-			trace|=traceType::LogEntries;
+			consoleSettings|=TraceLogEntries;
+		}
+		else
+		if (val=="--all")
+		{
+			consoleSettings=0xffff;
 		}
 		else // should be logfile
 		{
 			logfile=val;
 		}
 	}
+	if (configfile.empty())
+	{
+		showhelp=true;
+		cout << "Need config file" << endl;
+	}
 
 	if (showhelp)
 	{
 		cout << "usage:"<< argv[0] << " [options] [logfile]" << endl
 			 << "options:" << endl
-			 << "--hitmiss                   run hitmiss" << endl
-			 << "--tracediag                      trace diagnose entries" << endl
-			 << "--tracebotbanger                 run botbanger" << endl
-			 << "--original                       output original lines" <<endl		 
-			 << "--model                          output model value" << endl
-			 //<< "--traceoutput                    trace configuration output" << endl			 
-			 << "--actions                        output actions" << endl
+			 << "--logentries                     show logentry (time/ip/url)" << endl
+			 << "--hitmissratio                   show hitmiss ratio" << endl
+			 << "--hitmissaction                  show hitmiss action" << endl
+			 << "--bbfeatures                     show botbanger features" << endl
+			 << "--bbmodelinputs                  show botbanger normalized inputs" << endl
+			 << "--bbmodelvalues                  show botbanger model predicted values" <<endl
+			 << "--bbaction                       show botbanger actions" <<endl
+			 << "--all                            show all " << endl
+			 << "--config [filename]              read config file" << endl
+			 //<< "--traceoutput                    trace configuration output" << endl
 			 << "--config [configfile]            use configfile for the configuration" << endl;
 	}
 	else
 	{
+		LogEntryProcessor processor;
 		ifstream lf;
 		//lf.set_rdbuf(
+		string output;
 		lf.open(logfile.c_str(),std::ifstream::in);
 		LogEntry le;
 		int linenr=0;
-		HostHitMissAggregator hmagg;
-		BotBangerAggregator bbag;
+
 
 		
 		/*transparencyinsport.org 10000-9999999 .98-1 captcha 500
 		transparencyinsport.org 10000-9999999 .98-1 captcha 500
 		transparencyinsport.org 5000-9999999 .98-1 captcha 500
-		*/
+
 
 		
 		//hmagg.RegisterEventListener(new HostHitMissLogger());
-		string output;
+
 		if (trace&traceType::Actions)
 		{
 			auto hm=new HostHitMissActionDumper(output);
@@ -338,8 +330,12 @@ int main(int argc, char* argv[])
 			bbag.RegisterFeature(new FeatureRequestDepth(),6);
 			bbag.RegisterFeature(new FeatureRequestDepthStd(),7);
 			bbag.RegisterFeature(new FeatureSessionLength(),8);	//ok
-			bbag.RegisterFeature(new FeaturePercentageConsecutiveRequests(),9);	
+			bbag.RegisterFeature(new FeaturePercentageConsecutiveRequests(),9);
 			
+			if (trace&traceType::Verbose)
+			{
+				bbag.RegisterEventListener(new VerboseLogger());
+			}
 
 			if (trace&traceType::Features)
 			{
@@ -351,13 +347,27 @@ int main(int argc, char* argv[])
 					(
 					new ModelDumper( modelfilename,output));
 			}
-		}
+
+		}*/
+
 		
+		vector<string> messages;
+
+		if (!LogEntryProcessorConfig::ReadFromSettings(&processor,configfile,messages, consoleSettings ) || messages.size())
+		{
+			std::cout << "Configuration errors" << endl;
+			for(auto i=messages.begin();i!=messages.end();i++)
+			{
+				std::cout << (*i) << endl;
+			}
+			return 0;
+		}
+
 		time_t start;
 		time_t end;
 		time(&start);
 		output.reserve(4096);
-		
+		processor.Start(true);
 		while(lf.good())
 		{
 			char line[91000];
@@ -365,7 +375,7 @@ int main(int argc, char* argv[])
 			ParseLogLine(le,line);
 			linenr++;
 
-			if (trace&traceType::LogEntries)
+			/*if (trace&traceType::LogEntries)
 			{
 				output.append(le.useraddress);
 				output.append("\t");
@@ -377,32 +387,16 @@ int main(int argc, char* argv[])
 				output.append("\t");
 				//output.append(le.payloadsize);
 
-			}
+			}*/
+			//cout << linenr << endl;
 
-			if (trace&traceType::HitMiss)
-			{
-				hmagg.Aggregate(&le);
-			}
-			if (trace&traceType::BotBanger)
-			{
-				bbag.Aggregate(&le);
-			}
+			processor.AddLogEntry(&le);
 			
-			
-			if (!output.empty())
-			{
-				char timebuf[40];
-				struct tm time;
-				gmtime_r(&le.endTime,&time);
-				sprintf(timebuf,"%02d:%02d:%02dx",time.tm_hour,time.tm_min,time.tm_sec);
-
-				cout << timebuf << "\t" << output << endl;
-			}
-			output.clear();
 		}
+		processor.Stop();
 		time(&end);
 		printf("runtime:%ld\n",end-start);
-		hmagg.Dump();
+
 		cout << linenr << endl;
 
 

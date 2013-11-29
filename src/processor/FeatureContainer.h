@@ -51,16 +51,17 @@ public:
 	time_t firstRequestTime;
 	time_t lastRequestTime;
 	int numrequests;
+	void Clear()
+	{
+		memset(_data,0,_memlen);
+		firstRequestTime=0;
+		lastRequestTime=0;
+	}
 
 	virtual void Aggregrate(LogEntry *le)
 	{
 		// adjust local data
-		if (firstRequestTime+1800<le->endTime)
-		{
-			memset(_data,0,_memlen);
-			firstRequestTime=0;
-			lastRequestTime=0;
-		}
+
 		if (!firstRequestTime) firstRequestTime=le->endTime;
 		lastRequestTime=max(lastRequestTime,le->endTime);
 		numrequests++;

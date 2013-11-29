@@ -23,12 +23,20 @@ public:
 
 class HostHitMissAggregator:LogAggregator
 {
+	int _period,_range;
 	map<string,HostHitMissFeature*> _map;
 	vector<HostHitMissEventListener *> _eventListeners;
 public:
+	HostHitMissAggregator(int period=60,int range=5):
+		_period(period),
+		_range(range)
+	{
+
+	}
 	void RegisterEventListener(HostHitMissEventListener *l) {_eventListeners.push_back(l);}
 	virtual void Aggregate(LogEntry *);
 	void Dump();
+	virtual ~HostHitMissAggregator() {;}// TODO: cleanup
 
 };
 #endif
