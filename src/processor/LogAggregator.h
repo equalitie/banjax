@@ -5,5 +5,6 @@ class LogAggregator
 {
 public:
 	virtual void Aggregate(LogEntry *)=0;
+	virtual ~LogAggregator() {;}
 };
 #endif

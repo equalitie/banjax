@@ -1,3 +1,4 @@
+#pragma once
 #include <time.h>
 #include "HostHitMissAggregator.h" 
 #include "StringDumper.h"
@@ -65,13 +66,14 @@ public:
 					string currentAction=hostConfig.currentAction;
 					hostConfig.currentAction=cl->action;
 					hostConfig.expires=hmrange->from+cl->runTime;
-					ScheduleAction(hmrange, host,cl->action,currentAction);
+					string sHost=string(host);
+					ScheduleAction(hmrange, sHost,cl->action,currentAction);
 					break;
 				}
 			}
 		}
 	}
-	virtual void ScheduleAction(HitMissRange *hmr,string host,string action,string currentaction)=0;
+	virtual void ScheduleAction(HitMissRange *hmr,string &host,string &action,string &currentaction)=0;
 	virtual ~HostHitMissActions()
 	{
 
@@ -86,7 +88,7 @@ public:
 		StringDumper(output)
 	{
 	}
-	void ScheduleAction(HitMissRange *hmr,string host,string action,string currentaction)
+	void ScheduleAction(HitMissRange *hmr,string &host,string &action,string &currentaction)
 	{
 		UNUSED(hmr);
 		char tbuf[8000];
