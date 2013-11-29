@@ -12,6 +12,10 @@
 
 class ATSEventHandler;
 class BanjaxFilter;
+class LogEntryProcessor;
+class LogEntry;
+
+
 
 #include "ip_database.h"
 #include "swabber_interface.h"
@@ -45,6 +49,8 @@ class Banjax
   //libconfig object
   libconfig::Config cfg;
 
+  LogEntryProcessor *leProcessor;
+
   /* open the mysql database and read the configs from the database
      this include the regex and l2b models
   */
@@ -70,6 +76,9 @@ class Banjax
   uint64_t which_response_parts_are_requested() { return all_filters_response_part;}
   /* Constructor */
   Banjax();
+
+  void StartLogProcessor();
+  void SendLogEntryToLogProcessor(LogEntry *le);
 
 };
 
