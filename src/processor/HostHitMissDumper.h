@@ -1,26 +1,37 @@
+#ifndef HOSTHITMISSDUMPER_H
+#define HOSTHITMISSDUMPER_H
 #include <time.h>
 #include "HostHitMissAggregator.h" 
+#include "StringDumper.h"
 #include <iostream>
-class HostHitMissDumper:public HostHitMissEventListener
+
+class HostHitMissDumper:public HostHitMissEventListener,public StringDumper
 {
-	string &output;
+
+	bool _reportAll;
 public:
-	HostHitMissDumper(string &output):
-		output(output)
+	HostHitMissDumper(string &output,bool reportAll):
+		HostHitMissEventListener(),
+		StringDumper(output),
+		_reportAll(reportAll)
+
 	{
-		this->output=output;
+
 	}
 	void OnHostHitMissEvent(char *host,HitMissRange *hmrange)
 	{
-		if ((!hmrange->reported) && hmrange->total>10)
+		if (_reportAll || ((!hmrange->reported) && hmrange->total>10))
 		{
 			hmrange->reported=1;
-			struct tm time;
-			gmtime_r(&hmrange->from,&time);
+			char buffer[10000];
+			sprintf(buffer,"hmr\t%s\t%d\t%d\t%d\t%f",host,hmrange->totalCount,hmrange->total,hmrange->hits,hmrange->ratio);
+			addToDump(buffer);
 
 			
-			std::cout << time.tm_hour <<":" << time.tm_min << ":" << time.tm_sec<< "\t" << host << "\t" << hmrange->totalCount << "\t" << hmrange->total << "\t" <<  hmrange->hits << "\t" << hmrange->ratio << endl;
+			//std::cout << "hmr" << host << "\t" << hmrange->totalCount << "\t" << hmrange->total << "\t" <<  hmrange->hits << "\t" << hmrange->ratio << endl;
 		}
 	}
 
 };
+
+#endif

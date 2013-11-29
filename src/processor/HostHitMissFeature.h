@@ -34,7 +34,7 @@ class HostHitMissFeature
 public:
 	HostHitMissFeature(int totalRange,int periodRange);
 	void Aggregrate(LogEntry *le);
-	HitMissRange *CurrentHitMissRage() {return data+pos;}
+	HitMissRange *CurrentHitMissRange() {return data+pos;}
 	~HostHitMissFeature();
 	void Dump();
 };

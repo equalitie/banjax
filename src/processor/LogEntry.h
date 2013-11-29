@@ -6,7 +6,7 @@
 
 #define UNUSED(x) (void)(x)
 
-enum CacheLookupStatus {Hit=0,Miss=1,Stale=2,Error=3};
+enum CacheLookupStatus {Hit=100,Miss=1,Stale=2,Error=3};
 struct LogEntry
 {
 	char hostname[100];

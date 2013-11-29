@@ -14,7 +14,7 @@ void HostHitMissAggregator::Aggregate(LogEntry *le)
 	
 	if (f==_map.end())
 	{
-		_map[hostname]=c=new HostHitMissFeature(60,5);
+		_map[hostname]=c=new HostHitMissFeature(_period,_range);
 	}
 	else
 		c=(*f).second;
@@ -22,7 +22,7 @@ void HostHitMissAggregator::Aggregate(LogEntry *le)
 	c->Aggregrate(le);
 	for(auto i=_eventListeners.begin();i!=_eventListeners.end();i++)
 	{
-		(*i)->OnHostHitMissEvent(le->hostname,c->CurrentHitMissRage());
+		(*i)->OnHostHitMissEvent(le->hostname,c->CurrentHitMissRange());
 	}
 	
 }
