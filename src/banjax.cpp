@@ -116,7 +116,7 @@ Banjax::Banjax()
 
   vector<string> warnings;
   leProcessor=new LogEntryProcessor();
-  if (!LogEntryProcessorConfig::ReadFromSettings(leProcessor,&cfg,warnings) || warnings.size())
+  if (!LogEntryProcessorConfig::ReadFromSettings(leProcessor,&cfg,warnings,ServerMode) || warnings.size())
   {
     TSDebug("banjax", "Failure reading settings for LogEntryProcessor");
     for(auto i=warnings.begin();i!=warnings.end();i++)

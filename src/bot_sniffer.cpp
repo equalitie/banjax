@@ -111,6 +111,7 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
   strncpy(le->contenttype, transaction_parts.at(TransactionMuncher::CONTENT_TYPE).c_str(),
           sizeof(le->contenttype) - 1);
   Banjax::SendLogEntryToLogProcessor(le);
+  TSfree(le);
 
   //std::string message((char*)le, sizeof(LogEntry));
   // XXX(oschaaf):

@@ -81,24 +81,4 @@ public:
 
 };
 
-class HostHitMissActionDumper:public HostHitMissActions,public StringDumper
-{
-public:
-	HostHitMissActionDumper(string &output):
-		StringDumper(output)
-	{
-	}
-	void ScheduleAction(HitMissRange *hmr,string &host,string &action,string &currentaction)
-	{
-		UNUSED(hmr);
-		char tbuf[8000];
-		if (currentaction==action) return;
-		
 
-		sprintf(tbuf,"%s\t%s",host.c_str(),action.c_str());
-		addToDump(tbuf);
-		
-		//std::cout << time.tm_hour <<":" << time.tm_min << ":" << time.tm_sec<< "\t" << host<<"\t"<<action<<endl;
-	}
-
-};

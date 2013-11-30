@@ -16,6 +16,12 @@ public:
 	{
 		UNUSED(le);
 		UNUSED(output);
+		if (!output.empty())
+		{
+			struct tm time;
+			gmtime_r(&le->endTime,&time);
+			TSDebug(BANJAX_PLUGIN_NAME,"LPD: %02d:%02d:%02d\t%s",time.tm_hour,time.tm_min,time.tm_sec,output.c_str());
+		}
 		for(auto i=actionList.begin();i!=actionList.end();i++)
 		{
 			externalAction &ea=(*i);

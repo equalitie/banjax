@@ -4,6 +4,7 @@
 #include <iostream>
 #include <ios>
 #include <fstream>
+#include "ConcurrentFifo.h"
 #include "LogEntry.h"
 #include "HostHitMissAggregator.h"
 #include "HostHitMissFeature.h"
@@ -60,6 +61,26 @@ struct externalAction
 
 
 };
+
+struct FifoMessage
+{
+	size_t messagesize;
+	char data[1];
+	void deleteMessage() {delete [] (char *) this;}
+	static FifoMessage *create(void *data,size_t length)
+	{
+		FifoMessage *v=(FifoMessage *) new char [sizeof(size_t)+length];
+		v->messagesize=length;
+		memcpy(v->data,data,length);
+		return v;
+	}
+	void CopyMessageData(void *data)
+	{
+		memcpy(data,this->data,messagesize);
+	}
+	int size() {return messagesize;}
+};
+
 class LogEntryProcessorEventListener
 {
 public:
@@ -75,6 +96,10 @@ class LogEntryProcessor
 	HostHitMissActions *_hhmActionListener;
 	volatile bool _running;
 	bool _async;
+
+	ConcurrentFifo<char> ackQueue;
+	ConcurrentFifo<FifoMessage *> logEntryQueue;
+
 	zmq::context_t *_zmqContext;
 
 	zmq::socket_t  *_zmqLogEntrySender;
@@ -206,17 +231,8 @@ public:
 			_hhmag=new HostHitMissAggregator(period,range);
 		}
 	}
-	HostHitMissActions* GetActionListener()
-	{
-		if (!_hhmActionListener)
-			_hhmActionListener=new HostHitMissActionDumper(output);
-		return _hhmActionListener;
-	}
-	void HitMissAddConfig(string host,string action,int requestLower,int requestUpper,float ratioLower,float ratioUpper,int runTime)
-	{
-		if (!_hhmag) _hhmag=new HostHitMissAggregator();
-		GetActionListener()->AddConfigLine(host,action,requestLower,requestUpper,ratioLower,ratioUpper,runTime);
-	}
+
+
 	bool Start(bool async=true)
 	{
 		if (_running) return false;
@@ -251,9 +267,12 @@ public:
 	}
 	bool WaitForControlAck()
 	{
+		char q=ackQueue.Get();
+		UNUSED(q);
+
 		// maybe timeout
-		zmq::message_t message(4);
-		_zmqAckReceiver->recv(&message,0);
+		/*zmq::message_t message(4);
+		_zmqAckReceiver->recv(&message,0);*/
 		return true;
 	}
 
@@ -262,42 +281,51 @@ public:
 
 		zmq::message_t message(sizeof(LogEntry));
 
-		auto rc=_zmqLogEntryReceiver->recv(&message,0);
-		if (!rc)
-			std::cout << "receive error";
+		FifoMessage *msg=logEntryQueue.Get();
+
 		auto ok=(message.size()==sizeof(LogEntry));
 		if (ok)
 		{
-			memcpy(le,message.data(),sizeof(struct LogEntry));
+			msg->CopyMessageData(le);
 		}
+		msg->deleteMessage();
+
+
+		/*auto rc=_zmqLogEntryReceiver->recv(&message,0);
+		if (!rc)
+			std::cout << "receive error";
+
 		else
 		{
 			std::cout<< "unexpected " << message.size() << endl;
-		}
+		}*/
 		return ok;
 	}
 
 
 	bool SendStop()
 	{
-		zmq::message_t message(1);
+		/*zmq::message_t message(1);
 		*((char *) message.data())=255;
-		_zmqLogEntrySender->send(message,0);
+		_zmqLogEntrySender->send(message,0);*/
+
+		FifoMessage *msg=FifoMessage::create((char *) "",1);
+		logEntryQueue.Add(msg);
 		return true;
 	}
 
 	bool SendLogEntry(LogEntry *le)
 	{
-		zmq::message_t message(sizeof(struct LogEntry));
-		memcpy(message.data(),le,sizeof(struct LogEntry));
-		_zmqLogEntrySender->send(message,0);
+		FifoMessage *msg=FifoMessage::create(le,sizeof(LogEntry));
+		logEntryQueue.Add(msg);
 		return true;
 	}
 	bool SendAck()
 	{
-		zmq::message_t message(4);
+		ackQueue.Add('a');
+		/*zmq::message_t message(4);
 		strcpy(( char *) message.data(),( char*) "ack");
-		_zmqAckSender->send(message);
+		_zmqAckSender->send(message);*/
 		return true;
 	}
 	void Stop(bool asap=false)
@@ -383,7 +411,10 @@ enum LogEntryTrace {
 	TraceBotBangerFeatures=8,
 	TraceBotBangerModelValues=16,
 	TraceBotBangerModelInputs=32,
-	TraceLogEntries=64 };
+	TraceLogEntries=64,
+	ConsoleMode=128,
+	ServerMode=256
+	};
 
 
 class HostHitMissActionCollector:public HostHitMissActions
@@ -404,6 +435,30 @@ public:
 	}
 
 };
+
+class HostHitMissActionDumper:public HostHitMissActionCollector,public StringDumper
+{
+public:
+	HostHitMissActionDumper(string &output,vector<externalAction> &actionList):
+		HostHitMissActionCollector(actionList),
+		StringDumper(output)
+	{
+	}
+	void ScheduleAction(HitMissRange *hmr,string &host,string &action,string &currentaction)
+	{
+		UNUSED(hmr);
+		char tbuf[8000];
+		if (currentaction==action) return;
+
+
+		sprintf(tbuf,"%s\t%s",host.c_str(),action.c_str());
+		addToDump(tbuf);
+
+		//std::cout << time.tm_hour <<":" << time.tm_min << ":" << time.tm_sec<< "\t" << host<<"\t"<<action<<endl;
+	}
+
+};
+
 class LogEntryProcessorDumper:public LogEntryProcessorEventListener,public StringDumper
 {
 	bool _addLogEntry;
@@ -436,12 +491,37 @@ public:
 		cout << timebuf << "\t" << output << endl;
 	}
 };
-class BotBangerValueDumper:public BotBangerModelListener,public StringDumper
+
+
+class BotBangerActionCollector:public BotBangerModelListener
+{
+	vector<externalAction> &_actionList;
+public:
+	BotBangerActionCollector(vector<externalAction> &actionList):
+		BotBangerModelListener(),
+		_actionList(actionList)
+	{
+
+	}
+
+	virtual void OnModelAction(char *key,string &modelName,string &action)
+	{
+		string sKey=string(key);
+		_actionList.push_back(externalAction(action,sKey,modelName));
+	}
+	virtual ~BotBangerActionCollector()
+	{
+
+	}
+};
+
+
+class BotBangerValueDumper:public BotBangerActionCollector,public StringDumper
 {
 	int _traceSetting;
 public:
-	BotBangerValueDumper(string &output,int traceSetting):
-		BotBangerModelListener(),
+	BotBangerValueDumper(string &output,int traceSetting,vector<externalAction> &actionList):
+		BotBangerActionCollector(actionList),
 		StringDumper(output),
 		_traceSetting(traceSetting)
 
@@ -481,31 +561,11 @@ public:
 			sprintf(buffer,"%s\t%s\t%s",key,modelName.c_str(),action.c_str());
 			addToDump(buffer);
 		}
+		BotBangerActionCollector::OnModelAction(key,modelName,action);
 	}
 
 };
 
-class BotBangerActionCollector:public BotBangerModelListener
-{
-	vector<externalAction> &_actionList;
-public:
-	BotBangerActionCollector(vector<externalAction> &actionList):
-		BotBangerModelListener(),
-		_actionList(actionList)
-	{
-
-	}
-
-	virtual void OnModelAction(char *key,string &modelName,string &action)
-	{
-		string sKey=string(key);
-		_actionList.push_back(externalAction(action,sKey,modelName));
-	}
-	virtual ~BotBangerActionCollector()
-	{
-
-	}
-};
 
 
 class LogEntryProcessorConfig
@@ -539,14 +599,14 @@ public:
 
 
 	}
-	static bool ReadFromSettings(LogEntryProcessor *lp,Config *configuration,vector<string> &warnings)
+	static bool ReadFromSettings(LogEntryProcessor *lp,Config *configuration,vector<string> &warnings,int consoleSettings)
 	{
 		try
 		{
 
 			Setting &hitMissSettings=configuration->lookup("hitmiss");
 			Setting &botBangerSettings=configuration->lookup("bot_banger");
-			return ReadFromSettings(lp,&hitMissSettings,&botBangerSettings,warnings,0);
+			return ReadFromSettings(lp,&hitMissSettings,&botBangerSettings,warnings,consoleSettings);
 		}
 		catch(SettingException &err)
 		{
@@ -566,14 +626,41 @@ public:
 		{
 			int period;
 			int range;
+			int traceFlags=0;
 			if (!hitMissSettings->lookupValue("period",period)) period=60;
 			if (!hitMissSettings->lookupValue("range",range)) range=5;
+			if (hitMissSettings->lookupValue("trace_flags",traceFlags))
+			{
+				consoleSettings|=
+						(
+								traceFlags&
+								(
+										TraceHitMissAction|
+										TraceHitMissRatio|
+										TraceLogEntries
+								)
+						);
+			}
 			lp->HitMissSetConfig(period,range);
 		}
 		if (botBangerSettings)
 		{
 			int maxips;
+			int traceFlags=0;
 			if (!botBangerSettings->lookupValue("max_ips",maxips) && maxips<100 && maxips>300000) maxips=10000;
+			if (botBangerSettings->lookupValue("trace_flags",traceFlags))
+			{
+				consoleSettings|=
+						(
+								traceFlags&
+								(
+										TraceBotBangerAction|
+										TraceBotBangerFeatures|
+										TraceBotBangerModelInputs|
+										TraceBotBangerModelValues
+								)
+						);
+			}
 			//lp->BotBangerConfig(maxips);
 		}
 
@@ -582,11 +669,11 @@ public:
 
 			if (consoleSettings&TraceHitMissRatio)
 			{
-				lp->RegisterEventListener(new HostHitMissDumper(lp->output, consoleSettings^TraceHitMissRatio));
+				lp->RegisterEventListener(new HostHitMissDumper(lp->output, consoleSettings^(TraceHitMissRatio|ConsoleMode|ServerMode)));
 			}
 			if (consoleSettings&TraceHitMissAction)
 			{
-				hmac=new HostHitMissActionDumper(lp->output);
+				hmac=new HostHitMissActionDumper(lp->output,lp->actions);
 				lp->RegisterEventListener(hmac);
 			}
 			if (consoleSettings&TraceBotBangerFeatures)
@@ -595,24 +682,33 @@ public:
 			}
 			if (consoleSettings&(TraceBotBangerModelValues|TraceBotBangerModelInputs|TraceBotBangerAction))
 			{
-				bbml=new BotBangerValueDumper(lp->output,consoleSettings);
+				bbml=new BotBangerValueDumper(lp->output,consoleSettings,lp->actions);
 				lp->RegisterEventListener(bbml);
 			}
-			lp->RegisterEventListener(new LogEntryProcessorDumper(lp->output,consoleSettings&TraceLogEntries));
+			if (consoleSettings&ConsoleMode)
+			{
+				lp->RegisterEventListener(new LogEntryProcessorDumper(lp->output,consoleSettings&TraceLogEntries));
+			}
+			if (consoleSettings&ServerMode)
+			{
+				if (hitMissSettings && !hmac)
+				{
+					hmac=new HostHitMissActionCollector(lp->actions);
+					lp->RegisterEventListener(hmac);
+				}
+				if (botBangerSettings && !bbml)
+				{
+					bbml=new BotBangerActionCollector(lp->actions);
+					lp->RegisterEventListener(bbml);
+				}
+			}
 		}
 		else
 		{
-			if (hitMissSettings)
-			{
-				hmac=new HostHitMissActionCollector(lp->actions);
-				lp->RegisterEventListener(hmac);
-			}
-			if (botBangerSettings)
-			{
-				bbml=new BotBangerActionCollector(lp->actions);
-				lp->RegisterEventListener(bbml);
-			}
+			warnings.push_back(string("No consolemode set"));
+			return false;
 		}
+
 
 		if (hitMissSettings && hmac)
 		{
@@ -690,8 +786,6 @@ public:
 				{
 					warnings.push_back(string("incomplete botbanger configuration line"));
 				}
-
-
 			}
 		}
 

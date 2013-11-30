@@ -10,7 +10,7 @@ LIBLIST=-lre2 -lzmq -lconfig++
 LogProcessor_LDFLAGS = \
 	-module \
 	-shared \
-	-avoid-version \	
+	-avoid-version \
 	$(LIBLIST)
 
 LogProcessor_LDADD =   $(lib_LIBS)
@@ -34,7 +34,7 @@ LogProcessor_SOURCES = BotBangerAggregator.cpp \
 	Main.cpp \
 	utils/stringutils.cpp \
 	svm/svm.cpp \
-	hashfunctions/crc32.cpp 
+	hashfunctions/crc32.cpp
 
 
 
