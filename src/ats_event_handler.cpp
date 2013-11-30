@@ -105,12 +105,12 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
 
   case TS_EVENT_TIMEOUT:
     //TODO: This code does not make sense and needs to be revisited
-    TSDebug(BANJAX_PLUGIN_NAME, "timeout" );
+    TSDebug("banjaxtimeout", "timeout" );
     /* when mutex lock is not acquired and continuation is rescheduled,
        the plugin is called back with TS_EVENT_TIMEOUT with a NULL
        edata. We need to decide, in which function did the MutexLock
        failed and call that function again */
-    if (contp != Banjax::global_contp) {
+    /*if (contp != Banjax::global_contp) {
       cd = (BanjaxContinuation *) TSContDataGet(contp);
       switch (cd->cf) {
         case BanjaxContinuation::HANDLE_REQUEST:
@@ -119,12 +119,12 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
         default:
           TSDebug(BANJAX_PLUGIN_NAME, "This event was unexpected: %d\n", event);
           break;
-      }
+	  }
     } else {
       //regardless, it even doesn't make sense to read the list here
       //read_regex_list(contp);
       return 0;
-    }
+      }*/
 
     default:
       TSDebug(BANJAX_PLUGIN_NAME, "Unsolicitated event call?" );
@@ -196,6 +196,17 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
     if ((((FilterExtendedResponse*)cd->response_info.response_data))->set_cookie_header.size()) {
       cd->transaction_muncher.append_header(
           "Set-Cookie", (((FilterExtendedResponse*)cd->response_info.response_data))->set_cookie_header.c_str());
+    }
+
+    // Forcefully disable cacheing
+    cd->transaction_muncher.append_header("Expires", "Mon, 23 Aug 1982 12:00:00 GMT");
+    cd->transaction_muncher.append_header("Cache-Control", "no-store, no-cache, must-revalidate");
+    cd->transaction_muncher.append_header("Pragma", "no-cache");
+    
+    if (buf.size() == 0) {
+      // When we get here, no valid response body was generated somehow.
+      // Insert one, to prevent triggering an assert in TSHttpTxnErrorBodySet
+      buf.append("Not authorized");
     }
     char* b = (char*) TSmalloc(buf.size());
     memcpy(b, buf.data(), buf.size());
@@ -269,11 +280,12 @@ ATSEventHandler::destroy_continuation(TSCont contp)
   BanjaxContinuation *cd = NULL;
 
   cd = (BanjaxContinuation *) TSContDataGet(contp);
-  TSContDestroy(contp);
-  TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_CONTINUE);
 
-  if (cd != NULL) {
-    TSfree(cd);
-    // delete cd;
-  }
+  //save the txn before destroying the continuation so we can continue
+  TSHttpTxn txn_keeper = cd->txnp;
+  TSfree(cd);
+
+  TSContDestroy(contp);
+  TSHttpTxnReenable(txn_keeper, TS_EVENT_HTTP_CONTINUE);
+
 }
