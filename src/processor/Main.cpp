@@ -202,7 +202,7 @@ int main(int argc, char* argv[])
 
 	bool showhelp=false;	
 	//enum traceType {none,HitMiss=1,Features=2,Model=4,Output=8,Actions=16,BotBanger=32,LogEntries=64,Verbose=128};
-	int consoleSettings=0;
+	int consoleSettings=ConsoleMode;
 
 
 	for (int n=1;n<argc;n++)

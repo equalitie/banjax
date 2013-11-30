@@ -45,10 +45,10 @@ banjax_la_SOURCES = 	banjax.cpp \
 						processor/HostHitMissAggregator.cpp \
 						processor/HostHitMissFeature.cpp \
 						processor/HostHitMissLogger.cpp \
-						processor/Main.cpp \						
+						processor/Main.cpp \
 						processor/utils/stringutils.cpp \
 						processor/svm/svm.cpp \
-						processor/hashfunctions/crc32.cpp 
+						processor/hashfunctions/crc32.cpp
 						
 						
 
