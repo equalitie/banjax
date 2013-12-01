@@ -34,6 +34,7 @@ You also need mercurial to get Google re2:
     apt-get install mercurial
 
 Google re2 regex engine:
+
         hg clone https://re2.googlecode.com/hg re2
         cd re2
         make test
@@ -48,10 +49,14 @@ Copy banjax.conf file in:
 
      /usr/local/trafficserver/modules/banjax/
 
-Add following line to 
+Add a line
 
-/usr/local/trafficserver/conf/plugins.conf
-banjax.so
+    banjax.so
+
+to 
+
+    /usr/local/trafficserver/conf/plugins.conf
+
 
 Installation from source
 ------------------------
@@ -59,7 +64,7 @@ Staging branch always contain the most recent semi stable source. Master branch 
 
 Banjax is using automake frame work, to make and install banjax, cd into banjax directory, assuming that the plugin directory of the traffic server is
 
-       /usr/local/trafficserver/modules
+    /usr/local/trafficserver/modules
 
 You need the following dev deb package to compile banjax in addition to libre2 described above:
 
@@ -68,28 +73,28 @@ You need the following dev deb package to compile banjax in addition to libre2 d
 
 You also need google test framework to be installed
 
-wget http://googletest.googlecode.com/files/gtest-1.7.0.zip
-unzip gtest-1.7.0.zip
-cd gtest-1.7.0
-./configure
-make
-cp lib/.lib/libgtest*.a /usr/lib
+    wget http://googletest.googlecode.com/files/gtest-1.7.0.zip
+    unzip gtest-1.7.0.zip
+    cd gtest-1.7.0
+    ./configure
+    make
+    cp lib/.lib/libgtest*.a /usr/lib
 
 invoke following sequences of command
 
-       libtoolize
-       aclocal
-       automake --add-missing
-       autoconf
-       ./configure --libdir=/usr/local/trafficserver/modules
-       make
-       make install
+    libtoolize
+    aclocal
+    automake --add-missing
+    autoconf
+    ./configure --libdir=/usr/local/trafficserver/modules
+    make
+    make install
 
 HACK:
 if configure complains that libre2 isn't there but you are sure 
 you have already installed it, then
 
-	cp libre2.pc /usr/lib/pkgconfig/
+    cp libre2.pc /usr/lib/pkgconfig/
 
 Testing:
 --------
