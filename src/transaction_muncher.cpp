@@ -25,7 +25,7 @@
 
 #include "banjax_common.h" 
 #include "transaction_muncher.h"
-
+unsigned int global_strange_count = 0;
 using namespace std;
 /**
    checks if the parts are already retrieved and if not ask ATS 
@@ -41,6 +41,7 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
 {
   //only turn those bits that are off in valid_parts and off in requested
   uint64_t parts_to_retreive = (~valid_parts) & requested_log_parts;
+  bool strange_header = false;
 
   //if we have nothing to do let save time
   if (!parts_to_retreive)
@@ -62,7 +63,7 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
       if (!client_address) {
         TSError("error in retrieving client ip\n");
         throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
-      }
+	}
 
       cur_trans_parts[TransactionMuncher::IP] = inet_ntoa(client_address->sin_addr); //TODO who should release the char* returned?
       //TSfree(client_address);
@@ -98,9 +99,15 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
 
 	int protocol_length;
 	const char* protocol = TSUrlSchemeGet(request_header, url_loc , &protocol_length);
+
+	//Just keep track of strange connections
+	if (!protocol_length)
+	  strange_header = true;
+
 	cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::PROTOCOL, string(protocol,protocol_length)));
     
 	TSHandleMLocRelease(request_header, header_location, url_loc);
+	valid_parts |= TransactionMuncher::URL | TransactionMuncher::PROTOCOL;
       }
     } 
   }
@@ -235,6 +242,12 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
   valid_parts |= requested_log_parts;
   update_validity_status();
 
+  if (strange_header) {
+    global_strange_count++;
+    TSDebug("banjaxtimeout", "strange no %d", global_strange_count);
+    for(TransactionParts::iterator it = cur_trans_parts.begin(); it != cur_trans_parts.end(); it++)
+      TSDebug("banjaxtimeout", "%lu: %s", it->first, (it->second).c_str());
+  }
   return cur_trans_parts;
 
 }

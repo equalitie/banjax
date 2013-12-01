@@ -25,6 +25,8 @@ using namespace std;
 //to run fail2ban-client
 #include <stdlib.h>
 
+#include <unistd.h>
+
 #include "banjax.h"
 #include "banjax_continuation.h"
 #include "transaction_muncher.h"
@@ -41,6 +43,8 @@ bool ATSEventHandler::banjax_active_queues[BanjaxFilter::TOTAL_NO_OF_QUEUES];
 
 //Banjax* ATSEventHandler::banjax = NULL;
 
+unsigned int start_hookers = 0, close_hookers = 0, http_counter, https_counter;
+
 int
 ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *edata)
 {
@@ -49,6 +53,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
 
   switch (event) {
   case TS_EVENT_HTTP_TXN_START:
+    start_hookers++;
     //If we are here it means this is the global continuation
     //we never subscribe subsequent continuations to this event
     handle_txn_start((TSHttpTxn) edata);
@@ -58,6 +63,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
     return 0;
 
   case TS_EVENT_HTTP_READ_REQUEST_HDR:
+    TSDebug("banjaxtimeout", "header hook");
     if(contp != Banjax::global_contp)
       handle_request((BanjaxContinuation *) TSContDataGet(contp));
       return 0;
@@ -85,14 +91,38 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
     //TSDebug(BANJAX_PLUGIN_NAME, "response" );
     if (contp != Banjax::global_contp) {
       cd = (BanjaxContinuation*) TSContDataGet(contp);
-      handle_response(cd);
+      if (cd)
+	handle_response(cd);
+      else
+	TSHttpTxnReenable(txnp, TS_EVENT_HTTP_ERROR);
     }
     return 0;
 
   case TS_EVENT_HTTP_TXN_CLOSE:
     TSDebug(BANJAX_PLUGIN_NAME, "txn close" );
     if (contp != Banjax::global_contp) {
+      close_hookers++;
       cd = (BanjaxContinuation *) TSContDataGet(contp); 
+      const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(TransactionMuncher::PROTOCOL);
+       string cur_protocol = cur_trans_parts.at(TransactionMuncher::PROTOCOL);
+      if (cur_protocol == "http")
+      	http_counter++;
+      else if (cur_protocol == "https")
+       	https_counter++;
+      else 
+	{
+	  TSDebug("banjaxtimeout", "not killing unknow protocol ");//, cur_trans_parts.at(TransactionMuncher::IP).c_str());
+	  //cd->~BanjaxContinuation(); //leave mem manage to ATS
+	  TSHttpTxn txn_keeper = cd->txnp;
+	  //TSContDestroy(contp);
+	  TSHttpTxnReenable(txn_keeper, TS_EVENT_HTTP_CONTINUE);
+	  //TSfree(cd);
+	  return 0;
+	}
+
+      TSDebug("banjaxtimeout", "http vs https: %d vs %d", http_counter, https_counter);
+      TSDebug("banjaxtimeout", "start vs close: %d vs %d", start_hookers, close_hookers);
+
       if (banjax_active_queues[BanjaxFilter::HTTP_CLOSE])
         handle_task_queue(banjax->task_queues[BanjaxFilter::HTTP_CLOSE], cd);
 
@@ -127,6 +157,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
       }*/
 
     default:
+      TSDebug("banjaxtimeout", "Unsolicitated event call? %d", event);
       TSDebug(BANJAX_PLUGIN_NAME, "Unsolicitated event call?" );
       break;
   }
@@ -230,6 +261,9 @@ void
 ATSEventHandler::handle_txn_start(TSHttpTxn txnp)
 {
   TSDebug(BANJAX_PLUGIN_NAME, "txn start" );
+  // usleep(1000000);
+  // TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
+  // return;
 
   TSCont txn_contp;
   BanjaxContinuation *cd;
