@@ -6,6 +6,7 @@
 *~
 .DS_Store
 .*.swp
+*.orig
 
 #automake stuff
 depcomp
