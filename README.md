@@ -78,7 +78,7 @@ You also need google test framework to be installed
     cd gtest-1.7.0
     ./configure
     make
-    cp lib/.lib/libgtest*.a /usr/lib
+    cp lib/.libs/libgtest*.a /usr/lib
 
 invoke following sequences of command
 
