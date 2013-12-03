@@ -24,6 +24,7 @@ using namespace std;
 #include "bot_sniffer.h"
 #include "ip_database.h" 
 
+#define VALID_OR_EMPTY(validity, part) ((validity & part) ? transaction_parts.at(part) : "")
 /**
   Reads botbanger's port from the config
  */
@@ -64,19 +65,21 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
   char time_buffer[80];
   std::strftime(time_buffer,80,"%Y-%m-%dT%H:%M:%S",timeinfo);
   
+  uint64_t* cur_validity = (uint64_t*)transaction_parts.at(TransactionMuncher::VALIDITY_STAT).data();
   send_zmq_mess(zmqsock, BOTBANGER_LOG, true);
 
-  send_zmq_mess(zmqsock, transaction_parts.at(TransactionMuncher::IP), true);
+  send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP), true);
   send_zmq_mess(zmqsock, time_buffer, true);
-  send_zmq_mess(zmqsock, transaction_parts.at(TransactionMuncher::URL), true);
-  send_zmq_mess(zmqsock, transaction_parts.at(TransactionMuncher::PROTOCOL), true);
-  send_zmq_mess(zmqsock, transaction_parts.at(TransactionMuncher::STATUS), true);
-  send_zmq_mess(zmqsock, transaction_parts.at(TransactionMuncher::CONTENT_LENGTH), true);
-  send_zmq_mess(zmqsock, transaction_parts.at(TransactionMuncher::UA), true);
+  send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::URL), true);
+  send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::PROTOCOL), true);
+  send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::STATUS), true);
+  send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::CONTENT_LENGTH), true);
+  send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::UA), true);
   send_zmq_mess(zmqsock, transaction_parts.count(TransactionMuncher::MISS) ? "MISS" : "HIT");
 
   //botbanger_interface.add_log(transaction_parts[IP], cd->url, cd->protocol, stat, (long) cd->request_len, cd->ua, cd->hit);
   //botbanger_interface.add_log(cd->client_ip, time_str, cd->url, protocol, status, size, cd->ua, hit);
+  TSDebug("bot_sniffer","DONE!");
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
                     
 }
