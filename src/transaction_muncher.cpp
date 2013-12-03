@@ -74,30 +74,36 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
     if (TSHttpHdrUrlGet(request_header, header_location, &url_loc) != TS_SUCCESS) {
       TSError("couldn't retrieve request url\n");
       TSHandleMLocRelease(request_header, header_location, url_loc);
-      throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+      //throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+      cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL, ""));
+      cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::PROTOCOL, ""));
     }
-
-    int url_length;
-    const char* url = TSUrlStringGet(request_header, url_loc, &url_length);
+    else {
+      int url_length;
+      const char* url = TSUrlStringGet(request_header, url_loc, &url_length);
     
-    if (!url){
-      TSError("couldn't retrieve request url string\n");
-      TSHandleMLocRelease(request_header, header_location, url_loc);
-      throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
-    }
+      if (!url){
+	TSError("couldn't retrieve request url string\n");
+	TSHandleMLocRelease(request_header, header_location, url_loc);
+	cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL, ""));
+	cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::PROTOCOL, ""));
 
-    //I'm not sure if we need to release URL explicitly
-    //my guess is not
-    cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL, string(url,url_length)));
+	//throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+      }
+      else {
 
-    int protocol_length;
-    const char* protocol = TSUrlSchemeGet(request_header, url_loc , &protocol_length);
-    cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::PROTOCOL, string(protocol,protocol_length)));
+	//I'm not sure if we need to release URL explicitly
+	//my guess is not
+	cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL, string(url,url_length)));
+
+	int protocol_length;
+	const char* protocol = TSUrlSchemeGet(request_header, url_loc , &protocol_length);
+	cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::PROTOCOL, string(protocol,protocol_length)));
     
-    TSHandleMLocRelease(request_header, header_location, url_loc);
-    //TSfree(url);
-
-  } 
+	TSHandleMLocRelease(request_header, header_location, url_loc);
+      }
+    } 
+  }
 
   if (parts_to_retreive & TransactionMuncher::URL_WITH_HOST) {
     //first make sure HOST has already been retrieved 
@@ -107,31 +113,37 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
     if (TSHttpHdrUrlGet(request_header, header_location, &url_loc) != TS_SUCCESS) {
       TSError("couldn't retrieve request url\n");
       TSHandleMLocRelease(request_header, header_location, url_loc);
-      throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
-    }
+      //throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+      cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL_WITH_HOST, ""));
+    } else {
 
-    if (TSUrlHostSet(request_header, url_loc, cur_trans_parts[TransactionMuncher::HOST].c_str(), cur_trans_parts[TransactionMuncher::HOST].length()) != TS_SUCCESS) {
-      TSError("couldn't manipulate url field.\n");
-      TSHandleMLocRelease(request_header, header_location, url_loc);
-      throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
-    }
-
-    int url_length;
-    const char* url = TSUrlStringGet(request_header, url_loc, &url_length);
+      if (TSUrlHostSet(request_header, url_loc, cur_trans_parts[TransactionMuncher::HOST].c_str(), cur_trans_parts[TransactionMuncher::HOST].length()) != TS_SUCCESS) {
+	TSError("couldn't manipulate url field.\n");
+	TSHandleMLocRelease(request_header, header_location, url_loc);
+	//throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+	
+      }
+      else {
+	int url_length;
+	const char* url = TSUrlStringGet(request_header, url_loc, &url_length);
       
-    if (!url){
-      TSError("couldn't retrieve request url string\n");
-      TSHandleMLocRelease(request_header, header_location, url_loc);
-      throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
-    }
-
-    //I'm not sure if we need to release URL explicitly
-    //my guess is not
-    cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL_WITH_HOST, string(url,url_length)));
-    TSDebug(BANJAX_PLUGIN_NAME, "resp url %s", cur_trans_parts[TransactionMuncher::URL_WITH_HOST].c_str());
+	if (!url){
+	  TSError("couldn't retrieve request url string\n");
+	  TSHandleMLocRelease(request_header, header_location, url_loc);
+	  cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL_WITH_HOST, ""));
+	  //throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+	}
+	else {
+	  //I'm not sure if we need to release URL explicitly
+	  //my guess is not
+	  cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL_WITH_HOST, string(url,url_length)));
+	  TSDebug(BANJAX_PLUGIN_NAME, "resp url %s", cur_trans_parts[TransactionMuncher::URL_WITH_HOST].c_str());
     
-    TSHandleMLocRelease(request_header, header_location, url_loc);
-    //TSfree(url);
+	  TSHandleMLocRelease(request_header, header_location, url_loc);
+	  //TSfree(url);
+	}
+      }
+    }
   } 
 
   //METHOD
@@ -141,13 +153,14 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
 
     if (!http_method){
       TSError("couldn't retrieve request method\n");
-      throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+      cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::METHOD, ""));
+      //throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
     }
-
-    //I'm not sure if we need to release URL explicitly
-    //my guess is not
-    cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::METHOD, string(http_method,method_length)));
-
+    else {
+      //I'm not sure if we need to release URL explicitly
+      //my guess is not
+      cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::METHOD, string(http_method,method_length)));
+    }
   } 
    
   if (parts_to_retreive & TransactionMuncher::HOST) {
@@ -158,12 +171,14 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
       //We are not throwing exception cause a request may not have host
       //though in http 1.1 host is required.
       //hence in this case host will be empty
+      cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::HOST, ""));
     } else {
       int host_length;
       const char* host = TSMimeHdrFieldValueStringGet(request_header,header_location,host_loc,0,&host_length);
       if (!host) {
         TSHandleMLocRelease(request_header, header_location, host_loc);
         TSError("couldn't retrieve request host string\n");
+	cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::HOST, ""));
       } else {
         cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::HOST, string(host,host_length)));
 
@@ -178,14 +193,15 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
     TSMLoc ua_loc = TSMimeHdrFieldFind(request_header, header_location, TS_MIME_FIELD_USER_AGENT, TS_MIME_LEN_USER_AGENT);
     if (ua_loc == TS_NULL_MLOC)  {
       TSError("couldn't retrieve request user-agent\n");
+      cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::UA, ""));
     } else {
       int ua_length;
       const char* ua = TSMimeHdrFieldValueStringGet(request_header, header_location,ua_loc,0,&ua_length);	
       if (!ua) {                                                                                 TSHandleMLocRelease(request_header, header_location, ua_loc);
         TSError("couldn't retrieve request user-agent string\n");
+	cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::UA, ""));
       } else {
         cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::UA, string(ua,ua_length)));
-        
         TSHandleMLocRelease(request_header, header_location, ua_loc);
         //TSfree((void*)ua);
       }
@@ -215,7 +231,9 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
 
   }
 
+
   valid_parts |= requested_log_parts;
+  update_validity_status();
 
   return cur_trans_parts;
 
@@ -263,6 +281,7 @@ TransactionMuncher::retrieve_response_parts(uint64_t requested_log_parts)
     valid_parts |= CONTENT_LENGTH;
  }
  
+ update_validity_status();
  return cur_trans_parts;
 
 }
@@ -370,7 +389,7 @@ TransactionMuncher::TransactionMuncher(TSHttpTxn cur_txnp)
   :trans_txnp(cur_txnp), valid_parts(0), request_header(NULL), 
    response_header(NULL),header_location(NULL),response_header_location(NULL)
 {
-
+  update_validity_status();
 }
 
 /**
