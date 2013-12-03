@@ -43,6 +43,8 @@ class TransactionMuncher{
 
  public:
     enum TransactionPart{
+      VALIDITY_STAT  = 0x000,  //This flag collection indicate the parts we have
+                               //already retrieved
       IP             = 0x001,
       URL            = 0x002,
       HOST           = 0x004,
@@ -60,6 +62,17 @@ class TransactionMuncher{
       HEADER_RETRIEVAL_ERROR,
       PART_RETRIEVAL_ERROR
     };
+
+    /**
+       provide the vessel to tell the fliters that  telling which parts has been 
+       retrieved successfully
+       it updates the VALIDITY_STAT in transaction_parts map
+     */
+    inline void update_validity_status()
+    {
+      std::string valbuf((char*)&valid_parts, sizeof(uint64_t));
+      cur_trans_parts[VALIDITY_STAT] = valbuf;
+    }
 
     /**
        checks if the parts are already retrieved and if not ask ATS 
