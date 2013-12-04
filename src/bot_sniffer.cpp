@@ -24,6 +24,8 @@ using namespace std;
 #include "bot_sniffer.h"
 #include "ip_database.h" 
 #include "processor/LogEntry.h"
+#include "processor/Processor.h"
+#include "banjax.h"
 
 #define VALID_OR_EMPTY(validity, part) ((validity & part) ? transaction_parts.at(part) : "")
 /**
@@ -83,6 +85,7 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
   size_t size = sizeof(LogEntry);
   struct LogEntry* le = (LogEntry*)TSmalloc(size);
 
+  
   // Zero the struct, so all char[]'s within it are guaranteed to be
   // 0-terminated later on.
   memset(le, 0, sizeof(LogEntry) - 1);
@@ -107,10 +110,11 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
           sizeof(le->useraddress) - 1);
   strncpy(le->contenttype, transaction_parts.at(TransactionMuncher::CONTENT_TYPE).c_str(),
           sizeof(le->contenttype) - 1);
+  Banjax::SendLogEntryToLogProcessor(le);
 
-  std::string message((char*)le, sizeof(LogEntry));
+  //std::string message((char*)le, sizeof(LogEntry));
   // XXX(oschaaf):
-  send_zmq_mess(zmqsock, message, true);
+  //send_zmq_mess(zmqsock, message, true);
 
   
   //botbanger_interface.add_log(transaction_parts[IP], cd->url, cd->protocol, stat, (long) cd->request_len, cd->ua, cd->hit);

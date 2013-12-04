@@ -32,6 +32,7 @@ class Banjax
 
  public:
   typedef std::list<FilterTask> TaskQueue;
+  static LogEntryProcessor *leProcessor;
   
  protected:
   //requests
@@ -49,7 +50,6 @@ class Banjax
   //libconfig object
   libconfig::Config cfg;
 
-  LogEntryProcessor *leProcessor;
 
   /* open the mysql database and read the configs from the database
      this include the regex and l2b models
@@ -78,7 +78,7 @@ class Banjax
   Banjax();
 
   void StartLogProcessor();
-  void SendLogEntryToLogProcessor(LogEntry *le);
+  static void SendLogEntryToLogProcessor(LogEntry *le);
 
 };
 
