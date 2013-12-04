@@ -82,8 +82,9 @@ Banjax::filter_factory(const string& banjax_dir, const libconfig::Setting& main_
   }
 }
 
+LogEntryProcessor * Banjax::leProcessor = NULL;
 Banjax::Banjax()
-  :leProcessor(NULL), all_filters_requested_part(0), all_filters_response_part(0)
+  :all_filters_requested_part(0), all_filters_response_part(0)
 {
   //Everything is static in ATSEventHandle so it is more like a namespace
   //than a class (we never instatiate from it). so the only reason
@@ -117,13 +118,17 @@ Banjax::Banjax()
   leProcessor=new LogEntryProcessor();
   if (!LogEntryProcessorConfig::ReadFromSettings(leProcessor,&cfg,warnings) || warnings.size())
   {
-	  for(auto i=warnings.begin();i!=warnings.end();i++)
-		  TSDebug(BANJAX_PLUGIN_NAME,"Configuration %s",(*i).c_str());
-	  delete leProcessor;
-	  leProcessor=NULL;
+    TSDebug("banjax", "Failure reading settings for LogEntryProcessor");
+    for(auto i=warnings.begin();i!=warnings.end();i++)
+      TSDebug(BANJAX_PLUGIN_NAME,"Configuration %s",(*i).c_str());
+    delete leProcessor;
+    leProcessor=NULL;
 
   }
-  if (leProcessor) leProcessor->RegisterEventListener(new LogProcessorAction2Banjax());
+  if (leProcessor) {
+    TSDebug("banjax", "hook up action proccessor for banajx");
+    leProcessor->RegisterEventListener(new LogProcessorAction2Banjax());
+  }
 
 
 
@@ -139,7 +144,7 @@ Banjax::Banjax()
 }
 
 void Banjax::StartLogProcessor() {if (leProcessor) leProcessor->Start(true);}
-void Banjax::SendLogEntryToLogProcessor(LogEntry *le) {if (leProcessor) leProcessor->AddLogEntry(le);}
+void Banjax::SendLogEntryToLogProcessor(LogEntry *le) {if (leProcessor) leProcessor->AddLogEntry(le); TSDebug("banjax", "sending to processor");}
 
 
 void
