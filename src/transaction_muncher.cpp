@@ -13,11 +13,13 @@
  */
 
 #include <map>
+#include <stdlib.h>
 #include <string.h>
 
 #include <assert.h>
 
 #include <ts/ts.h>
+#include <ts/experimental.h>
 //to retrieve the client ip
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -276,11 +278,35 @@ TransactionMuncher::retrieve_response_parts(uint64_t requested_log_parts)
       cur_trans_parts[CONTENT_LENGTH] = string(content_length, field_length);
 
       //}
-        
+      TSHandleMLocRelease(response_header, response_header_location, field_loc);
     }
     valid_parts |= CONTENT_LENGTH;
  }
- 
+
+ TSMLoc field_loc = TSMimeHdrFieldFind(response_header, response_header_location, TS_MIME_FIELD_CONTENT_TYPE, TS_MIME_LEN_CONTENT_TYPE);
+ cur_trans_parts[CONTENT_TYPE] = "";
+ if (field_loc) {
+   int len;
+   const char* val = TSMimeHdrFieldValueStringGet(response_header, response_header_location, field_loc, 0, &len);
+   if (val && len) {
+     cur_trans_parts[CONTENT_TYPE] = string(val, len);
+     valid_parts |= CONTENT_TYPE;
+   }
+   TSHandleMLocRelease(response_header, response_header_location, field_loc);
+ }
+  
+ TSHRTime sm_start;
+ TSHRTime now = TShrtime();
+   
+ if (TSHttpTxnMilestoneGet(trans_txnp, TS_MILESTONE_SM_START, &sm_start) != TS_SUCCESS) {
+   TSError("Banjax could not get SM_START milestone");
+ } else {
+   long ms_ago_started = (now - sm_start) / 1000000.0;
+   char buffer[65];
+   sprintf(buffer,"%ld",ms_ago_started);
+   cur_trans_parts[TXN_MS_DURATION] = string(buffer);
+   valid_parts |= TXN_MS_DURATION;
+ }
  update_validity_status();
  return cur_trans_parts;
 
