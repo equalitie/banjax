@@ -43,19 +43,21 @@ class TransactionMuncher{
 
  public:
     enum TransactionPart{
-      VALIDITY_STAT  = 0x000,  //This flag collection indicate the parts we have
-                               //already retrieved
-      IP             = 0x001,
-      URL            = 0x002,
-      HOST           = 0x004,
-      UA             = 0x008,
-      COOKIE         = 0x010,
-      URL_WITH_HOST  = 0x020,
-      METHOD         = 0x040,
-      MISS           = 0x080,
-      STATUS         = 0x100,
-      PROTOCOL       = 0x200,
-      CONTENT_LENGTH = 0x400
+      VALIDITY_STAT   = 0x0000,  //This flag collection indicate the parts we have
+                                 //already retrieved
+      IP              = 0x0001,
+      URL             = 0x0002,
+      HOST            = 0x0004,
+      UA              = 0x0008,
+      COOKIE          = 0x0010,
+      URL_WITH_HOST   = 0x0020,
+      METHOD          = 0x0040,
+      MISS            = 0x0080,
+      STATUS          = 0x0100,
+      PROTOCOL        = 0x0200,
+      CONTENT_LENGTH  = 0x0400,
+      CONTENT_TYPE    = 0x0800,
+      TXN_MS_DURATION = 0x1000
     };
 
     enum PARTS_ERROR {
