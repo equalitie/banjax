@@ -23,8 +23,8 @@ using namespace std;
 #include "util.h"
 #include "bot_sniffer.h"
 #include "ip_database.h" 
-#include "processor/LogEntry.h"
-#include "processor/Processor.h"
+#include "processor/log_entry.h"
+#include "processor/log_entry_processor.h"
 #include "banjax.h"
 
 #define VALID_OR_EMPTY(validity, part) ((validity & part) ? transaction_parts.at(part) : "")

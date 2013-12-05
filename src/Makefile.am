@@ -28,27 +28,24 @@ banjax_la_SOURCES = 	banjax.cpp \
 						white_lister.cpp \
 					 	regex_manager.cpp \
 						bot_sniffer.cpp \
-						processor/BotBangerAggregator.cpp \
-						processor/BotBangerLogger.cpp \
-						processor/BotBangerModelListener.cpp \
-						processor/FeatureAveragePayloadSize.cpp \
-						processor/FeatureAverageTimeBetweenRequests.cpp \
-						processor/FeatureCyclingUserAgent.cpp \
-						processor/FeatureHtmlToImageRatio.cpp \
-						processor/FeatureHTTPStatusRatio.cpp \
-						processor/FeaturePercentageConsecutiveRequests.cpp \
-						processor/FeatureRequestDepth.cpp \
-						processor/FeatureSessionLength.cpp \
-						processor/FeatureVarianceRequestInterval.cpp \
-						processor/FeatureRequestDepthStd.cpp \
-						processor/HostHitMissActions.cpp \
-						processor/HostHitMissAggregator.cpp \
-						processor/HostHitMissFeature.cpp \
-						processor/HostHitMissLogger.cpp \
-						processor/Main.cpp \
-						processor/utils/stringutils.cpp \
-						processor/svm/svm.cpp \
-						processor/hashfunctions/crc32.cpp
+						processor/botbanger/bot_banger_aggregator.cpp \						
+						processor/botbanger/bot_banger_model_listener.cpp \
+						processor/features/feature_average_payload_size.cpp \
+						processor/features/feature_average_time_between_requests.cpp \
+						processor/features/feature_cycling_user_agent.cpp \
+						processor/features/feature_html_to_image_ratio.cpp \
+						processor/features/feature_http_status_ratio.cpp \
+						processor/features/feature_percentage_consecutive_requests.cpp \
+						processor/features/feature_request_depth.cpp \
+						processor/features/feature_session_length.cpp \
+						processor/features/feature_variance_request_interval.cpp \
+						processor/features/feature_request_depth_std.cpp \
+						processor/hosthitmiss/host_hit_miss_actions.cpp \
+						processor/hosthitmiss/host_hit_miss_aggregator.cpp \
+						processor/hosthitmiss/host_hit_miss_feature.cpp \
+						processor/utils/string_utils.cpp \
+						processor/utils/svm/svm.cpp \
+						processor/utils/hashfunctions/crc32.cpp
 						
 						
 

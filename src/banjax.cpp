@@ -35,8 +35,8 @@ using namespace std;
 #include "swabber_interface.h"
 #include "ats_event_handler.h"
 
-#include "processor/LogProcessorAction2Banjax.h"
-#include "processor/Processor.h"
+#include "processor/log_processor_action_2_banjax.h"
+#include "processor/log_entry_processor.h"
 
 extern TSCont Banjax::global_contp;
 
