@@ -61,11 +61,15 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
     
       if (!client_address) {
         TSError("error in retrieving client ip\n");
-        throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+        TSDebug(BANJAX_PLUGIN_NAME, "scray stuff: ip-less transation");
+        cur_trans_parts[TransactionMuncher::IP] = "";
+        //throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
       }
+      else {
 
-      cur_trans_parts[TransactionMuncher::IP] = inet_ntoa(client_address->sin_addr); //TODO who should release the char* returned?
+        cur_trans_parts[TransactionMuncher::IP] = inet_ntoa(client_address->sin_addr); //TODO who should release the char* returned?
       //TSfree(client_address);
+      }
   }
 
   //it is just worth it to retrieve the scheme at the same time

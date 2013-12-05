@@ -22,12 +22,11 @@ using namespace std;
 */
 bool IPDatabase::set_ip_state(std::string& ip, FilterIDType filter_id, FilterState state)
 {
+  IPHashTable::iterator cur_ip_it = _ip_db.find(ip);
   if (TSMutexLockTry(db_mutex) != TS_SUCCESS) {
     TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the ip db");
     return false;
   }
-
-  IPHashTable::iterator cur_ip_it = _ip_db.find(ip);
   if (cur_ip_it == _ip_db.end()) {
     _ip_db[ip] = IPState();
 
