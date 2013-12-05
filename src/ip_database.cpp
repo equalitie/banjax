@@ -22,12 +22,13 @@ using namespace std;
 */
 bool IPDatabase::set_ip_state(std::string& ip, FilterIDType filter_id, FilterState state)
 {
+
+  TSDebug("banjaxdb", "db size %lu", _ip_db.size());
+  IPHashTable::iterator cur_ip_it = _ip_db.find(ip);
   if (TSMutexLockTry(db_mutex) != TS_SUCCESS) {
     TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the ip db");
     return false;
   }
-
-  IPHashTable::iterator cur_ip_it = _ip_db.find(ip);
   if (cur_ip_it == _ip_db.end()) {
     _ip_db[ip] = IPState();
 
@@ -36,6 +37,7 @@ bool IPDatabase::set_ip_state(std::string& ip, FilterIDType filter_id, FilterSta
   _ip_db[ip].state_array[filter_to_column[filter_id]]  = state;
 
   TSMutexUnlock(db_mutex);
+  TSDebug(BANJAX_PLUGIN_NAME, "db size %lu", _ip_db.size());
   return true;
 
 }
