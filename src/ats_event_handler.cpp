@@ -108,6 +108,26 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
     if (contp != Banjax::global_contp) {
       close_hookers++;
       cd = (BanjaxContinuation *) TSContDataGet(contp); 
+      const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(TransactionMuncher::PROTOCOL);
+       string cur_protocol = cur_trans_parts.at(TransactionMuncher::PROTOCOL);
+      if (cur_protocol == "http")
+      	http_counter++;
+      else if (cur_protocol == "https")
+       	https_counter++;
+      else 
+	{
+	  TSDebug("banjaxtimeout", "not killing unknow protocol ");//, cur_trans_parts.at(TransactionMuncher::IP).c_str());
+	  //cd->~BanjaxContinuation(); //leave mem manage to ATS
+	  TSHttpTxn txn_keeper = cd->txnp;
+	  //TSContDestroy(contp);
+	  TSHttpTxnReenable(txn_keeper, TS_EVENT_HTTP_CONTINUE);
+	  //TSfree(cd);
+	  return 0;
+	}
+
+      TSDebug("banjaxtimeout", "http vs https: %d vs %d", http_counter, https_counter);
+      TSDebug("banjaxtimeout", "start vs close: %d vs %d", start_hookers, close_hookers);
+
       if (banjax_active_queues[BanjaxFilter::HTTP_CLOSE])
         handle_task_queue(banjax->task_queues[BanjaxFilter::HTTP_CLOSE], cd);
 

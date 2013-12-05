@@ -96,7 +96,6 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
 	//I'm not sure if we need to release URL explicitly
 	//my guess is not
 	cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL, string(url,url_length)));
-
 	int protocol_length;
 	const char* protocol = TSUrlSchemeGet(request_header, url_loc , &protocol_length);
 
