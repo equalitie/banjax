@@ -65,7 +65,8 @@ IPDatabase::drop_ip(std::string& ip)
   check if  the ip is in the db, if return 0
   otherwise return the current state
 */
-FilterState IPDatabase::get_ip_state(std::string& ip, FilterIDType filter_id)
+FilterState 
+IPDatabase::get_ip_state(std::string& ip, FilterIDType filter_id)
 {
     IPHashTable::iterator cur_ip_it = _ip_db.find(ip);
     if (cur_ip_it == _ip_db.end())
