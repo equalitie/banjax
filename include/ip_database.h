@@ -66,6 +66,12 @@ public:
   FilterState get_ip_state(std::string& ip, FilterIDType filter_id);
 
   /**
+     Clean the ip state record mostly when it is reported to 
+     swabber.
+  */
+  bool drop_ip(std::string& ip);
+
+  /**
      constructor: is creating the mutex
   */
   IPDatabase()

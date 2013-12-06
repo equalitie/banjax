@@ -456,7 +456,9 @@ ChallengeManager::report_failure(std::string client_ip, HostChallengeSpec* faile
     string banning_reason = "failed challenge " + challenge_specs[failed_host->challenge_type]->human_readable_name + " " + "for host " + failed_host->host_name + " " + to_string(cur_ip_state.detail.no_of_failures) + " times";
     swabber_interface->ban(client_ip.c_str(), banning_reason);
     //reset the number of failures for future
-    cur_ip_state.detail.no_of_failures = 0;
+    //we are not clearing the state cause it is not for sure that
+    //swabber ban the ip due to possible failure of acquiring lock
+    //cur_ip_state.detail.no_of_failures = 0;
   }
 
   ip_database->set_ip_state(client_ip, CHALLENGER_FILTER_ID, cur_ip_state.state_allocator);

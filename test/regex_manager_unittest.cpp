@@ -78,6 +78,10 @@ class RegexManagerTest : public testing::Test {
   IPDatabase test_ip_database;
   SwabberInterface test_swabber_interface;
 
+  RegexManagerTest()
+    :  test_swabber_interface(&test_ip_database)
+  {}
+
   virtual void SetUp() {
 
     test_regex_manager = NULL;

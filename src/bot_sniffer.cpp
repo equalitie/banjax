@@ -66,20 +66,26 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
   std::strftime(time_buffer,80,"%Y-%m-%dT%H:%M:%S",timeinfo);
   
   uint64_t* cur_validity = (uint64_t*)transaction_parts.at(TransactionMuncher::VALIDITY_STAT).data();
-  send_zmq_mess(zmqsock, BOTBANGER_LOG, true);
 
-  send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP), true);
-  send_zmq_mess(zmqsock, time_buffer, true);
-  send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::URL), true);
-  send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::PROTOCOL), true);
-  send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::STATUS), true);
-  send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::CONTENT_LENGTH), true);
-  send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::UA), true);
-  send_zmq_mess(zmqsock, transaction_parts.count(TransactionMuncher::MISS) ? "MISS" : "HIT");
+  //TODO: This is a temp solution, we can't afford losing logs due 
+  //to failing acquiring the lock
+  TSDebug(BANJAX_PLUGIN_NAME, "locking the botsniffer socket...");
+  if (TSMutexLockTry(bot_sniffer_mutex) == TS_SUCCESS) {
+    
+    send_zmq_mess(zmqsock, BOTBANGER_LOG, true);
 
+    send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP), true);
+    send_zmq_mess(zmqsock, time_buffer, true);
+    send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::URL), true); 
+    send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::PROTOCOL), true);
+    send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::STATUS), true);
+    send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::CONTENT_LENGTH), true);
+    send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::UA), true);
+    send_zmq_mess(zmqsock, transaction_parts.count(TransactionMuncher::MISS) ? "MISS" : "HIT");
+    TSMutexUnlock(bot_sniffer_mutex);
+  }
   //botbanger_interface.add_log(transaction_parts[IP], cd->url, cd->protocol, stat, (long) cd->request_len, cd->ua, cd->hit);
   //botbanger_interface.add_log(cd->client_ip, time_str, cd->url, protocol, status, size, cd->ua, hit);
-  TSDebug("bot_sniffer","DONE!");
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
                     
 }

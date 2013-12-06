@@ -20,7 +20,8 @@ using namespace std;
   returns true on success and false on failure (locking not possible)
   eventually the continuation need to be retried
 */
-bool IPDatabase::set_ip_state(std::string& ip, FilterIDType filter_id, FilterState state)
+bool 
+IPDatabase::set_ip_state(std::string& ip, FilterIDType filter_id, FilterState state)
 {
   IPHashTable::iterator cur_ip_it = _ip_db.find(ip);
   if (TSMutexLockTry(db_mutex) != TS_SUCCESS) {
@@ -37,6 +38,27 @@ bool IPDatabase::set_ip_state(std::string& ip, FilterIDType filter_id, FilterSta
   TSMutexUnlock(db_mutex);
   return true;
 
+}
+
+/**
+   Clean the ip state record mostly when it is reported to 
+   swabber.
+*/
+bool
+IPDatabase::drop_ip(std::string& ip)
+{
+  IPHashTable::iterator cur_ip_it = _ip_db.find(ip);
+  if (cur_ip_it == _ip_db.end()) {
+    if (TSMutexLockTry(db_mutex) != TS_SUCCESS) {
+      TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the ip db");
+      return false;
+    }
+    _ip_db.erase(ip);
+    TSMutexUnlock(db_mutex);
+
+  }
+
+  return true;
 }
 
 /**

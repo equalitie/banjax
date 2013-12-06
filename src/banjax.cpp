@@ -80,7 +80,9 @@ Banjax::filter_factory(const string& banjax_dir, const libconfig::Setting& main_
 }
 
 Banjax::Banjax()
-  :all_filters_requested_part(0), all_filters_response_part(0)
+  :swabber_interface(&ip_database),
+   all_filters_requested_part(0), 
+   all_filters_response_part(0)
 {
   //Everything is static in ATSEventHandle so it is more like a namespace
   //than a class (we never instatiate from it). so the only reason
@@ -156,7 +158,6 @@ Banjax* p_banjax_plugin;
 void
 TSPluginInit(int argc, const char *argv[])
 {
-
   (void) argc; (void)argv;
   TSPluginRegistrationInfo info;
 
@@ -175,4 +176,5 @@ TSPluginInit(int argc, const char *argv[])
   /* create the banjax object that control the whole procedure */
   p_banjax_plugin = (Banjax*)TSmalloc(sizeof(Banjax));
   p_banjax_plugin = new(p_banjax_plugin) Banjax;
+
 }
