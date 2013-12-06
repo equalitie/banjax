@@ -22,6 +22,10 @@ public:
 	virtual ~HostHitMissEventListener() {;}
 };
 
+
+/*
+ * This class creates a map and distributes the hit/misses per host name
+ */
 class HostHitMissAggregator:LogAggregator
 {
 	int _period,_range;

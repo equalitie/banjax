@@ -9,15 +9,15 @@ to build banjax
 1.1 GTEST
 
 Gtest has been moved out of the project, the build now depends on a system 
-install of the gtest library and headers instead of a local install, on a clean
-install with gtest installed we had a mismatch between the library and the local 
-headers
+install of the gtest library and headers instead of a local install 
+On a clean install with gtest installed we had a mismatch between the library
+and the local headers.
 
 1.2 SVM
 
 svm is included in source form (/src/processor/utils/svm), this will guarantee
-banjax will be building as svm is not a standard library, we might have to look 
-into this for gtest as well
+banjax will be building as svm is not a standard library. We might have to look 
+into this for gtest as well.
 
 LOGENTRY (src/processor/log_entry.h)
 
@@ -37,10 +37,11 @@ char contenttype[80];
 
 
 2 BOTBANGER
-2.1 FEATURES
-2.1.1 FEATURECONTAINER
-2.1.2
-2.2 CONFIGURATION 
+
+The BotBangerAggregator works by aggregating LogEntry entries and calculating
+the features. There are several events which the aggro
+
+2.1 CONFIGURATION 
 bot_banger:{
 	# maximum IPS to follow
 	max_ips=60000; 
@@ -65,9 +66,9 @@ bot_banger:{
 	)
 };
 
-Both the bot_banger and hitmiss configuration have a subsetting trace_flags which can enable 
-the same tracing as done by the commandline version. The integer value is a combination   
-of one or more of the following flags 
+Both the bot_banger and hitmiss configuration have a subsetting trace_flags 
+which can enable the same tracing as done by the commandline version. The
+integer value is a combination of one or more of the following flags 
 TraceHitMissAction=1,
 TraceBotBangerAction=2,
 TraceHitMissRatio=4,
@@ -79,6 +80,21 @@ TraceBotBangerIPEvict=512
 (see log_entry_processor.h) 
 
 3 HOSTHITMISS
+
+Host hit miss works by sampling a period in several ranges, this period and 
+range (in seconds) can be configured by the banjax.conf.
+The HostHitMissAggregator takes a logentry, looks this up in a map and passes
+this to a HostHitMissFeature for the The HostHitMissFeature has a circular 
+buffer which can hold at most (period/range)+1 HitMissRange entries. When a new
+range starts the totals which are not in the current period are subtracted, 
+this will keep the calculation performant.The ratio calculated is the hit/total.
+Every time after a LogEntry has been added the Aggregator, it will trigger the
+event listeners. 
+
+HostHitMissActions is the listener implementation that will determine which 
+action to take, it can be configured per host, req lower/upper limit range, 
+ratio lower/upper range and the action to be taken.   
+
 3.x CONFIGURATION
 
 
@@ -189,3 +205,14 @@ performance.
 
 As this is build in a eclipse environment there are .cproject files added to 
 this branch, if you don't need them, delete them.
+
+6.2 MEMORYUSAGE
+Memory usage for the HostHitmissFeature is:
+
+6.3 ARCHITECTURE
+The LogEntryProcessor runs in a seperate thread. LogEntries are fed by a 
+concurrent fifo queue. 
+We have made two assumptions:
+-The LogEntryProcessor is fast enough to prevent the queue from filling up
+and   
+

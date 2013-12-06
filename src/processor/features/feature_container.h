@@ -4,11 +4,12 @@
 #include <time.h>
 #include <vector>
 #include <string.h>
+#include "../log_entry.h"
 #include "feature.h"
 
 
 #define MAX_IDEAL_SESSION_LENGTH 1800
-#define SESSION_EXPIRATION_TIME	1800
+//#define SESSION_EXPIRATION_TIME	1800
 
 
 using namespace std;

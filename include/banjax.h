@@ -78,6 +78,7 @@ class Banjax
   Banjax();
 
   void StartLogProcessor();
+  void BanIP(const std::string ip,const std::string banning_reason) {swabber_interface.ban(ip,banning_reason);}
   static void SendLogEntryToLogProcessor(LogEntry *le);
 
 };

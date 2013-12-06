@@ -19,7 +19,6 @@ BotBangerAggregator::BotBangerAggregator(int maxEntries,int sessionLength):
 	_featureMemoryNeeded(0),
 	_maxEntries(maxEntries),
 	_sessionLength(sessionLength)
-	
 {
 
 }
