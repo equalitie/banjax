@@ -23,6 +23,12 @@ class BotSniffer : public BanjaxFilter
   unsigned int botbanger_port;
   std::string botbanger_server;
 
+  //lock for writing into the socket
+  //TODO:: this is a temp measure probably
+  //We should move to fifo queue or something
+  TSMutex bot_sniffer_mutex;
+
+
 public:
   const std::string BOTBANGER_LOG;
 

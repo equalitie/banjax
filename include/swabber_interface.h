@@ -12,6 +12,7 @@
 #include <zmq.hpp>
 #include <fstream>
 
+#include "ip_database.h"
 class SwabberInterface
 {
  protected:
@@ -32,6 +33,9 @@ class SwabberInterface
   //lock for writing into the socket
   TSMutex swabber_mutex;
 
+  //to forgive ips after being banned
+  IPDatabase* ip_database;
+
  public:
   //Error list
   enum SWABBER_ERROR {
@@ -42,9 +46,9 @@ class SwabberInterface
   /**
      initiating the interface
   */
-  SwabberInterface();
+  SwabberInterface(IPDatabase* global_ip_db);
 
-  /**
+  /** 
      Destructor: closes and release the publication channell
    */
   ~SwabberInterface();

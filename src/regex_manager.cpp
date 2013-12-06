@@ -104,10 +104,12 @@ RegexManager::parse_request(string ip, string ats_record)
         }
         if (cur_ip_state.detail.rate >= (*it)->rate) {
           TSDebug(BANJAX_PLUGIN_NAME, "exceeding excessive rate %f /msec", (*it)->rate);
-	  //clear the record to avoid multiple reporting to swabber
-	  cur_ip_state.detail.begin_msec = 0;
-	  cur_ip_state.detail.rate = 0;
-          ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.state_allocator);
+          //clear the record to avoid multiple reporting to swabber
+          //we are not clearing the state cause it is not for sure that
+          //swabber ban the ip due to possible failure of acquiring lock
+          // cur_ip_state.detail.begin_msec = 0;
+          // cur_ip_state.detail.rate = 0;
+          // ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.state_allocator);
           return make_pair(REGEX_MATCHED, (*it));
         }
       }
