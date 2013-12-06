@@ -22,6 +22,30 @@ unittests_SOURCES = unittest_common.cpp \
 					../src/ip_database.cpp \
 					../src/regex_manager.cpp \
 					../src/swabber_interface.cpp \
-					../src/white_lister.cpp
+					../src/white_lister.cpp \
+					../src/processor/botbanger/bot_banger_aggregator.cpp \						
+					../src/processor/botbanger/bot_banger_model_listener.cpp \
+					../src/processor/features/feature_average_payload_size_test.cpp
+					../src/processor/features/feature_average_payload_size.cpp \
+					../src/processor/features/feature_average_time_between_requests.cpp \
+					../src/processor/features/feature_cycling_user_agent.cpp \
+					../src/processor/features/feature_html_to_image_ratio.cpp \
+					../src/processor/features/feature_http_status_ratio.cpp \
+					../src/processor/features/feature_percentage_consecutive_requests.cpp \
+					../src/processor/features/feature_request_depth.cpp \
+					../src/processor/features/feature_session_length.cpp \
+					../src/processor/features/feature_variance_request_interval.cpp \
+					../src/processor/features/feature_request_depth_std.cpp \
+					../src/processor/hosthitmiss/host_hit_miss_actions.cpp \
+					../src/processor/hosthitmiss/host_hit_miss_aggregator.cpp \
+					../src/processor/hosthitmiss/host_hit_miss_feature.cpp \
+					../src/processor/utils/string_utils.cpp \
+					../src/processor/utils/svm/svm.cpp \
+					../src/processor/utils/hashfunctions/crc32.cpp \
+					../src/processor/log_entry_processor.cpp \
+					../src/processor/log_entry_processor_config.cpp
+					
+					
+					
 
 #unittests_LDADD = ../src/banjax.la

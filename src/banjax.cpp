@@ -128,7 +128,7 @@ Banjax::Banjax()
   }
   if (leProcessor) {
     TSDebug("banjax", "hook up action proccessor for banajx");
-    leProcessor->RegisterEventListener(new LogProcessorAction2Banjax());
+    leProcessor->RegisterEventListener(new LogProcessorAction2Banjax(this));
   }
 
 
