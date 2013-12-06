@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include <openssl/aes.h>
+#include <openssl/sha.h>
 
 #include "swabber_interface.h"
 #include "banjax_filter.h"
@@ -92,17 +92,17 @@ union ChallengerStateUnion
 
 class ChallengeManager : public BanjaxFilter {
 protected:	
-	// AES key. 
-  AES_KEY enc_key, dec_key;
-	// Number of zeros needed at the end of the SHA hash 
-	unsigned int number_of_trailing_zeros;
-	// string to replace the number of trailing zeros in the javascript
-    unsigned int cookie_life_time;
+  // MAC key. 
+  unsigned char hashed_key[SHA256_DIGEST_LENGTH];
+  // Number of zeros needed at the end of the SHA hash 
+  unsigned int number_of_trailing_zeros;
+  // string to replace the number of trailing zeros in the javascript
+  unsigned int cookie_life_time;
     
-	static std::string zeros_in_javascript;
+  static std::string zeros_in_javascript;
 	
-    std::vector<std::string> split(const std::string &, char);
-    bool check_sha(const char* cookiestr);
+  std::vector<std::string> split(const std::string &, char);
+  bool check_sha(const char* cookiestr);
 	bool replace(std::string &original, std::string &from, std::string &to);
 
     //Hosts that challenger needs to check

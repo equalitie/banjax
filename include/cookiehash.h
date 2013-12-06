@@ -1,7 +1,8 @@
 #include <time.h>
+#include <openssl/sha.h>
 
 #define uchar unsigned char
-#define SECRET_LENGTH 32
+#define SECRET_LENGTH SHA256_DIGEST_LENGTH //the secret is a SHA256 of user password so it has 256/8 = 32 bytes
 #define HASH_LENGTH 20
 #define COOKIE_LENGTH (HASH_LENGTH+sizeof(time_t))
 
