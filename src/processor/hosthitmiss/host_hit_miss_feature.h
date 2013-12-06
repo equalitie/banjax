@@ -4,19 +4,19 @@
 struct LogEntry;
 struct HitMissRange
 {	
-	int reported;
+	int reported; // if true, the previous record is reported
 	time_t from;
-	int rangeInSeconds;
+	//int rangeInSeconds;
 	int rangeTotal;
 	int rangeHits;
 	int rangeMisses;
 	double rangeRatio;
 
 	
-	int total;
-	int hits;
-	int misses;	
-	double ratio;
+	int periodTotal;
+	int periodHits;
+	int periodMisses;
+	double periodRatio;
 
 	
 	int countFromIndex;

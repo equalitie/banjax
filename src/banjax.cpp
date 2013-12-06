@@ -37,6 +37,7 @@ using namespace std;
 
 #include "processor/log_processor_action_2_banjax.h"
 #include "processor/log_entry_processor.h"
+#include "processor/log_entry_processor_config.h"
 
 extern TSCont Banjax::global_contp;
 

@@ -60,8 +60,8 @@ public:
 			for(auto i=hostConfig.configLines.begin();i!=hostConfig.configLines.end();i++)
 			{
 				auto cl=(*i);
-				if (hmrange->total>=cl->requestLower && hmrange->total<=cl->requestUpper &&
-					hmrange->ratio>=cl->ratioLower && hmrange->ratio<=cl->rationUpper)
+				if (hmrange->periodTotal>=cl->requestLower && hmrange->periodTotal<=cl->requestUpper &&
+					hmrange->periodRatio>=cl->ratioLower && hmrange->periodRatio<=cl->rationUpper)
 				{
 					string currentAction=hostConfig.currentAction;
 					hostConfig.currentAction=cl->action;

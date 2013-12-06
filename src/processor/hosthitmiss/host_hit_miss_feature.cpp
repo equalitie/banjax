@@ -25,7 +25,7 @@ HostHitMissFeature::~HostHitMissFeature()
 }
 void HostHitMissFeature::Dump()
 {
-	cout << this->data[pos].rangeRatio << "->" << this->data[pos].ratio << endl;
+	cout << this->data[pos].rangeRatio << "->" << this->data[pos].periodRatio << endl;
 }
 
 void HostHitMissFeature::Aggregrate(LogEntry *le)
@@ -45,7 +45,7 @@ void HostHitMissFeature::Aggregrate(LogEntry *le)
 		
 	}
 	else
-	if (fromStamp+periodRange<current)
+	if (fromStamp+periodRange<=current)
 	{
 		
 		HitMissRange *previous=data+pos;
@@ -60,18 +60,18 @@ void HostHitMissFeature::Aggregrate(LogEntry *le)
 		data[pos].rangeTotal=0;
 		data[pos].from=current;
 
-		data[pos].total=previous->total;
-		data[pos].hits=previous->hits;
-		data[pos].misses=previous->misses;
+		data[pos].periodTotal=previous->periodTotal;
+		data[pos].periodHits=previous->periodHits;
+		data[pos].periodMisses=previous->periodMisses;
 		data[pos].totalCount=previous->totalCount;
 		
 		int countFromIndex=previous->countFromIndex;
 		time_t countfrom=current-totalRange;
 		while (data[countFromIndex].from<countfrom) // subtract all which are not fully in range
 		{
-			data[pos].total-=data[countFromIndex].rangeTotal;
-			data[pos].hits-=data[countFromIndex].rangeHits;
-			data[pos].misses-=data[countFromIndex].rangeMisses;			
+			data[pos].periodTotal-=data[countFromIndex].rangeTotal;
+			data[pos].periodHits-=data[countFromIndex].rangeHits;
+			data[pos].periodMisses-=data[countFromIndex].rangeMisses;
 			countFromIndex=(countFromIndex+1) % datalength;			
 		}
 		data[pos].countFromIndex=countFromIndex;
@@ -81,10 +81,10 @@ void HostHitMissFeature::Aggregrate(LogEntry *le)
 	HitMissRange *currentRange=data+pos;
 	
 	currentRange->totalCount=currentRange->totalCount+1;
-	currentRange->total=currentRange->total+1;	
-	currentRange->hits=currentRange->hits+(le->cacheLookupStatus==CacheLookupStatus::Hit ? 1 : 0);
-	currentRange->misses=currentRange->misses+(le->cacheLookupStatus==CacheLookupStatus::Miss ? 1 : 0);
-	currentRange->ratio=((double) currentRange->hits)/((double) currentRange->total);
+	currentRange->periodTotal=currentRange->periodTotal+1;
+	currentRange->periodHits=currentRange->periodHits+(le->cacheLookupStatus==CacheLookupStatus::Hit ? 1 : 0);
+	currentRange->periodMisses=currentRange->periodMisses+(le->cacheLookupStatus==CacheLookupStatus::Miss ? 1 : 0);
+	currentRange->periodRatio=((double) currentRange->periodHits)/((double) currentRange->periodTotal);
 
 	currentRange->rangeTotal=currentRange->rangeTotal+1;
 	currentRange->rangeHits=currentRange->rangeHits+(le->cacheLookupStatus==CacheLookupStatus::Hit ? 1 : 0);

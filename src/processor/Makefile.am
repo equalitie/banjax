@@ -33,7 +33,9 @@ LogProcessor_SOURCES = \
 	utils/string_utils.cpp \
 	utils/svm/svm.cpp \
 	utils/hashfunctions/crc32.cpp \
-	log_processor_main.cpp
+	log_processor_main.cpp \
+	log_entry_processor.cpp \
+	log_entry_processor_config.cpp
 	
 
 

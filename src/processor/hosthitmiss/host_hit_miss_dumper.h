@@ -20,11 +20,11 @@ public:
 	}
 	void OnHostHitMissEvent(char *host,HitMissRange *hmrange)
 	{
-		if (_reportAll || ((!hmrange->reported) && hmrange->total>10))
+		if (_reportAll || ((!hmrange->reported) && hmrange->periodTotal>10))
 		{
 			hmrange->reported=1;
 			char buffer[10000];
-			sprintf(buffer,"hmr\t%s\t%d\t%d\t%d\t%f",host,hmrange->totalCount,hmrange->total,hmrange->hits,hmrange->ratio);
+			sprintf(buffer,"hmr\t%s\t%d\t%d\t%d\t%f",host,hmrange->totalCount,hmrange->periodTotal,hmrange->periodHits,hmrange->periodRatio);
 			addToDump(buffer);
 
 			
