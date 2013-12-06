@@ -38,7 +38,11 @@ public:
 
   */
  BotSniffer(const std::string& banjax_dir, const libconfig::Setting& main_root)
-   :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME), context (1), zmqsock (context, ZMQ_PUB), botbanger_server("*"), BOTBANGER_LOG("botbanger_log")
+   :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME), 
+    context (1), zmqsock (context, ZMQ_PUB), 
+    botbanger_server("*"), 
+    bot_sniffer_mutex(TSMutexCreate()),
+    BOTBANGER_LOG("botbanger_log")
   {
     queued_tasks[HTTP_CLOSE] = static_cast<FilterTaskFunction>(&BotSniffer::execute);
     load_config(main_root[BANJAX_FILTER_NAME]);
