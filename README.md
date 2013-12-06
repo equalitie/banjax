@@ -167,20 +167,51 @@ regex_banner :
 
 Challenger:
 -----------
-Challenger serves partial inverse SHA256 problems and expect the solution in form of cookie to serve an ip. It is a cache busting prevetion mechanism. 
+Challenger serves different challenges to confirm the legitimacy of the client. Currently partial inverse SHA256 or Captcha puzzles are supported. The hash solution of the puzzle is also sent along side with the ip of the requester. It is mainly meant to be a cache busting prevetion mechanism.
 
-key: is the string from which AES key that is used to encrypt the cookie is being used. Encryption prevents the attacker from tampering with the challenge or reuse its solution for different bots.
+key: is the string from which MAC key that is used to authenticate the cookie is being used. MAC prevents the attacker from tampering with the challenge or reuse its solution for different bots.
 
 difficualty: it determines the number of leading zeros that the  SHA256(solution) at least should have in binary representation. Hence adding this value by 1 doubles the difficulty of the challenge. However in current version only multiple of four bits is supported as difficulty hence it can be 4,8,16,... each one is 16 times harder than proceeding one.
 
-cookie_life_time: determine how often the challenger should re-challenge a client in seconds. When under cache-busting attack, it is advisable to decrease this number. Also because the solution is cookie based each client will be challenged once for each website. 
+For each host then the user needs to specifies the following parameters:
 
-challenger :
-{
-  key = "allwearesayingisgivewarachance";
-  difficulty = 8; #only multiple of 4 is allowed
-  cookie_life_time = 120; #in seconds
-};
+name: the host name as it appears in the url, "www.host.com" and "host.com" are treated as two different hosts and needs two seperate config records.
+
+validity_period: determine how often the challenger should re-challenge a client in seconds. When under cache-busting attack, it is advisable to decrease this number. Also because the solution is cookie based each client will be challenged once for each website. 
+
+challenge_type: can be "captcha" or "sha_inverse" at the moment.
+
+challenge: the name of the html file that contains the challenge. by default it is "captcha.html" and "solver.html", however user can copy these files (residing in modules/banjax/) to costumize the appearance for example for localization.
+
+no_of_fails_to_ban (optional): If specifies, challenger reports the ip to swabber, if the ip asks for the challenge this many times and fails to solve it (ip needs two request per captcha challenges).
+
+    challenger :
+    {
+      key = "thisisakey";
+      difficulty = 4; #only multiple of 4 is allowed                                                                                                                                                                   
+      hosts = (
+             { name = "www.equalit.ie";
+               challenge_type = "captcha";
+               challenge = "captcha.html";
+               validity_period = 120;
+             },
+             { name = "wiki.deflect.ca";
+               challenge_type = "sha_inverse";
+               challenge = "solver.html";
+               no_of_fails_to_ban = 10;
+               validity_period = 120;}
+            )
+    };
+
+
+BotSniffer
+==========
+Bot sniffer reports the detail of each transaction to BotBanger to test the requester against a pre-learned model to see if the behavoir of the ip resembles a bot. The only config is the zmq socket port where BotSniffer should publish the log into:
+
+    bot_sniffer :
+    {
+       botbanger_port = 22621;
+    };
 
 How To Write A Filter
 =====================
