@@ -45,7 +45,9 @@ banjax_la_SOURCES = 	banjax.cpp \
 						processor/hosthitmiss/host_hit_miss_feature.cpp \
 						processor/utils/string_utils.cpp \
 						processor/utils/svm/svm.cpp \
-						processor/utils/hashfunctions/crc32.cpp
+						processor/utils/hashfunctions/crc32.cpp \
+						processor/log_entry_processor.cpp \
+						processor/log_entry_processor_config.cpp
 						
 						
 

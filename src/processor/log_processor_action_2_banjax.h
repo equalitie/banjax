@@ -1,3 +1,4 @@
+#include "log_entry.h"
 #include "log_entry_processor.h"
 
 class LogProcessorAction2Banjax:public LogEntryProcessorEventListener

@@ -76,7 +76,6 @@ struct FifoMessage
 		size_t messagesize;
 	char data[2];
 	void deleteMessage() {
-		static std::set<FifoMessage *> _msgs;
 		delete [] ((char *) this);
 	}
 	static FifoMessage *create(void *data,size_t length)

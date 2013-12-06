@@ -9,6 +9,7 @@
 #include <string.h>
 #include "utils/string_utils.h"
 #include "log_entry_processor.h"
+#include "log_entry_processor_config.h"
 
 
 
@@ -162,24 +163,6 @@ void ParseLogLine(LogEntry &le,char *line)
 }
 
 
-
-class VerboseLogger:public BotBangerEventListener
-{
-public:
-	VerboseLogger()
-	{
-	}
-	virtual void OnEvictEvent(string key)
-	{
-		cout << key << " evicted" << endl;
-	}
-	virtual void OnFeatureEvent(char *key,double *features,int numFeatures)
-	{
-		UNUSED(key);
-		UNUSED(features);
-		UNUSED(numFeatures);
-	}
-};
 
 int main(int argc, char* argv[])
 {

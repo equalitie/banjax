@@ -7,6 +7,20 @@
 #define UNUSED(x) (void)(x)
 
 enum CacheLookupStatus {Hit=100,Miss=1,Stale=2,Error=3};
+
+enum LogEntryTrace {
+	TraceHitMissAction=1,
+	TraceBotBangerAction=2,
+	TraceHitMissRatio=4,
+	TraceBotBangerFeatures=8,
+	TraceBotBangerModelValues=16,
+	TraceBotBangerModelInputs=32,
+	TraceLogEntries=64,
+	ConsoleMode=128,
+	ServerMode=256,
+	TraceBotBangerIPEvict=512
+};
+
 struct LogEntry
 {
 	char hostname[100];
