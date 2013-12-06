@@ -22,8 +22,6 @@
 #include <cctype>
 
 #include <openssl/evp.h>
-#include <openssl/aes.h>
-#include <openssl/sha.h>
 #include <openssl/rand.h>
 
 #include <ts/ts.h>
@@ -53,9 +51,6 @@ std::string ChallengeManager::sub_token = "$token";
 std::string ChallengeManager::sub_time = "$time";
 std::string ChallengeManager::sub_url = "$url";
 std::string ChallengeManager::sub_zeros = "$zeros";
-
-// TODO(oschaaf): configuration
-const char* CAPTCHA_SECRET = "12345";
 
 /**
   Overload of the load config
@@ -121,7 +116,7 @@ ChallengeManager::load_config(libconfig::Setting& cfg, const std::string& banjax
      //we use SHA256 to generate a key from the user passphrase
      //we will use half of the hash as we are using AES128
      string challenger_key = cfg["key"];
-     unsigned char hashed_key[SHA256_DIGEST_LENGTH];
+
      SHA256((const unsigned char*)challenger_key.c_str(), challenger_key.length(), hashed_key);
  
      number_of_trailing_zeros = cfg["difficulty"];
@@ -217,7 +212,7 @@ bool ChallengeManager::check_cookie(string answer, string cookie_jar, string ip,
       if (captcha_cookie.size() > (size_t)expected_length) {
         captcha_cookie = captcha_cookie.substr(0, expected_length);
       }
-      result = ValidateCookie((uchar *)answer.c_str(), (uchar*)CAPTCHA_SECRET,
+      result = ValidateCookie((uchar *)answer.c_str(), (uchar*)hashed_key,
                               time(NULL), (uchar*)ip.c_str(), (uchar *)captcha_cookie.c_str());
       TSDebug(BANJAX_PLUGIN_NAME, "Challenge cookie: [%s] based on ip[%s] - sha_ok [%s] - result: %d (l:%d)",
               captcha_cookie.c_str(), ip.c_str(),
@@ -259,7 +254,7 @@ void ChallengeManager::generate_html(string ip, long t, string url,
     uchar cookie[COOKIE_SIZE];
     // TODO(oschaaf): 120 seconds for users to answer. configuration!
     time_t curtime=time(NULL)+120;
-    GenerateCookie((uchar*)text, (uchar*)CAPTCHA_SECRET, curtime, (uchar*)ip.c_str(), cookie);
+    GenerateCookie((uchar*)text, (uchar*)hashed_key, curtime, (uchar*)ip.c_str(), cookie);
     TSDebug(BANJAX_PLUGIN_NAME, "generated captcha [%.*s], cookie: [%s]", 6, (const char*)text, (const char*)cookie);
     response_info->response_code = 200;
     response_info->set_content_type("image/gif");
@@ -284,7 +279,7 @@ void ChallengeManager::generate_html(string ip, long t, string url,
       response_info->response_code = 200;
       uchar cookie[COOKIE_SIZE];
       // TODO(oschaaf): 2 hour validity. configuration!
-      GenerateCookie((uchar*)"", (uchar*)CAPTCHA_SECRET, t, (uchar*)ip.c_str(), cookie);
+      GenerateCookie((uchar*)"", (uchar*)hashed_key, t, (uchar*)ip.c_str(), cookie);
       TSDebug(BANJAX_PLUGIN_NAME, "Set cookie: [%.*s] based on ip[%s]", (int)strlen((char*)cookie), (char*)cookie, ip.c_str());
       std::string header;
       header.append("deflect=");
@@ -304,7 +299,7 @@ void ChallengeManager::generate_html(string ip, long t, string url,
   page = host_settings_[transaction_parts.at(TransactionMuncher::HOST)]->challenge_stream;
   // generate the token
   uchar cookie[COOKIE_SIZE];
-  GenerateCookie((uchar*)"", (uchar*)CAPTCHA_SECRET, t, (uchar*)ip.c_str(), cookie);
+  GenerateCookie((uchar*)"", (uchar*)hashed_key, t, (uchar*)ip.c_str(), cookie);
   string token((const char*)cookie);
 
   TSDebug("banjax", "write cookie [%d]->[%s]", (int)COOKIE_SIZE, token.c_str());
@@ -460,8 +455,9 @@ ChallengeManager::report_failure(std::string client_ip, HostChallengeSpec* faile
     //swabber ban the ip due to possible failure of acquiring lock
     //cur_ip_state.detail.no_of_failures = 0;
   }
-
+  else { //only report if we haven't report to swabber cause otherwise it nulifies the work of swabber which has forgiven the ip and delete it from db
   ip_database->set_ip_state(client_ip, CHALLENGER_FILTER_ID, cur_ip_state.state_allocator);
+  }
   return banned;
 
 }
