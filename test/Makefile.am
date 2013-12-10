@@ -24,18 +24,27 @@ unittests_SOURCES = unittest_common.cpp \
 					../src/swabber_interface.cpp \
 					../src/white_lister.cpp \
 					../src/processor/botbanger/bot_banger_aggregator.cpp \						
-					../src/processor/botbanger/bot_banger_model_listener.cpp \
-					../src/processor/features/feature_average_payload_size_test.cpp
+					../src/processor/botbanger/bot_banger_model_listener.cpp \					
 					../src/processor/features/feature_average_payload_size.cpp \
+					../src/processor/test/feature_average_payload_size_test.cpp \
 					../src/processor/features/feature_average_time_between_requests.cpp \
+					../src/processor/test/feature_average_time_between_requests_test.cpp \
 					../src/processor/features/feature_cycling_user_agent.cpp \
+					../src/processor/test/feature_cycling_user_agent_test.cpp \
 					../src/processor/features/feature_html_to_image_ratio.cpp \
+					../src/processor/test/feature_html_to_image_ratio_test.cpp \
 					../src/processor/features/feature_http_status_ratio.cpp \
+					../src/processor/test/feature_http_status_ratio_test.cpp \
 					../src/processor/features/feature_percentage_consecutive_requests.cpp \
+					../src/processor/test/feature_percentage_consecutive_requests_test.cpp \
 					../src/processor/features/feature_request_depth.cpp \
+					../src/processor/test/feature_request_depth_test.cpp \
 					../src/processor/features/feature_session_length.cpp \
+					../src/processor/test/feature_session_length_test.cpp \
 					../src/processor/features/feature_variance_request_interval.cpp \
+					../src/processor/test/feature_variance_request_interval_test.cpp \
 					../src/processor/features/feature_request_depth_std.cpp \
+					../src/processor/test/feature_request_depth_std_test.cpp \
 					../src/processor/hosthitmiss/host_hit_miss_actions.cpp \
 					../src/processor/hosthitmiss/host_hit_miss_aggregator.cpp \
 					../src/processor/hosthitmiss/host_hit_miss_feature.cpp \

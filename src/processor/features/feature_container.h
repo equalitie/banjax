@@ -22,6 +22,7 @@ public:
 	virtual vector<pair<Feature *,int>> &GetFeatures()=0;
 	virtual int GetMaxFeatureIndex()=0;
 	virtual int GetMemoryNeeded()=0;
+	virtual ~FeatureProviderInterface() {;}
 };
 
 class FeatureContainer
@@ -30,9 +31,11 @@ class FeatureContainer
 	double *_featureData;
 	char *_data;
 	int _memlen;
+
 public:
 	FeatureContainer(FeatureProviderInterface *fpi):
-		_features(fpi->GetFeatures())
+		_features(fpi->GetFeatures()),
+		numrequests(0)
 	{
 		_data=new char[_memlen=fpi->GetMemoryNeeded()];
 		memset(_data,0,_memlen);
