@@ -171,6 +171,7 @@ int main(int argc, char* argv[])
 	string modelfilename;
 
 	bool showhelp=false;	
+	bool showMemoryUsage=false;
 	//enum traceType {none,HitMiss=1,Features=2,Model=4,Output=8,Actions=16,BotBanger=32,LogEntries=64,Verbose=128};
 	int consoleSettings=ConsoleMode;
 
@@ -231,12 +232,18 @@ int main(int argc, char* argv[])
 		{
 			consoleSettings=0xffff;
 		}
+		if (val=="--memoryusage")
+		{
+			showMemoryUsage=true;
+			consoleSettings=0xffff; // force all initialization
+
+		}
 		else // should be logfile
 		{
 			logfile=val;
 		}
 	}
-	if (configfile.empty())
+	if (configfile.empty() && !showMemoryUsage)
 	{
 		showhelp=true;
 		cout << "Need config file" << endl;
@@ -255,8 +262,9 @@ int main(int argc, char* argv[])
 			 << "--bbaction                       show botbanger actions" <<endl
 			 << "--all                            show all " << endl
 			 << "--config [filename]              read config file" << endl
-			 //<< "--traceoutput                    trace configuration output" << endl
-			 << "--config [configfile]            use configfile for the configuration" << endl;
+			 << "--memoryusage                    show predicted memory usage (ballpark figure)" << endl;
+
+
 	}
 	else
 	{
@@ -280,13 +288,18 @@ int main(int argc, char* argv[])
 			}
 			return 0;
 		}
+		if (showMemoryUsage)
+		{
+			processor.DumpPredictedMemoryUsage();
+			exit(0);
+		}
 
 		time_t start;
 		time_t end;
 		time(&start);
 		output.reserve(4096);
 		processor.Start(true);
-		vector<LogEntry> logentries;
+
 
 		while(lf.good())
 		{
@@ -309,14 +322,11 @@ int main(int argc, char* argv[])
 
 			}*/
 			//cout << linenr << endl;
-			logentries.push_back(le);
-			//processor.AddLogEntry(&le);
+			//logentries.push_back(le);
+			processor.AddLogEntry(&le);
 			
 		}
-		for (auto i=logentries.begin();i!=logentries.end();i++)
-		{
-			processor.AddLogEntry(&(*i));
-		}
+
 		processor.Stop();
 
 		time(&end);

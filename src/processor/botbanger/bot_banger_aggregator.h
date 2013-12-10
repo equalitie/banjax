@@ -41,6 +41,7 @@ class BotBangerAggregator:LogAggregator,FeatureProviderInterface
 	void Prune();
 
 public:
+	int PredictedMemoryUsage();
 	BotBangerAggregator(int maxEntries,int sessionLength=1800);
 	virtual ~BotBangerAggregator();
 	void RegisterFeature(Feature *,int index);
