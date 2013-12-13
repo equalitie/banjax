@@ -26,11 +26,38 @@ template<typename T>
 class ConcurrentFifo
 {
 private:
+	unsigned int _maxsize;
 	std::queue<T> _queue;
 	pthread_mutex_t _mutex;
 	pthread_cond_t _condv;
+	bool internalAdd(T data,bool forced)
+	{
+		lock lockme(_mutex);
+		if (!forced && _maxsize>0 && _queue.size()==_maxsize)
+		{
+			return false;
+		}
+		_queue.push(data);
+		pthread_cond_signal(&_condv);
+		return true;
+
+	}
 public:
-	ConcurrentFifo()
+	int GetMaxSize()
+	{
+		return _maxsize;
+	}
+	bool Add(T data)
+	{
+		return internalAdd(data,false);
+	}
+	bool ForcedAdd(T data)
+	{
+		return internalAdd(data,true);
+
+	}
+	ConcurrentFifo(int maxsize=0):
+		_maxsize(maxsize)
 	{
 		pthread_mutex_init(&_mutex,NULL);
 		pthread_cond_init(&_condv,NULL);
@@ -42,14 +69,7 @@ public:
 		pthread_cond_destroy(&_condv);
 		pthread_mutex_destroy(&_mutex);
 	}
-	void Add(T data)
-	{
-		lock lockme(_mutex);
-		__sync_synchronize();
-		_queue.push(data);
-		pthread_cond_signal(&_condv);
 
-	}
 	T Get()
 	{
 
@@ -57,7 +77,6 @@ public:
 		while (_queue.empty())
 		{
 			pthread_cond_wait(&_condv,&_mutex);
-			__sync_synchronize();
 		}
 
 		T ret=_queue.front();

@@ -112,24 +112,24 @@ bool LogEntryProcessor::SendStop()
 	_zmqLogEntrySender->send(message,0);*/
 
 	FifoMessage *msg=FifoMessage::create((char *) "",1);
-	_logEntryQueue.Add(msg);
-	return true;
+	return _logEntryQueue.ForcedAdd(msg);
+
 }
 
 bool LogEntryProcessor::SendLogEntry(LogEntry *le)
 {
 	FifoMessage *msg=FifoMessage::create(le,sizeof(LogEntry));
-	_logEntryQueue.Add(msg);
-	return true;
+	return _logEntryQueue.Add(msg);
+
 }
 
 bool LogEntryProcessor::SendAck()
 {
-	_ackQueue.Add('a');
+	return _ackQueue.ForcedAdd('a');
 	/*zmq::message_t message(4);
 	strcpy(( char *) message.data(),( char*) "ack");
 	_zmqAckSender->send(message);*/
-	return true;
+
 }
 
 void LogEntryProcessor::RegisterEventListener(BotBangerEventListener *l)
@@ -192,7 +192,8 @@ void *LogEntryProcessor::processorThread(void *arg)
 
 void *LogEntryProcessor::innerProcesserThread()
 {
-	SendAck();
+	SendAck(); // synchronize with main thread
+
 	LogEntry le;
 	_output.reserve(200);
 	_actionList.reserve(10);
@@ -203,8 +204,41 @@ void *LogEntryProcessor::innerProcesserThread()
 		AggregrateLogEntry(&le);
 
 	}
-	SendAck();
+	SendAck(); // synchronize with shutdown
 	return 0;
+}
+
+void LogEntryProcessor::DumpPredictedMemoryUsage()
+{
+	// we ignore configuration entries
+	int totalsize=0;
+	// queue
+	int queuesize=_logEntryQueue.GetMaxSize();
+	if (queuesize==0)
+	{
+		queuesize=1000;
+		std::cout<<"Warning the logentryqueue is unbounded, this might cause problems, calc based on 1000 messages"<<endl;
+	}
+
+	{
+		queuesize+=queuesize*(12+sizeof(FifoMessage)+sizeof(LogEntry));// allow for some overhead for the queue
+		std::cout << "queuesize " << queuesize << " bytes" << endl;
+		totalsize=queuesize;
+	}
+	if (_bbag)
+	{
+		int bbsize=_bbag->PredictedMemoryUsage();
+		std::cout << "botbanger " << bbsize << " bytes" << endl;
+		totalsize+=bbsize;
+	}
+
+	if (_hhmag)
+	{
+		int hhmsize=_hhmag->PredictedMemoryUsage();
+		std::cout << "hosthitmiss " << hhmsize << " bytes" << endl;
+		totalsize+=hhmsize;
+	}
+	std::cout << "Total size" << ((totalsize+1023)/1024) << "kilobytes" << endl;
 }
 
 bool LogEntryProcessor::AggregrateLogEntry(LogEntry *le)
