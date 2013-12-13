@@ -4,15 +4,13 @@
 #include "bot_banger_aggregator.h"
 #include <algorithm>
 
-
-
-
 void BotBangerAggregator::RegisterFeature(Feature *f,int index)
 {
 	_features.push_back(pair<Feature *,int>(f,index));
 	_maxFeatureNum=max(index+1,_maxFeatureNum);
 	_featureMemoryNeeded+=f->GetDataSize();
 }
+
 BotBangerAggregator::BotBangerAggregator(int maxEntries,int sessionLength):
 	LogAggregator(),
 	_maxFeatureNum(-1),

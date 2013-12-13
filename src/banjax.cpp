@@ -131,8 +131,6 @@ Banjax::Banjax()
     leProcessor->RegisterEventListener(new LogProcessorAction2Banjax(this));
   }
 
-
-
   //now Get rid of inactives events
   for(unsigned int cur_queue = BanjaxFilter::HTTP_START; cur_queue < BanjaxFilter::TOTAL_NO_OF_QUEUES; cur_queue++, ATSEventHandler::banjax_active_queues[cur_queue] = task_queues[cur_queue].empty() ? false : true);
 

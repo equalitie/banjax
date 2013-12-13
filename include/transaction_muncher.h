@@ -57,7 +57,7 @@ class TransactionMuncher{
       PROTOCOL        = 0x0200,
       CONTENT_LENGTH  = 0x0400,
       CONTENT_TYPE    = 0x0800,
-      TXN_MS_DURATION = 0x1000
+      TXN_MS_DURATION = 0x1000    
     };
 
     enum PARTS_ERROR {

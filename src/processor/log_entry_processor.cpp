@@ -93,11 +93,10 @@ bool LogEntryProcessor::WaitForControlAck()
 
 bool LogEntryProcessor::ReceiveLogEntry(LogEntry *le)
 {
+  FifoMessage *volatile msg=_logEntryQueue.Get();
 
-	 FifoMessage *volatile msg=_logEntryQueue.Get();
-
-	auto ok=(msg->size()==sizeof(LogEntry));
-	if (ok)
+  auto ok=(msg->size()==sizeof(LogEntry));
+  if (ok)
 	{
 		msg->CopyMessageData(le);
 	}
@@ -105,7 +104,6 @@ bool LogEntryProcessor::ReceiveLogEntry(LogEntry *le)
 	msg->deleteMessage();
 	return ok;
 }
-
 
 bool LogEntryProcessor::SendStop()
 {
@@ -155,7 +153,6 @@ void LogEntryProcessor::EnsureSetup()
 	if (!_bbag) _bbag=newBotbangerAggregator();
 }
 
-
 void LogEntryProcessor::Stop(bool asap)
 {
 	if (_running)
@@ -174,7 +171,6 @@ void LogEntryProcessor::Stop(bool asap)
 	}
 }
 
-
 void LogEntryProcessor::Cleanup()
 {
 	for (auto i=_eventListeners.begin();i!=_eventListeners.end();i++)
@@ -188,7 +184,6 @@ void LogEntryProcessor::Cleanup()
 	_hhmag=NULL;
 }
 
-
 void *LogEntryProcessor::processorThread(void *arg)
 {
 	LogEntryProcessor *p=(LogEntryProcessor *) arg;
@@ -197,7 +192,6 @@ void *LogEntryProcessor::processorThread(void *arg)
 
 void *LogEntryProcessor::innerProcesserThread()
 {
-
 	SendAck();
 	LogEntry le;
 	_output.reserve(200);
@@ -205,8 +199,6 @@ void *LogEntryProcessor::innerProcesserThread()
 	while(ReceiveLogEntry(&le))
 	{
 		if (!_running) continue; // do not process messages if not running
-
-
 
 		AggregrateLogEntry(&le);
 
