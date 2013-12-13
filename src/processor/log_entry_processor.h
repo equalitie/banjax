@@ -54,6 +54,7 @@ class LogEntryProcessor
 	void Cleanup();
 	void EnsureSetup();
 
+
 	BotBangerAggregator *newBotbangerAggregator();
 
 protected:
@@ -68,7 +69,7 @@ public:
 	bool AddLogEntry(LogEntry *le);
 
 	void HitMissSetConfig(int period,int range);
-
+	void DumpPredictedMemoryUsage();
 
 	bool Start(bool async=true);
 	void Stop(bool asap=false);

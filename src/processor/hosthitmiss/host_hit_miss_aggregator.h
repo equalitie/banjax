@@ -38,6 +38,7 @@ public:
 	{
 
 	}
+	int PredictedMemoryUsage();
 	void RegisterEventListener(HostHitMissEventListener *l) {_eventListeners.push_back(l);}
 	virtual void Aggregate(LogEntry *);
 	void Dump();

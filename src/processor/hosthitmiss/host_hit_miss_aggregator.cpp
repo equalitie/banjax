@@ -27,6 +27,15 @@ void HostHitMissAggregator::Aggregate(LogEntry *le)
 	
 }
 
+int HostHitMissAggregator::PredictedMemoryUsage()
+{
+	// based on 50 hostnames
+	return (
+			50+
+			sizeof(HostHitMissFeature)+
+			sizeof(HitMissRange)*((_period/_range)+2)
+			)*50;
+}
 void HostHitMissAggregator::Dump()
 {
 	auto i=_map.begin();

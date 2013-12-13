@@ -66,6 +66,20 @@ void BotBangerAggregator::Prune() {
 	}
 }
 
+int BotBangerAggregator::PredictedMemoryUsage()
+{
+	// this is all ballpark stuff, not exact
+	return
+			(
+					20+ // IP address length (guestimate)
+					32+ // map overhead per entry (guestimate)
+					GetMemoryNeeded()+
+					sizeof(FeatureContainer)
+			)
+			*
+			_maxEntries;
+}
+
 void BotBangerAggregator::Aggregate(LogEntry * le)
 {
 	
