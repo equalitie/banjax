@@ -23,9 +23,9 @@ unittests_SOURCES = unittest_common.cpp \
 					../src/regex_manager.cpp \
 					../src/swabber_interface.cpp \
 					../src/white_lister.cpp \
-					../src/processor/botbanger/bot_banger_aggregator.cpp \						
+					../src/processor/botbanger/bot_banger_aggregator.cpp \
 					../src/processor/botbanger/bot_banger_model_listener.cpp \
-					../src/processor/features/feature_average_payload_size_test.cpp
+					../src/processor/features/feature_average_payload_size_test.cpp \
 					../src/processor/features/feature_average_payload_size.cpp \
 					../src/processor/features/feature_average_time_between_requests.cpp \
 					../src/processor/features/feature_cycling_user_agent.cpp \
@@ -44,8 +44,5 @@ unittests_SOURCES = unittest_common.cpp \
 					../src/processor/utils/hashfunctions/crc32.cpp \
 					../src/processor/log_entry_processor.cpp \
 					../src/processor/log_entry_processor_config.cpp
-					
-					
-					
 
 #unittests_LDADD = ../src/banjax.la

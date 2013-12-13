@@ -36,7 +36,7 @@ esac],
 [debug=false])
 
 AM_CONDITIONAL(DEBUG, test x"$debug" = x"true")
-
+AM_INIT_AUTOMAKE([foreign subdir-objects])
 
 # Checks for libraries.
 # We require version 1.0.1 for SHA256 support.
