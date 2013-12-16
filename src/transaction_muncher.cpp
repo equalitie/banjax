@@ -13,7 +13,6 @@
  */
 
 #include <map>
-#include <stdlib.h>
 #include <string.h>
 
 #include <assert.h>
@@ -63,11 +62,15 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
     
       if (!client_address) {
         TSError("error in retrieving client ip\n");
-        throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+        TSDebug(BANJAX_PLUGIN_NAME, "scray stuff: ip-less transation");
+        cur_trans_parts[TransactionMuncher::IP] = "";
+        //throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
       }
+      else {
 
-      cur_trans_parts[TransactionMuncher::IP] = inet_ntoa(client_address->sin_addr); //TODO who should release the char* returned?
+        cur_trans_parts[TransactionMuncher::IP] = inet_ntoa(client_address->sin_addr); //TODO who should release the char* returned?
       //TSfree(client_address);
+      }
   }
 
   //it is just worth it to retrieve the scheme at the same time
@@ -277,12 +280,12 @@ TransactionMuncher::retrieve_response_parts(uint64_t requested_log_parts)
       
       cur_trans_parts[CONTENT_LENGTH] = string(content_length, field_length);
 
-      //}
       TSHandleMLocRelease(response_header, response_header_location, field_loc);
+         
     }
     valid_parts |= CONTENT_LENGTH;
  }
-
+ 
  TSMLoc field_loc = TSMimeHdrFieldFind(response_header, response_header_location, TS_MIME_FIELD_CONTENT_TYPE, TS_MIME_LEN_CONTENT_TYPE);
  cur_trans_parts[CONTENT_TYPE] = "";
  if (field_loc) {

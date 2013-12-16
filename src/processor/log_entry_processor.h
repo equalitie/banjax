@@ -81,8 +81,4 @@ public:
 	friend class LogEntryProcessorConfig;
 };
 
-
-
-
-
 #endif

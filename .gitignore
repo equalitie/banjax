@@ -12,6 +12,8 @@
 depcomp
 configu-aux
 missing
+.deps
+.dirstamp
 /.deps/
 /.dirstamp
 */.deps/
@@ -41,6 +43,7 @@ Makefile.in
 
 #libtools
 src/.libs
+src/processor/LogProcessor
 *.la
 
 /test/unittests
