@@ -4,7 +4,7 @@
 #include "feature_container.h"
 #include "feature_cycling_user_agent.h"
 
-#define MAX_AGENTS 11
+
 struct cuaEntry 
 {
 	unsigned int hash;
@@ -12,7 +12,7 @@ struct cuaEntry
 };
 struct cuaData
 {
-	struct cuaEntry userAgents[MAX_AGENTS];
+	struct cuaEntry userAgents[MAX_USER_AGENTS];
 	int numAgents;
 	int maxRequests;
 };
@@ -41,7 +41,7 @@ void FeatureCyclingUserAgent::Aggregrate(LogEntry *le,FeatureContainer *fc,void 
 	}
 	if (i>myData->numAgents)
 	{
-		if (i==MAX_AGENTS)
+		if (i==MAX_USER_AGENTS )
 		{
 			// do not count the overflow as max
 			++(myData->userAgents[0].counter);
