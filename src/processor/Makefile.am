@@ -15,7 +15,7 @@ LogProcessor_LDFLAGS = \
 
 LogProcessor_LDADD =   $(lib_LIBS)
 LogProcessor_SOURCES = \
-	botbanger/bot_banger_aggregator.cpp \	
+	botbanger/bot_banger_aggregator.cpp \
 	botbanger/bot_banger_model_listener.cpp \
 	features/feature_average_payload_size.cpp \
 	features/feature_average_time_between_requests.cpp \
@@ -36,8 +36,3 @@ LogProcessor_SOURCES = \
 	log_processor_main.cpp \
 	log_entry_processor.cpp \
 	log_entry_processor_config.cpp
-	
-
-
-
-

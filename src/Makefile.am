@@ -28,7 +28,7 @@ banjax_la_SOURCES = 	banjax.cpp \
 						white_lister.cpp \
 					 	regex_manager.cpp \
 						bot_sniffer.cpp \
-						processor/botbanger/bot_banger_aggregator.cpp \						
+						processor/botbanger/bot_banger_aggregator.cpp \
 						processor/botbanger/bot_banger_model_listener.cpp \
 						processor/features/feature_average_payload_size.cpp \
 						processor/features/feature_average_time_between_requests.cpp \
@@ -48,8 +48,6 @@ banjax_la_SOURCES = 	banjax.cpp \
 						processor/utils/hashfunctions/crc32.cpp \
 						processor/log_entry_processor.cpp \
 						processor/log_entry_processor_config.cpp
-						
-						
 
 
 #libbanjax_la_LDFLAGS = -version-info 0:0:0

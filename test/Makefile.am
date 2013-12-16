@@ -54,8 +54,5 @@ unittests_SOURCES = unittest_common.cpp \
 					../src/processor/utils/hashfunctions/crc32.cpp \
 					../src/processor/log_entry_processor.cpp \					
 					../src/processor/log_entry_processor_config.cpp
-					
-					
-					
 
 #unittests_LDADD = ../src/banjax.la

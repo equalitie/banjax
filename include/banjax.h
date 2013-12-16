@@ -15,8 +15,6 @@ class BanjaxFilter;
 class LogEntryProcessor;
 class LogEntry;
 
-
-
 #include "ip_database.h"
 #include "swabber_interface.h"
 #include "transaction_muncher.h"
