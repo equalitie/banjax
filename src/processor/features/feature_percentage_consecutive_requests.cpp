@@ -7,7 +7,7 @@
 
 struct pcrqData
 {
-	char lastfolder[400];
+	char lastfolder[400]; // should change this to sha1
 	int consecutiverequests;
 	int totalcontentrequests;
 };

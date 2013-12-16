@@ -45,13 +45,14 @@ unittests_SOURCES = unittest_common.cpp \
 					../src/processor/test/feature_variance_request_interval_test.cpp \
 					../src/processor/features/feature_request_depth_std.cpp \
 					../src/processor/test/feature_request_depth_std_test.cpp \
+					../src/processor/test/std_dev_test.cpp \
 					../src/processor/hosthitmiss/host_hit_miss_actions.cpp \
 					../src/processor/hosthitmiss/host_hit_miss_aggregator.cpp \
 					../src/processor/hosthitmiss/host_hit_miss_feature.cpp \
 					../src/processor/utils/string_utils.cpp \
 					../src/processor/utils/svm/svm.cpp \
 					../src/processor/utils/hashfunctions/crc32.cpp \
-					../src/processor/log_entry_processor.cpp \
+					../src/processor/log_entry_processor.cpp \					
 					../src/processor/log_entry_processor_config.cpp
 					
 					

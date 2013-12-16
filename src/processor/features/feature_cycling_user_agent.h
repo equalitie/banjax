@@ -2,6 +2,8 @@
 #define FEATURECYCLINGUSERAGENT_H
 #include "feature.h"
 
+#define MAX_USER_AGENTS 11
+
 class FeatureCyclingUserAgent:public Feature
 {
 public:

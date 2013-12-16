@@ -27,7 +27,7 @@ void FeatureRequestDepthStd::Aggregrate(LogEntry *le,FeatureContainer *fc,void *
 		myData->AddNum((double)depth);
 		double value=myData->GetStdDevP();
 		// don't know if this is right
-		*featureValue=value ? value : -1;
+		*featureValue=value;// ? value : -1;
 	}
 	else
 		if (fc->numrequests==1) *featureValue=-1;
