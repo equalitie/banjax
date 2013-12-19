@@ -3,6 +3,8 @@
 
 #include "feature.h"
 
+/* Calculate the ratio (error status 4xx)/(total number of requests)
+ */
 class FeatureHTTPStatusRatio:public Feature
 {
 public:

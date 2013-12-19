@@ -3,17 +3,16 @@
 #include "feature_container.h"
 #include "feature_request_depth.h"
 
-
+/* local data */
 struct rqdData
 {
 	int totaldepth;
 	int totalcontentrequests;
 };
 
-int FeatureRequestDepth::GetDataSize()
-{
-	return sizeof(rqdData);
-}
+
+
+/* calculates the average request depth for content (text/html) pages, 0 if no content pages have been seen  */
 void FeatureRequestDepth::Aggregrate(LogEntry *le,FeatureContainer *fc,void *data,double *featureValue)
 {
 	UNUSED(fc);
@@ -29,4 +28,9 @@ void FeatureRequestDepth::Aggregrate(LogEntry *le,FeatureContainer *fc,void *dat
 		myData->totaldepth+=depth;
 		*featureValue=((double)myData->totaldepth)/((double)myData->totalcontentrequests);
 	}	
+}
+
+int FeatureRequestDepth::GetDataSize()
+{
+	return sizeof(rqdData);
 }

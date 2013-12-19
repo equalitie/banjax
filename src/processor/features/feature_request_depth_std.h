@@ -2,6 +2,9 @@
 #define FEATUREREQUESTDEPTHSTD_H
 #include "feature.h"
 
+
+/* calulate the stddev of the content request depths, -1 if there is no data yet
+ */
 class FeatureRequestDepthStd:public Feature
 {
 public:
