@@ -6,13 +6,13 @@
 
 
 
-
+/* local data is stddev */
 int FeatureVarianceRequestInterval::GetDataSize()
 {
 	return sizeof(StdDev);
 }
 
-
+/* calculate the stddev of the request intervals */
 void FeatureVarianceRequestInterval::Aggregrate(LogEntry *le,FeatureContainer *fc,void *data,double *featureValue)
 {
 

@@ -73,7 +73,8 @@ int BotBangerAggregator::PredictedMemoryUsage()
 			(
 					20+ // IP address length (guestimate)
 					32+ // map overhead per entry (guestimate)
-					GetMemoryNeeded()+
+					GetFeatureSupportMemory()+
+					sizeof(double)*(GetMaxFeatureIndex()+1)+
 					sizeof(FeatureContainer)
 			)
 			*

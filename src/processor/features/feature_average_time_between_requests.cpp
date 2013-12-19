@@ -3,16 +3,16 @@
 #include "feature_average_time_between_requests.h"
 
 
-
+/* Calculates average time between requests */
 void FeatureAverageTimeBetweenRequests::Aggregrate(LogEntry *le, FeatureContainer *fc,void *data,double *featureValue)
 {
 	UNUSED(le);
 	UNUSED(data);
 	int time=fc->lastRequestTime-fc->firstRequestTime;
-	if (fc->numrequests==1)
+	if (fc->numRequests==1)
 	{
 		*featureValue=MAX_IDEAL_SESSION_LENGTH;
 	}
 	else
-	*featureValue=((double) time)/((double) (fc->numrequests-1.0f));
+	*featureValue=((double) time)/((double) (fc->numRequests-1.0));
 }

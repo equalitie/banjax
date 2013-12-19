@@ -2,6 +2,8 @@
 #define FEATUREHTMLTOIMAGERATIO_H
 #include "feature.h"
 
+/* calculate the ratio (image requests)/(html requests)
+ */
 class FeatureHtmlToImageRatio:public Feature
 {
 public:
