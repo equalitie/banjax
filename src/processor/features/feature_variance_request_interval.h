@@ -2,6 +2,8 @@
 #define FEATUREVARIANCEREQUESTINTERVAL_H
 #include "feature.h"
 
+
+/* calculate the stddev of the request intervals */
 class FeatureVarianceRequestInterval:public Feature
 {
 public:

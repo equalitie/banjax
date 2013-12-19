@@ -20,6 +20,9 @@ struct HostConfig
 	string currentAction;
 	time_t expires;
 	vector<HostHitMissConfigLine *> configLines;
+	~HostConfig() {
+		for (auto i=configLines.begin();i<configLines.end();i++) delete (*i);
+	}
 };
 
 class HostHitMissActions:public HostHitMissEventListener

@@ -2,20 +2,26 @@
 #include "feature_container.h"
 #include "feature_http_status_ratio.h"
 
-
+/* local data */
 struct fhsrData
 {
 	int error_requests;
 };
 
-int FeatureHTTPStatusRatio::GetDataSize()
-{
-	return sizeof(fhsrData);
-}
+
+
+/* Calculate the ratio (error status 4xx)/(total number of requests)
+ */
 void FeatureHTTPStatusRatio::Aggregrate(LogEntry *le,FeatureContainer *fc,void *data,double *featureValue)
 {
 	fhsrData *myData=(fhsrData *) data;
 	if (le->httpCode>=400 && le->httpCode<500)
 		myData->error_requests++;
-	*featureValue=((double)myData->error_requests)/((double) fc->numrequests);
+	*featureValue=((double)myData->error_requests)/((double) fc->numRequests);
+}
+
+
+int FeatureHTTPStatusRatio::GetDataSize()
+{
+	return sizeof(fhsrData);
 }

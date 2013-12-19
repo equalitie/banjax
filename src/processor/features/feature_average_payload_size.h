@@ -2,6 +2,8 @@
 #define FEATUREAVERAGEPAYLOADSIZE_H
 #include "feature.h"
 
+/* calculate the average payload size for LogEntrys
+ */
 class FeatureAveragePayloadSize:public Feature
 {
 public:

@@ -44,6 +44,11 @@ public:
 	void Dump();
 	virtual ~HostHitMissAggregator() {
 
+		for (auto i=_eventListeners.begin();i<_eventListeners.end();i++)
+		{
+			delete (*i);
+		}
+
 		for(auto i=_map.begin();i!=_map.end();i++)
 		{
 			delete (*i).second;

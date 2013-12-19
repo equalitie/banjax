@@ -49,7 +49,7 @@ public:
 	virtual void Aggregate(LogEntry *);
 	virtual vector<pair<Feature *,int>> &GetFeatures() {return _features;}
 	virtual int GetMaxFeatureIndex() {return _maxFeatureNum;}
-	virtual int GetMemoryNeeded() {return _featureMemoryNeeded+_maxFeatureNum*sizeof(double);};
+	virtual int GetFeatureSupportMemory() {return _featureMemoryNeeded;};
 
 };
 #endif

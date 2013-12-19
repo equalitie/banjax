@@ -4,18 +4,17 @@
 #include "feature_container.h"
 #include "feature_percentage_consecutive_requests.h"
 
-
+/* local data */
 struct pcrqData
 {
-	char lastfolder[400];
+	char lastfolder[400]; // last folder seen, should change this to sha1
 	int consecutiverequests;
 	int totalcontentrequests;
 };
 
-int FeaturePercentageConsecutiveRequests::GetDataSize()
-{
-	return sizeof(pcrqData);
-}
+/* calculate the percentage of content (text/html) requests which are consecutive, ie. in the same folder
+ * should be moved to hash based path to save space
+ */
 void FeaturePercentageConsecutiveRequests::Aggregrate(LogEntry *le,FeatureContainer *fc,void *data,double *featureValue)
 {
 	UNUSED(fc);
@@ -42,4 +41,9 @@ void FeaturePercentageConsecutiveRequests::Aggregrate(LogEntry *le,FeatureContai
 	
 	
 	
+}
+
+int FeaturePercentageConsecutiveRequests::GetDataSize()
+{
+	return sizeof(pcrqData);
 }
