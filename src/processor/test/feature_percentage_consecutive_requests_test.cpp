@@ -109,12 +109,12 @@ TEST(feature_percentage_consecutive_requests,same_path_other_resources)
 	strcpy(le.contenttype,"text/css");
 	strcpy(le.url,"/css/default.css");
 	fct.Aggregrate(&le);
-	EXPECT_EQ(0.5,fct.GetFeatureValue()); // first request is not consecutive, is this OK?
+	EXPECT_EQ(0.5,fct.GetFeatureValue());
 
 	strcpy(le.contenttype,"image/jpeg");
 	strcpy(le.url,"/gfx/background.jpeg");
 	fct.Aggregrate(&le);
-	EXPECT_EQ(0.5,fct.GetFeatureValue()); // first request is not consecutive, is this OK?
+	EXPECT_EQ(0.5,fct.GetFeatureValue());
 
 	strcpy(le.contenttype,"text/html");
 	strcpy(le.url,"/test1/test2/test3.html");
@@ -124,12 +124,12 @@ TEST(feature_percentage_consecutive_requests,same_path_other_resources)
 	strcpy(le.contenttype,"text/css");
 	strcpy(le.url,"/css/default.css");
 	fct.Aggregrate(&le);
-	EXPECT_EQ(2.0/3.0,fct.GetFeatureValue()); // first request is not consecutive, is this OK?
+	EXPECT_EQ(2.0/3.0,fct.GetFeatureValue());
 
 	strcpy(le.contenttype,"image/jpeg");
 	strcpy(le.url,"/gfx/background.jpeg");
 	fct.Aggregrate(&le);
-	EXPECT_EQ(2.0/3.0,fct.GetFeatureValue()); // first request is not consecutive, is this OK?
+	EXPECT_EQ(2.0/3.0,fct.GetFeatureValue());
 
 	strcpy(le.contenttype,"text/html");
 	strcpy(le.url,"/test1/test2/test3.html");
@@ -139,6 +139,6 @@ TEST(feature_percentage_consecutive_requests,same_path_other_resources)
 	strcpy(le.contenttype,"image/jpeg");
 	strcpy(le.url,"/gfx/background.jpeg");
 	fct.Aggregrate(&le);
-	EXPECT_EQ(3.0/4.0,fct.GetFeatureValue()); // first request is not consecutive, is this OK?
+	EXPECT_EQ(3.0/4.0,fct.GetFeatureValue());
 }
 

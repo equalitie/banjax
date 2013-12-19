@@ -2,6 +2,7 @@
 #define FEATURESESSIONLENGTH_H
 #include "feature.h"
 
+/* calculates the length of the session for the LogEntry's which are aggregated */
 class FeatureSessionLength:public Feature
 {
 public:
