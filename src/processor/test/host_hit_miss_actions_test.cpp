@@ -82,6 +82,7 @@ TEST(host_hit_miss_actions,test_actions_request_match)
 
 TEST(host_hit_miss_actions,test_actions_ratio_match)
 {
+	EXPECT_EQ(true,false);
 	/*LogEntry le;
 	LogEntryTest::InitLogEntry(&le);
 
@@ -104,10 +105,10 @@ TEST(host_hit_miss_actions,test_actions_ratio_match)
 
 TEST(host_hit_miss_actions,test_actions_runtime)
 {
-
+	EXPECT_EQ(true,false);
 }
 
 TEST(host_hit_miss_actions,test_actions_fullmatch)
 {
-
+	EXPECT_EQ(true,false);
 }
