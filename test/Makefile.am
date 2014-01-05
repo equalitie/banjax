@@ -23,8 +23,10 @@ unittests_SOURCES = unittest_common.cpp \
 					../src/regex_manager.cpp \
 					../src/swabber_interface.cpp \
 					../src/white_lister.cpp \
-					../src/processor/botbanger/bot_banger_aggregator.cpp \						
-					../src/processor/botbanger/bot_banger_model_listener.cpp \					
+					../src/processor/botbanger/bot_banger_aggregator.cpp \
+					../src/processor/test/bot_banger_aggregator_test.cpp \
+					../src/processor/botbanger/bot_banger_model_listener.cpp \
+					../src/processor/test/bot_banger_model_listener_test.cpp \
 					../src/processor/features/feature_average_payload_size.cpp \
 					../src/processor/test/feature_average_payload_size_test.cpp \
 					../src/processor/features/feature_average_time_between_requests.cpp \
@@ -47,12 +49,14 @@ unittests_SOURCES = unittest_common.cpp \
 					../src/processor/test/feature_request_depth_std_test.cpp \
 					../src/processor/test/std_dev_test.cpp \
 					../src/processor/hosthitmiss/host_hit_miss_actions.cpp \
+					../src/processor/test/host_hit_miss_actions_test.cpp \
 					../src/processor/hosthitmiss/host_hit_miss_aggregator.cpp \
+					../src/processor/test/host_hit_miss_aggregator_test.cpp \
 					../src/processor/hosthitmiss/host_hit_miss_feature.cpp \
 					../src/processor/utils/string_utils.cpp \
 					../src/processor/utils/svm/svm.cpp \
 					../src/processor/utils/hashfunctions/crc32.cpp \
-					../src/processor/log_entry_processor.cpp \					
+					../src/processor/log_entry_processor.cpp \
 					../src/processor/log_entry_processor_config.cpp
 
 #unittests_LDADD = ../src/banjax.la

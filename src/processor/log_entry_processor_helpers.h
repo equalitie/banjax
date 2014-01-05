@@ -44,7 +44,7 @@ public:
 	{
 
 	}
-	virtual void ScheduleAction(HitMissRange *hmr,string &host,string &action,string &currentaction)
+	virtual void OnScheduleAction(HitMissRange *hmr,string &host,string &action,string &currentaction)
 	{
 		UNUSED(currentaction);
 		UNUSED(hmr);
@@ -61,7 +61,7 @@ public:
 		StringDumper(output)
 	{
 	}
-	void ScheduleAction(HitMissRange *hmr,string &host,string &action,string &currentaction)
+	void OnScheduleAction(HitMissRange *hmr,string &host,string &action,string &currentaction)
 	{
 		UNUSED(hmr);
 		char tbuf[8000];

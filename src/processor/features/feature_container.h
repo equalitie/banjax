@@ -102,7 +102,7 @@ public:
 		memset(_data,0,_memlen);
 		firstRequestTime=0;
 		lastRequestTime=0;
-		lastRequestTime=0;
+		numRequests=0;
 	}
 
 	/* Aggregrate a logentry and pass it to all features */

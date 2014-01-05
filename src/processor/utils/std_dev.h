@@ -1,3 +1,5 @@
+#ifndef STD_DEV_H
+#define STD_DEV_H
 #include <math.h>
 using namespace std;
 
@@ -74,3 +76,4 @@ protected:
 		currentS=S;
 	}
 };
+#endif

@@ -70,13 +70,13 @@ public:
 					hostConfig.currentAction=cl->action;
 					hostConfig.expires=hmrange->from+cl->runTime;
 					string sHost=string(host);
-					ScheduleAction(hmrange, sHost,cl->action,currentAction);
+					OnScheduleAction(hmrange, sHost,cl->action,currentAction);
 					break;
 				}
 			}
 		}
 	}
-	virtual void ScheduleAction(HitMissRange *hmr,string &host,string &action,string &currentaction)=0;
+	virtual void OnScheduleAction(HitMissRange *hmr,string &host,string &action,string &currentaction)=0;
 	virtual ~HostHitMissActions()
 	{
 
