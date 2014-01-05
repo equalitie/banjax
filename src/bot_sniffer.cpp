@@ -27,7 +27,7 @@ using namespace std;
 #include "processor/log_entry_processor.h"
 #include "banjax.h"
 
-#define VALID_OR_EMPTY(validity, part) ((validity & part) ? transaction_parts.at(part) : "")
+#define VALID_OR_EMPTY(validity, part) ((validity & part) ? transaction_parts.at(part) : ((string)""))
 /**
   Reads botbanger's port from the config
  */
@@ -80,35 +80,33 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
   send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::UA), true);
   send_zmq_mess(zmqsock, transaction_parts.count(TransactionMuncher::MISS) ? "MISS" : "HIT");
 
-
   char* end;
   size_t size = sizeof(LogEntry);
   struct LogEntry* le = (LogEntry*)TSmalloc(size);
-
   
   // Zero the struct, so all char[]'s within it are guaranteed to be
   // 0-terminated later on.
   memset(le, 0, sizeof(LogEntry) - 1);
 
-  strncpy(le->hostname, transaction_parts.at(TransactionMuncher::HOST).c_str(),
+  strncpy(le->hostname, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::HOST).c_str(),
           sizeof(le->hostname) - 1);
-  strncpy(le->userAgent, transaction_parts.at(TransactionMuncher::UA).c_str(),
+  strncpy(le->userAgent, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::UA).c_str(),
           sizeof(le->userAgent) - 1);
-  strncpy(le->url, transaction_parts.at(TransactionMuncher::URL).c_str(),
+  strncpy(le->url, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::URL).c_str(),
           sizeof(le->url) - 1);
 
   le->endTime = rawtime;
-  le->msDuration = strtol(transaction_parts.at(TransactionMuncher::TXN_MS_DURATION).c_str(), &end, 10);
-  le->httpCode = atoi(transaction_parts.at(TransactionMuncher::STATUS).c_str());
-  le->payloadsize= strtol(transaction_parts.at(TransactionMuncher::CONTENT_LENGTH).c_str(), &end, 10);
+  le->msDuration = strtol(VALID_OR_EMPTY(*cur_validity, TransactionMuncher::TXN_MS_DURATION).c_str(), &end, 10);
+  le->httpCode = atoi(VALID_OR_EMPTY(*cur_validity, TransactionMuncher::STATUS).c_str());
+  le->payloadsize= strtol(VALID_OR_EMPTY(*cur_validity, TransactionMuncher::CONTENT_LENGTH).c_str(), &end, 10);
 
   // TODO: stale? error?
   le->cacheLookupStatus = transaction_parts.count(TransactionMuncher::MISS)
       ? CacheLookupStatus::Hit : CacheLookupStatus::Miss;
 
-  strncpy(le->useraddress, transaction_parts.at(TransactionMuncher::IP).c_str(),
+  strncpy(le->useraddress, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP).c_str(),
           sizeof(le->useraddress) - 1);
-  strncpy(le->contenttype, transaction_parts.at(TransactionMuncher::CONTENT_TYPE).c_str(),
+  strncpy(le->contenttype, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::CONTENT_TYPE).c_str(),
           sizeof(le->contenttype) - 1);
   Banjax::SendLogEntryToLogProcessor(le);
   TSfree(le);
@@ -116,7 +114,6 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
   //std::string message((char*)le, sizeof(LogEntry));
   // XXX(oschaaf):
   //send_zmq_mess(zmqsock, message, true);
-
   
   //botbanger_interface.add_log(transaction_parts[IP], cd->url, cd->protocol, stat, (long) cd->request_len, cd->ua, cd->hit);
   //botbanger_interface.add_log(cd->client_ip, time_str, cd->url, protocol, status, size, cd->ua, hit);
