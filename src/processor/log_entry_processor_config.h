@@ -8,7 +8,7 @@
 using namespace libconfig;
 using namespace std;
 
-
+/* a static class to configure a logEntryProcessor from configuration */
 class LogEntryProcessorConfig
 {
 public:
