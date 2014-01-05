@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <time.h>
 
-/* helper function to shut the compiler up */
+/* helper function to shut the compiler up, should be moved elsewhere */
 #define UNUSED(x) (void)(x)
 
 /* cache lookup status */
@@ -26,7 +26,7 @@ struct LogEntry
 	char contenttype[80]; // contenttype, max 80 characters
 };
 
-/* Log entry trace actions */
+/* Log entry trace actions, should be moved elsewhere */
 enum LogEntryTrace {
 	TraceHitMissAction=1,
 	TraceBotBangerAction=2,
