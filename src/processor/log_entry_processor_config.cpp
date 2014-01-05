@@ -94,7 +94,7 @@ bool LogEntryProcessorConfig::ReadFromSettings(LogEntryProcessor *lp,Setting *hi
 							)
 					);
 		}
-		//lp->BotBangerConfig(maxips);
+		lp->BotBangerSetConfig(maxips);
 	}
 
 	if (consoleSettings)
