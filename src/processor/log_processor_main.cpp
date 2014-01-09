@@ -17,7 +17,9 @@
 #include "utils/timegm.h"*/
 using namespace std;
 
-
+/* parse next field in line, return false if there are no more entries
+ * understands [], "", seperator is 0x20 -> space
+ */
 bool ParseField(char **line,char **start_ptr,char **end_ptr)
 {
 	char endchar=0;
@@ -70,7 +72,7 @@ bool ParseField(char **line,char **start_ptr,char **end_ptr)
 
 
 }
-
+/* string to lower function*/
 void strlwr(char *s)
 {
 	for (;*s;s++)
@@ -79,7 +81,7 @@ void strlwr(char *s)
 	}
 }
 
-
+/* find index of search in values with <length> */
 int indexOf(const char **values,int length,char *search)
 {
 	for(int c=0;c<length;c++)
@@ -88,30 +90,33 @@ int indexOf(const char **values,int length,char *search)
 	}
 	return -1;
 }
+
+/* parse an ATS log line, and create a LogEntry */
 vector<char *> values;
-void ParseLogLine(LogEntry &le,char *line)
+bool ParseLogLine(LogEntry &le,char *line)
 {
 	if (values.capacity()<20) {values.reserve(20);}
 	values.clear();
 	const char *months[]={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
 	char *start,*end;
 	
-	
+	// get all fields in this line
 	while(ParseField(&line,&start,&end))
 	{
 		*end=0;
 		values.push_back(start);
 	}
+	// if not enough fields then skip
 	if (values.size()<14) 
-		return;
+		return false;
 
-	//return;
+
 	strlcpy(le.useraddress,values[0],40);
+
+	// create endTime
 	int year,day,hour,minute,second;
 	char month[4];
 	char timezone[5];
-	
-
 	sscanf(values[2],"%d/%03s/%d:%d:%d:%d -%04s",&day,month,&year,&hour,&minute,&second,timezone);
 	struct tm time;
 	memset(&time,0,sizeof(struct tm));
@@ -121,13 +126,11 @@ void ParseLogLine(LogEntry &le,char *line)
 	time.tm_mon=indexOf(months,12,month);
 	time.tm_mday=day;
 	time.tm_min=minute;
-
 	time_t s=timegm(&time);
-
 	le.endTime=s;
 
 	
-	sprintf(le.hostname,"%.49s",values[5]);
+	sprintf(le.hostname,"%.99s",values[5]);
 	le.httpCode=atoi(values[6]);
 	le.payloadsize=atoi(values[7]); 
 	strlcpy(le.contenttype,values[10],80); // lcase
@@ -154,7 +157,7 @@ void ParseLogLine(LogEntry &le,char *line)
 	
 	//le.contenttype=
 
-	
+	return true;
 
 	
 	
@@ -163,7 +166,7 @@ void ParseLogLine(LogEntry &le,char *line)
 }
 
 
-
+/* command line processor, setup configuration and run LogEntryProcessor */
 int main(int argc, char* argv[])
 {
 	string configfile;
@@ -172,10 +175,9 @@ int main(int argc, char* argv[])
 
 	bool showhelp=false;	
 	bool showMemoryUsage=false;
-	//enum traceType {none,HitMiss=1,Features=2,Model=4,Output=8,Actions=16,BotBanger=32,LogEntries=64,Verbose=128};
 	int consoleSettings=ConsoleMode;
 
-
+	/* setup command line configuration */
 	for (int n=1;n<argc;n++)
 	{
 		bool islast=n==(argc-1);
@@ -270,7 +272,7 @@ int main(int argc, char* argv[])
 	{
 		LogEntryProcessor processor;
 		ifstream lf;
-		//lf.set_rdbuf(
+
 		string output;
 		lf.open(logfile.c_str(),std::ifstream::in);
 		LogEntry le;
@@ -300,43 +302,21 @@ int main(int argc, char* argv[])
 		output.reserve(4096);
 		processor.Start(true);
 
-
 		while(lf.good())
 		{
 			char line[91000];
 			lf.getline(line,91000);
-			ParseLogLine(le,line);
-			linenr++;
-
-			/*if (trace&traceType::LogEntries)
+			if (ParseLogLine(le,line))
 			{
-				output.append(le.useraddress);
-				output.append("\t");
-				output.append(le.hostname);
-				output.append("\t");
-				output.append(le.url);
-				output.append("\t");
-				//output.append(le.httpCode);
-				output.append("\t");
-				//output.append(le.payloadsize);
-
-			}*/
-			//cout << linenr << endl;
-			//logentries.push_back(le);
-			processor.AddLogEntry(&le);
-			
+				processor.AddLogEntry(&le);
+			}
+			linenr++;
 		}
-
 		processor.Stop();
 
 		time(&end);
 		printf("runtime:%ld\n",end-start);
-
 		cout << linenr << endl;
-
-
-
-
 		
 	}
 

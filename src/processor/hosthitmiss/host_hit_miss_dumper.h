@@ -24,7 +24,7 @@ public:
 		{
 			hmrange->reported=1;
 			char buffer[10000];
-			sprintf(buffer,"hmr\t%s\t%d\t%d\t%d\t%f",host,hmrange->totalCount,hmrange->periodTotal,hmrange->periodHits,hmrange->periodRatio);
+			sprintf(buffer,"hmr\t%s\t%d\t%d\t%d\t%f",host,hmrange->totalCountFromStart,hmrange->periodTotal,hmrange->periodHits,hmrange->periodRatio);
 			addToDump(buffer);
 
 			

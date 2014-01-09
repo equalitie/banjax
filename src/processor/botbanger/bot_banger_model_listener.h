@@ -9,134 +9,49 @@
 
 using namespace std;
 
-
-struct bbmlConfigLineSub
-{
-	double lowerValue;
-	double upperValue;
-	string action;
-	bbmlConfigLineSub(double lowerValue,double upperValue,string action):
-		lowerValue(lowerValue),
-		upperValue(upperValue),
-		action(action)
-	{
-
-	}
-
-
-};
-struct bbmlConfigLine
-{
-	svm_model *model;
-	string modelName;
-	vector<bbmlConfigLineSub> subLines;
-	bbmlConfigLine(string &modelName,svm_model *model):
-		model(model),
-		modelName(modelName)
-
-	{
-	}
-	void addConfig(double lowerValue,double upperValue,string action)
-	{
-		subLines.push_back(bbmlConfigLineSub(lowerValue,upperValue,action));
-	}
-	bool determineAction(double predictValue,string &action)
-	{
-		for(auto i=subLines.begin();i!=subLines.end();i++)
-		{
-			if (predictValue>=(*i).lowerValue && predictValue<=(*i).upperValue)
-			{
-				action=(*i).action;
-				return true;
-			}
-		}
-		return false;
-	}
-	~bbmlConfigLine() {svm_free_and_destroy_model(&model);}
-
-};
-
+struct bbmlConfigLine;
+/* This class listens to the BotBangerAggregator and calculates a normalized version of the features
+ * for the model(s) registered via AddConfigLine, the model is owned by this listener
+ * For inheritance this class exposes
+ * OnModelAction an event which exposes the key (ip address,action and modelname)
+ * OnNodeValues an event which exposes the node values which are fed to the model
+ * OnModelValue an event which exposes the value of the model after calculation
+ */
 class BotBangerModelListener:public BotBangerEventListener
 {
-	svm_node *_nodes;
-	svm_model *_model;
-	vector<bbmlConfigLine *> _configuration;
+	svm_node *_nodes; // memory for the model nodes
+	vector<bbmlConfigLine *> _configuration; // configuration lines
 
 
 public:
-	BotBangerModelListener():
-		BotBangerEventListener(),
-		_nodes(NULL),
-		_model(NULL)
+	BotBangerModelListener():  // constructor
+		BotBangerEventListener(), // we inherit from BotBangerEventListener
+		_nodes(NULL)
 	{
 
 	}
 
-	void AddConfigLine(string &modelName,svm_model *model,double lowerValue,double upperValue,string action)
-	{
-		for (auto i=_configuration.begin();i!=_configuration.end();i++)
-		{
-			if (model==(*i)->model)
-			{
-				(*i)->addConfig(lowerValue,upperValue,action);
-				return;
-			}
-		}
-		auto item=new bbmlConfigLine(modelName,model);
-		item->addConfig(lowerValue,upperValue,action);
-		_configuration.push_back(item);
-	}
+	/* Add a configuration, lowerValue and upperValue (both inclusive) are matched against the
+	 * svm_predict outcome and will yield the action, the model will be owned by BotBangerModelListener
+	 */
+	void AddConfigLine(string &modelName,svm_model *model,double lowerValue,double upperValue,string action);
 
-	void OnFeatureEvent(char *key,double *features,int numFeatures)
-	{		
+	/* heavy lifting, catches features from BotBangerAggregator, calculates the
+	 * model values and fires the appropriate events
+	 */
+	void OnFeatureEvent(char *key,double *features,int numFeatures);
 
-
-		if (!_nodes)
-		{
-			_nodes=new svm_node[numFeatures+1];
-			memset(_nodes,0,sizeof(svm_node)*(numFeatures+1));
-			_nodes[numFeatures].index=-1;
-		}
-
-		// we are lazy, this could be done more efficient
-		struct StdDev stdev;
-		memset(&stdev,0,sizeof(StdDev));
-		for(int i=0;i<numFeatures;i++)
-		{
-			stdev.AddNum(features[i]);
-		}
-		for(int i=0;i<numFeatures;i++)
-		{
-			_nodes[i].index=i;
-			double stdvalue=stdev.GetStdDevP();
-			if (stdvalue)
-			_nodes[i].value=(features[i]-stdev.currentM)/stdvalue;
-			else
-				_nodes[i].value=0;
-
-		}
-
-		OnNodeValues(key,_nodes,numFeatures);
-		string action;
-		for(auto i=_configuration.begin();i!=_configuration.end();i++)
-		{
-
-			// should be moved to bbmlConfigLine
-			double val=svm_predict((*i)->model,_nodes);
-			OnModelValue(key,(*i)->modelName,val);
-			if ((*i)->determineAction(val,action))
-			{
-				OnModelAction(key,(*i)->modelName,action);
-			}
-		}
-		
-	}
+	/* The event which exposes the key (ip address,action and modelname)
+	 */
 	virtual void OnModelAction(char *key,string &modelName,string &action)
 	{
 		UNUSED(key);
 		UNUSED(modelName);
 		UNUSED(action);
 	}
+
+	/* The event which exposes the node values which are fed to the model
+	 */
 	virtual void OnNodeValues(char *key,svm_node *values,int num)
 	{
 		UNUSED(key);
@@ -144,20 +59,14 @@ public:
 		UNUSED(num);
 	}
 
+	/* The event which exposes the value of the model after calculation
+	 */
 	virtual void OnModelValue(char *key,string &modelName,double value)
 	{
 		UNUSED(key);
 		UNUSED(modelName);
 		UNUSED(value);
 	}
-	virtual ~BotBangerModelListener()
-	{
-		if (_nodes) delete [] _nodes;
-		for(auto i=_configuration.begin();i!=_configuration.end();i++)
-		{
-			delete (*i);
-		}
-		_configuration.clear();
-	}
+	virtual ~BotBangerModelListener();
 };
 #endif

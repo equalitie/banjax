@@ -4,6 +4,9 @@
 #include "bot_banger_aggregator.h"
 #include <algorithm>
 
+
+/* register a feature at index, features are owned
+ */
 void BotBangerAggregator::RegisterFeature(Feature *f,int index)
 {
 	_features.push_back(pair<Feature *,int>(f,index));
@@ -11,6 +14,8 @@ void BotBangerAggregator::RegisterFeature(Feature *f,int index)
 	_featureMemoryNeeded+=f->GetDataSize();
 }
 
+/* constructor, max mappings and session length can be set
+ */
 BotBangerAggregator::BotBangerAggregator(int maxEntries,int sessionLength):
 	LogAggregator(),
 	_maxFeatureNum(-1),
@@ -21,6 +26,8 @@ BotBangerAggregator::BotBangerAggregator(int maxEntries,int sessionLength):
 
 }
 
+/* clean up all entries and listeners
+ */
 void BotBangerAggregator::Cleanup()
 {
 	// delete eventlisteners
@@ -31,16 +38,22 @@ void BotBangerAggregator::Cleanup()
 	for (auto i=_map.begin();i!=_map.end();i++) delete (*i).second;	
 }
 
+/* destructor
+ */
 BotBangerAggregator::~BotBangerAggregator()
 {
 	Cleanup();
 }
 
+/* helper function for qsort in prune
+ */
 bool SortAges(pair<string,time_t> a,pair<string,time_t> b)
 {
 	return a.second<b.second; // we want a reverse sort
 }
 
+/* flush the oldest 10%
+ */
 void BotBangerAggregator::Prune() {
 	// prune 10%, we should never hit this, but if we do
 	// it will not be a problem that it is not the fastest way
@@ -66,6 +79,8 @@ void BotBangerAggregator::Prune() {
 	}
 }
 
+/* return predicted memory usage for current configuration
+ */
 int BotBangerAggregator::PredictedMemoryUsage()
 {
 	// this is all ballpark stuff, not exact
@@ -81,6 +96,8 @@ int BotBangerAggregator::PredictedMemoryUsage()
 			_maxEntries;
 }
 
+/* aggregrate logentry and calculate registered features
+ */
 void BotBangerAggregator::Aggregate(LogEntry * le)
 {
 	
@@ -88,22 +105,23 @@ void BotBangerAggregator::Aggregate(LogEntry * le)
 	auto f=_map.find(useraddress);
 	FeatureContainer *c=NULL;
 	
-	if (f!=_map.end())
+
+	if (f!=_map.end()) // entry found
 	{
 		c=(*f).second;
 		if ((le->endTime-_sessionLength)>c->lastRequestTime) // check session timeout
 			c->Clear();
 	}
-	else
+	else // entry not found, create new entry
 	{
-		if (_map.size()>=_maxEntries)
+		if (_map.size()>=_maxEntries) // entry will overflow map
 		{
-			Prune();
+			Prune(); // prune 10%
 		}
-		_map[useraddress]=c=new FeatureContainer(this);
+		_map[useraddress]=c=new FeatureContainer(this); // add new entry
 	}
 
-	c->Aggregrate(le);
+	c->Aggregrate(le); // calculate features
 	
 	// pass onto listeners
 	for(auto i=_eventListeners.begin();i!=_eventListeners.end();i++)

@@ -4,15 +4,22 @@
 using namespace libconfig;
 using namespace std;
 
+
+/* configure a LogProcessor from a configfile, consolesettings is a bitmask of LogEntryTrace entries */
 bool LogEntryProcessorConfig::ReadFromSettings(LogEntryProcessor *lp,string configfile,vector<string> &warnings, int consoleSettings)
 {
 	try
 	{
 		Config config;
 		config.readFile((const char*) (configfile.c_str()));
-		Setting &hitMissSettings=config.lookup("hitmiss");
+		return ReadFromSettings(lp,&config,warnings,consoleSettings);
+		/*Setting *hitMissSettings=NULL;
+		try
+		{
+			&(config.lookup("hitmiss"));
+		}
 		Setting &botBangerSettings=config.lookup("bot_banger");
-		return ReadFromSettings(lp,&hitMissSettings,&botBangerSettings,warnings,consoleSettings);
+		return ReadFromSettings(lp,hitMissSettings,&botBangerSettings,warnings,consoleSettings);*/
 	}
 	catch(ParseException &pex)
 	{
@@ -32,14 +39,36 @@ bool LogEntryProcessorConfig::ReadFromSettings(LogEntryProcessor *lp,string conf
 
 
 }
+/* configure a LogProcessor from a libconfig::Config, consolesettings is a bitmask of LogEntryTrace entries */
 bool LogEntryProcessorConfig::ReadFromSettings(LogEntryProcessor *lp,Config *configuration,vector<string> &warnings,int consoleSettings)
+{
+	return ReadFromSettings(lp,configuration->getRoot(),warnings,consoleSettings);
+}
+/* configure a LogProcessor from a libconfig::Config, consolesettings is a bitmask of LogEntryTrace entries */
+bool LogEntryProcessorConfig::ReadFromSettings(LogEntryProcessor *lp,Setting *configuration,vector<string> &warnings,int consoleSettings)
 {
 	try
 	{
 
-		Setting &hitMissSettings=configuration->lookup("hitmiss");
-		Setting &botBangerSettings=configuration->lookup("bot_banger");
-		return ReadFromSettings(lp,&hitMissSettings,&botBangerSettings,warnings,consoleSettings);
+		Setting *hitMissSettings=NULL;
+		try
+		{
+			hitMissSettings=&((*configuration )["hitmiss"]);
+		}
+		catch(SettingNotFoundException err)
+		{
+			//ignore
+		}
+		Setting *botBangerSettings=NULL;
+		try
+		{
+			botBangerSettings=&((*configuration )["bot_banger"]);
+		}
+		catch(SettingNotFoundException err)
+		{
+			//ignore
+		}
+		return ReadFromSettings(lp,hitMissSettings,botBangerSettings,warnings,consoleSettings);
 	}
 	catch(SettingException &err)
 	{
@@ -47,110 +76,64 @@ bool LogEntryProcessorConfig::ReadFromSettings(LogEntryProcessor *lp,Config *con
 		return false;
 	}
 }
-bool LogEntryProcessorConfig::ReadFromSettings(LogEntryProcessor *lp,Setting *hitMissSettings,Setting *botBangerSettings,vector<string> &warnings, int consoleSettings)
+
+/* setup hitmiss */
+bool LogEntryProcessorConfig::setupHitMiss(LogEntryProcessor *lp,Setting *hitMissSettings,vector<string> &warnings, int &consoleSettings)
 {
-	UNUSED(botBangerSettings);
-
 	HostHitMissActions *hmac=NULL;
-	BotBangerModelListener *bbml=NULL;
-	lp->Cleanup();
-
-	if (hitMissSettings)
-	{
-		int period;
-		int range;
-		int traceFlags=0;
-		if (!hitMissSettings->lookupValue("period",period)) period=60;
-		if (!hitMissSettings->lookupValue("range",range)) range=5;
-		if (hitMissSettings->lookupValue("trace_flags",traceFlags))
-		{
-			consoleSettings|=
-					(
-							traceFlags&
-							(
-									TraceHitMissAction|
-									TraceHitMissRatio|
-									TraceLogEntries
-							)
-					);
-		}
-		lp->HitMissSetConfig(period,range);
-	}
-	if (botBangerSettings)
-	{
-		int maxips;
-		int traceFlags=0;
-		if (!botBangerSettings->lookupValue("max_ips",maxips) && maxips<100 && maxips>300000) maxips=10000;
-		if (botBangerSettings->lookupValue("trace_flags",traceFlags))
-		{
-			consoleSettings|=
-					(
-							traceFlags&
-							(
-									TraceBotBangerAction|
-									TraceBotBangerFeatures|
-									TraceBotBangerModelInputs|
-									TraceBotBangerModelValues
-							)
-					);
-		}
-		//lp->BotBangerConfig(maxips);
-	}
-
-	if (consoleSettings)
-	{
-
-		if (consoleSettings&TraceHitMissRatio)
-		{
-			lp->RegisterEventListener(new HostHitMissDumper(lp->_output, consoleSettings^(TraceHitMissRatio|ConsoleMode|ServerMode)));
-		}
-		if (consoleSettings&TraceHitMissAction)
-		{
-			hmac=new HostHitMissActionDumper(lp->_output,lp->_actionList);
-			lp->RegisterEventListener(hmac);
-		}
-		if (consoleSettings&TraceBotBangerFeatures)
-		{
-			lp->RegisterEventListener(new BotBangerFeatureDumper(lp->_output));
-		}
-		if (consoleSettings&(TraceBotBangerModelValues|TraceBotBangerModelInputs|TraceBotBangerAction))
-		{
-			bbml=new BotBangerValueDumper(lp->_output,consoleSettings,lp->_actionList);
-			lp->RegisterEventListener(bbml);
-		}
-		if (consoleSettings&ConsoleMode)
-		{
-			lp->RegisterEventListener(new LogEntryProcessorDumper(lp->_output,consoleSettings&TraceLogEntries));
-		}
-		if (consoleSettings&ServerMode)
-		{
-			if (hitMissSettings && !hmac)
-			{
-				hmac=new HostHitMissActionCollector(lp->_actionList);
-				lp->RegisterEventListener(hmac);
-			}
-			if (botBangerSettings && !bbml)
-			{
-				bbml=new BotBangerActionCollector(lp->_actionList);
-				lp->RegisterEventListener(bbml);
-			}
-		}
-	}
-	else
+	if (!hitMissSettings) return true;
+	if (!consoleSettings)
 	{
 		warnings.push_back(string("No consolemode set"));
 		return false;
 	}
 
+	int period;
+	int range;
+	int traceFlags=0;
 
-	if (hitMissSettings && hmac)
+	if (!hitMissSettings->lookupValue("period",period)) period=60;
+	if (!hitMissSettings->lookupValue("range",range)) range=5;
+	if (hitMissSettings->lookupValue("trace_flags",traceFlags))
+	{
+		consoleSettings|= // we also change this for the caller
+				(
+						traceFlags&  // take only the relevant flags
+						(
+								TraceHitMissAction|
+								TraceHitMissRatio|
+								TraceLogEntries
+						)
+				);
+	}
+	lp->HitMissSetConfig(period,range);
+	if (consoleSettings)
+	{
+		if (consoleSettings&TraceHitMissRatio) // add a listener for the hitmiss ratio
+		{
+			lp->RegisterEventListener(new HostHitMissDumper(lp->_output, consoleSettings^(TraceHitMissRatio|ConsoleMode|ServerMode)));
+		}
+		if (consoleSettings&TraceHitMissAction) // add a listener for the actions generated
+		{
+			hmac=new HostHitMissActionDumper(lp->_output,lp->_actionList); // is inherited from HostHitMissActionCollector
+			lp->RegisterEventListener(hmac);
+		}
+		if (consoleSettings&ServerMode)
+		{
+			if (hitMissSettings && !hmac) // in server mode add a listener for the actions
+			{
+				hmac=new HostHitMissActionCollector(lp->_actionList);
+				lp->RegisterEventListener(hmac);
+			}
+		}
+	}
+
+	if (hmac)
 	{
 		Setting &configs=(*hitMissSettings)["configurations"];
 		for (int i=0;i<configs.getLength();i++)
 		{
 			Setting &s=configs[i];
-
-
 
 			try
 			{
@@ -164,7 +147,6 @@ bool LogEntryProcessorConfig::ReadFromSettings(LogEntryProcessor *lp,Setting *hi
 
 
 				hmac->AddConfigLine(host,action,requestLower,requestUpper,ratioLower,ratioUpper,runTime);
-
 			}
 			catch(SettingException &cerr)
 			{
@@ -172,7 +154,59 @@ bool LogEntryProcessorConfig::ReadFromSettings(LogEntryProcessor *lp,Setting *hi
 			}
 		}
 	}
-	if (botBangerSettings && bbml)
+
+	return true;
+}
+
+bool LogEntryProcessorConfig::setupBotBanger(LogEntryProcessor *lp,Setting *botBangerSettings,vector<string> &warnings, int &consoleSettings)
+{
+	BotBangerModelListener *bbml=NULL;
+	if (!botBangerSettings) return true;
+	if (!consoleSettings)
+	{
+		warnings.push_back(string("No consolemode set"));
+		return false;
+	}
+
+	int maxips;
+	int traceFlags=0;
+	if (!botBangerSettings->lookupValue("max_ips",maxips) && maxips<100 && maxips>300000) maxips=10000;
+	if (botBangerSettings->lookupValue("trace_flags",traceFlags))
+	{
+		consoleSettings|=
+				(
+						traceFlags&
+						(
+								TraceBotBangerAction|
+								TraceBotBangerFeatures|
+								TraceBotBangerModelInputs|
+								TraceBotBangerModelValues
+						)
+				);
+	}
+	lp->BotBangerSetConfig(maxips);
+
+
+
+	if (consoleSettings&TraceBotBangerFeatures)
+	{
+		lp->RegisterEventListener(new BotBangerFeatureDumper(lp->_output));
+	}
+	if (consoleSettings&(TraceBotBangerModelValues|TraceBotBangerModelInputs|TraceBotBangerAction))
+	{
+		bbml=new BotBangerValueDumper(lp->_output,consoleSettings,lp->_actionList); // inherited from BotBangerActionCollector
+		lp->RegisterEventListener(bbml);
+	}
+	if (consoleSettings&ServerMode)
+	{
+		if (botBangerSettings && !bbml)
+		{
+			bbml=new BotBangerActionCollector(lp->_actionList);
+			lp->RegisterEventListener(bbml);
+		}
+	}
+
+	if (bbml)
 	{
 		Setting &configs=(*botBangerSettings)["configurations"];
 		for (int i=0;i<configs.getLength();i++)
@@ -221,7 +255,35 @@ bool LogEntryProcessorConfig::ReadFromSettings(LogEntryProcessor *lp,Setting *hi
 			}
 		}
 	}
+	return true;
 
+}
+
+/* configure a LogProcessor from a libconfig::Settings, consolesettings is a bitmask of LogEntryTrace entries */
+bool LogEntryProcessorConfig::ReadFromSettings(LogEntryProcessor *lp,Setting *hitMissSettings,Setting *botBangerSettings,vector<string> &warnings, int consoleSettings)
+{
+	UNUSED(botBangerSettings);
+
+
+	lp->Cleanup();
+	if (!setupHitMiss(lp,hitMissSettings,warnings,consoleSettings)) return false;
+	if (!setupBotBanger(lp,botBangerSettings,warnings,consoleSettings)) return false;
+
+
+
+
+	if (consoleSettings)
+	{
+		if (consoleSettings&ConsoleMode)
+		{
+			lp->RegisterEventListener(new LogEntryProcessorDumper(lp->_output,consoleSettings&TraceLogEntries));
+		}
+	}
+	else
+	{
+		warnings.push_back(string("No consolemode set"));
+		return false;
+	}
 
 	return true;
 
