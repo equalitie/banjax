@@ -32,7 +32,8 @@ public:
 };
 
 /*
- *
+ * Collects all the HostHitMiss actions and pushes them to an actionList
+ * to be collected by the LogEntryProcessor
  */
 class HostHitMissActionCollector:public HostHitMissActions
 {
@@ -44,7 +45,7 @@ public:
 	{
 
 	}
-	virtual void ScheduleAction(HitMissRange *hmr,string &host,string &action,string &currentaction)
+	virtual void OnScheduleAction(HitMissRange *hmr,string &host,string &action,string &currentaction)
 	{
 		UNUSED(currentaction);
 		UNUSED(hmr);
@@ -53,6 +54,9 @@ public:
 
 };
 
+/*
+ * inherited from HostHitMissActionCollector, collects actions for output
+ */
 class HostHitMissActionDumper:public HostHitMissActionCollector,public StringDumper
 {
 public:
@@ -61,21 +65,20 @@ public:
 		StringDumper(output)
 	{
 	}
-	void ScheduleAction(HitMissRange *hmr,string &host,string &action,string &currentaction)
+	void OnScheduleAction(HitMissRange *hmr,string &host,string &action,string &currentaction)
 	{
-		UNUSED(hmr);
+		HostHitMissActionCollector::OnScheduleAction(hmr,host,action,currentaction);
 		char tbuf[8000];
-		if (currentaction==action) return;
-
-
 		sprintf(tbuf,"%s\t%s",host.c_str(),action.c_str());
 		addToDump(tbuf);
-
 		//std::cout << time.tm_hour <<":" << time.tm_min << ":" << time.tm_sec<< "\t" << host<<"\t"<<action<<endl;
 	}
 
 };
 
+/* used for commandline output of the LogEntryProcessor
+ * gathers start data and outputs gathered data at the end of processing a LogEntry
+ */
 class LogEntryProcessorDumper:public LogEntryProcessorEventListener,public StringDumper
 {
 	bool _addLogEntry;
@@ -109,7 +112,10 @@ public:
 	}
 };
 
-
+/*
+ * Collects all the BotBangerModelListener actions and pushes them to an actionList
+ * to be collected by the LogEntryProcessor
+ */
 class BotBangerActionCollector:public BotBangerModelListener
 {
 	vector<externalAction> &_actionList;
@@ -132,7 +138,9 @@ public:
 	}
 };
 
-
+/* inherited from BotBangerModelListener, adds additional logging
+ * for tracing dependant on settings
+ */
 class BotBangerValueDumper:public BotBangerActionCollector,public StringDumper
 {
 	int _traceSetting;

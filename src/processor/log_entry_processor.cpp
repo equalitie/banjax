@@ -44,42 +44,62 @@ LogEntryProcessor::~LogEntryProcessor()
 	Cleanup();
 }
 
+/* add a log entry for processing, depending on the mode (async) this will block or not
+ */
 bool LogEntryProcessor::AddLogEntry(LogEntry *le)
 {
 	if (_async)
 	{
-		SendLogEntry(le);
+		SendLogEntry(le); // for async send it to the queue
 	}
 	else
 	{
-		AggregrateLogEntry(le);
+		AggregrateLogEntry(le); // otherwise process it immediately (blocking)
 	}
 	return true;
 }
 
+/* set the maximum number of entries (ip addresses) for BotBanger
+ */
+void LogEntryProcessor::BotBangerSetConfig(int maxEntries)
+{
+	if (!_running)
+	{
+		if (!_bbag) delete _bbag; // delete existing instance
+		_bbag=newBotbangerAggregator(maxEntries);
+
+	}
+}
+
+/* set the period and range used by HostHitMiss
+ */
 void LogEntryProcessor::HitMissSetConfig(int period,int range)
 {
 	if (!_running)
 	{
-		if (_hhmag) delete _hhmag;
+		if (_hhmag) delete _hhmag; //delete existing instance
 		_hhmag=new HostHitMissAggregator(period,range);
 	}
 }
 
+/* start processing, async is true starts a seperate processing thread
+ */
 bool LogEntryProcessor::Start(bool async)
 {
-	if (_running) return false;
+	if (_running) return false; // cannot start an already running instance
 	_async=async;
-	if (_async)
+	if (_async)  // create processing thread if async
 	{
 		_running=true;
 		pthread_create(&_processorThreadId,NULL,processorThread,this);
-		WaitForControlAck();
+		WaitForControlAck(); // wait till thread has acked and is ready
 	}
 	_running=true;
 	return true;
 }
 
+/* wait for ack on the control queue
+ */
 bool LogEntryProcessor::WaitForControlAck()
 {
 	char q=_ackQueue.Get();
@@ -91,11 +111,13 @@ bool LogEntryProcessor::WaitForControlAck()
 	return true;
 }
 
+/* Receive a LogEntry, return false if a stop command is received
+ */
 bool LogEntryProcessor::ReceiveLogEntry(LogEntry *le)
 {
   FifoMessage *volatile msg=_logEntryQueue.Get();
 
-  auto ok=(msg->size()==sizeof(LogEntry));
+  auto ok=(msg->size()==sizeof(LogEntry));  // if the size is anything else than a LogEntry, it is a stop command
   if (ok)
 	{
 		msg->CopyMessageData(le);
@@ -105,54 +127,63 @@ bool LogEntryProcessor::ReceiveLogEntry(LogEntry *le)
 	return ok;
 }
 
+/* Send a stop command (1 byte instead of a LogEntry) to the _logEntryQueue
+ */
 bool LogEntryProcessor::SendStop()
 {
 	/*zmq::message_t message(1);
 	*((char *) message.data())=255;
 	_zmqLogEntrySender->send(message,0);*/
 
-	FifoMessage *msg=FifoMessage::create((char *) "",1);
+	FifoMessage *msg=FifoMessage::create((char *) "",1); // send 1 byte
 	return _logEntryQueue.ForcedAdd(msg);
 
 }
 
+/* Send a LogEntry to the _logEntryQueue, is copied
+ */
 bool LogEntryProcessor::SendLogEntry(LogEntry *le)
 {
-	FifoMessage *msg=FifoMessage::create(le,sizeof(LogEntry));
+	FifoMessage *msg=FifoMessage::create(le,sizeof(LogEntry)); // send a LogEntry
 	return _logEntryQueue.Add(msg);
 
 }
 
+/* send ack to the control queue
+ */
 bool LogEntryProcessor::SendAck()
 {
 	return _ackQueue.ForcedAdd('a');
-	/*zmq::message_t message(4);
-	strcpy(( char *) message.data(),( char*) "ack");
-	_zmqAckSender->send(message);*/
 
 }
 
+/* register event listener
+ */
 void LogEntryProcessor::RegisterEventListener(BotBangerEventListener *l)
 {
-	EnsureSetup();
+	if (!_bbag) _bbag=newBotbangerAggregator();
 	_bbag->RegisterEventListener(l);
 }
+
+/* register event listener
+ */
 void LogEntryProcessor::RegisterEventListener(HostHitMissEventListener *l)
 {
-	EnsureSetup();
+	if (!_hhmag) _hhmag=new HostHitMissAggregator();
 	_hhmag->RegisterEventListener(l);
 
 }
+
+/* register event listener
+ */
 void LogEntryProcessor::RegisterEventListener(LogEntryProcessorEventListener *l)
 {
 	_eventListeners.push_back(l);
 }
-void LogEntryProcessor::EnsureSetup()
-{
-	if (!_hhmag) _hhmag=new HostHitMissAggregator();
-	if (!_bbag) _bbag=newBotbangerAggregator();
-}
 
+
+/* stop processing, asap is true kills LogEntries in transit
+ */
 void LogEntryProcessor::Stop(bool asap)
 {
 	if (_running)
@@ -171,6 +202,8 @@ void LogEntryProcessor::Stop(bool asap)
 	}
 }
 
+/* clean up
+ */
 void LogEntryProcessor::Cleanup()
 {
 	for (auto i=_eventListeners.begin();i!=_eventListeners.end();i++)
@@ -184,12 +217,17 @@ void LogEntryProcessor::Cleanup()
 	_hhmag=NULL;
 }
 
+/* processor startup thread, takes a pointer to LogEntryProcessor,
+ * calls innerProcessorThread
+ */
 void *LogEntryProcessor::processorThread(void *arg)
 {
 	LogEntryProcessor *p=(LogEntryProcessor *) arg;
 	return p->innerProcesserThread();
 }
 
+/* processor thread which aggregates LogEntries
+ */
 void *LogEntryProcessor::innerProcesserThread()
 {
 	SendAck(); // synchronize with main thread
@@ -208,6 +246,8 @@ void *LogEntryProcessor::innerProcesserThread()
 	return 0;
 }
 
+/* Dump predicted memory usage depending on configuration to stdout
+ */
 void LogEntryProcessor::DumpPredictedMemoryUsage()
 {
 	// we ignore configuration entries
@@ -241,6 +281,8 @@ void LogEntryProcessor::DumpPredictedMemoryUsage()
 	std::cout << "Total size" << ((totalsize+1023)/1024) << "kilobytes" << endl;
 }
 
+/* process LogEntry
+ */
 bool LogEntryProcessor::AggregrateLogEntry(LogEntry *le)
 {
 	_output.clear();
@@ -259,19 +301,23 @@ bool LogEntryProcessor::AggregrateLogEntry(LogEntry *le)
 	}
 	return true;
 }
-BotBangerAggregator *LogEntryProcessor::newBotbangerAggregator()
+
+/* create a BotbangerAggregator with all the features registered
+ */
+BotBangerAggregator *LogEntryProcessor::newBotbangerAggregator(int maxEntries)
 {
-	auto bbag=new BotBangerAggregator(50000);
+	maxEntries=maxEntries<100 ? 100 : maxEntries;
+	auto bbag=new BotBangerAggregator(maxEntries);
 	bbag->RegisterFeature(new FeatureAverageTimeBetweenRequests(),0);//ok
 	bbag->RegisterFeature(new FeatureCyclingUserAgent(),1); //nok
 
 	bbag->RegisterFeature(new FeatureHtmlToImageRatio(),2);	//ok
-	bbag->RegisterFeature(new FeatureVarianceRequestInterval(),3); //nok
+	bbag->RegisterFeature(new FeatureVarianceRequestInterval(),3); //ok
 	bbag->RegisterFeature(new FeatureAveragePayloadSize,4); // ok
-	bbag->RegisterFeature(new FeatureHTTPStatusRatio(),5);
-	bbag->RegisterFeature(new FeatureRequestDepth(),6);
-	bbag->RegisterFeature(new FeatureRequestDepthStd(),7);
+	bbag->RegisterFeature(new FeatureHTTPStatusRatio(),5); // ok
+	bbag->RegisterFeature(new FeatureRequestDepth(),6); // ok
+	bbag->RegisterFeature(new FeatureRequestDepthStd(),7); // ok
 	bbag->RegisterFeature(new FeatureSessionLength(),8);	//ok
-	bbag->RegisterFeature(new FeaturePercentageConsecutiveRequests(),9);
+	bbag->RegisterFeature(new FeaturePercentageConsecutiveRequests(),9); // ok
 	return bbag;
 }
