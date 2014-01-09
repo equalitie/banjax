@@ -35,10 +35,6 @@ using namespace std;
 #include "swabber_interface.h"
 #include "ats_event_handler.h"
 
-#include "processor/log_processor_action_2_banjax.h"
-#include "processor/log_entry_processor.h"
-#include "processor/log_entry_processor_config.h"
-
 extern TSCont Banjax::global_contp;
 
 extern const string Banjax::CONFIG_FILENAME = "banjax.conf";
@@ -83,9 +79,10 @@ Banjax::filter_factory(const string& banjax_dir, const libconfig::Setting& main_
   }
 }
 
-LogEntryProcessor * Banjax::leProcessor = NULL;
 Banjax::Banjax()
-  :all_filters_requested_part(0), all_filters_response_part(0)
+  :banjax_logprocessor_interface(NULL), //we initiate no log processor unless there is a section
+   //in config file
+  all_filters_requested_part(0), all_filters_response_part(0)
 {
   //Everything is static in ATSEventHandle so it is more like a namespace
   //than a class (we never instatiate from it). so the only reason
@@ -115,22 +112,6 @@ Banjax::Banjax()
   //creation of filters happen here
   read_configuration();
 
-  vector<string> warnings;
-  leProcessor=new LogEntryProcessor();
-  if (!LogEntryProcessorConfig::ReadFromSettings(leProcessor,&cfg,warnings,ServerMode) || warnings.size())
-  {
-    TSDebug("banjax", "Failure reading settings for LogEntryProcessor");
-    for(auto i=warnings.begin();i!=warnings.end();i++)
-      TSDebug(BANJAX_PLUGIN_NAME,"Configuration %s",(*i).c_str());
-    delete leProcessor;
-    leProcessor=NULL;
-
-  }
-  if (leProcessor) {
-    TSDebug("banjax", "hook up action proccessor for banajx");
-    leProcessor->RegisterEventListener(new LogProcessorAction2Banjax(this));
-  }
-
   //now Get rid of inactives events
   for(unsigned int cur_queue = BanjaxFilter::HTTP_START; cur_queue < BanjaxFilter::TOTAL_NO_OF_QUEUES; cur_queue++, ATSEventHandler::banjax_active_queues[cur_queue] = task_queues[cur_queue].empty() ? false : true);
 
@@ -141,10 +122,6 @@ Banjax::Banjax()
   }
 
 }
-
-void Banjax::StartLogProcessor() {if (leProcessor) leProcessor->Start(true);}
-void Banjax::SendLogEntryToLogProcessor(LogEntry *le) {if (leProcessor) leProcessor->AddLogEntry(le); TSDebug("banjax", "sending to processor");}
-
 
 void
 Banjax::read_configuration()
@@ -171,8 +148,15 @@ Banjax::read_configuration()
     return;
   }
 
-  filter_factory(banjax_dir, (const libconfig::Setting&)cfg.getRoot());
+  libconfig::Setting &root = cfg.getRoot();
+  //We need to make the log processor so the filter can be given the 
+  //pointer to its interface
+  if (root.exists("log_processor"))
+    banjax_logprocessor_interface = new BanjaxLogProcessorInterface((const libconfig::Setting&)root["log_processor"]);
 
+  if (root.exists("banjax"))
+    filter_factory(banjax_dir, (const libconfig::Setting&)root["banjax"]);
+  
 }
 
 /* Global pointer that keep track of banjax global object */
@@ -200,7 +184,5 @@ TSPluginInit(int argc, const char *argv[])
   /* create the banjax object that control the whole procedure */
   p_banjax_plugin = (Banjax*)TSmalloc(sizeof(Banjax));
   p_banjax_plugin = new(p_banjax_plugin) Banjax;
-
-  p_banjax_plugin->StartLogProcessor();
 
 }

@@ -17,6 +17,9 @@ class LogEntry;
 
 #include "ip_database.h"
 #include "swabber_interface.h"
+
+#include "log_processor_interface.h"
+
 #include "transaction_muncher.h"
 #include "banjax_filter.h"
 
@@ -30,7 +33,6 @@ class Banjax
 
  public:
   typedef std::list<FilterTask> TaskQueue;
-  static LogEntryProcessor *leProcessor;
   
  protected:
   //requests
@@ -39,6 +41,10 @@ class Banjax
   
   IPDatabase ip_database;
   SwabberInterface swabber_interface;
+
+  //the object to communicate with log processor
+  BanjaxLogProcessorInterface* banjax_logprocessor_interface; //This will be initiated after
+  //config file is read
   
   std::list<BanjaxFilter*> filters;
   TaskQueue task_queues[BanjaxFilter::TOTAL_NO_OF_QUEUES];
@@ -47,7 +53,6 @@ class Banjax
   static const std::string CONFIG_FILENAME;
   //libconfig object
   libconfig::Config cfg;
-
 
   /* open the mysql database and read the configs from the database
      this include the regex and l2b models
@@ -75,9 +80,13 @@ class Banjax
   /* Constructor */
   Banjax();
 
-  void StartLogProcessor();
+  /* Destructor destroying all filters and interfaces */
+  ~Banjax()
+  {
+    //TODO: Release everything here though it is not essential as banjax lives 
+    //as long as ATS does
+  }
   void BanIP(const std::string ip,const std::string banning_reason) {swabber_interface.ban(ip,banning_reason);}
-  static void SendLogEntryToLogProcessor(LogEntry *le);
 
 };
 

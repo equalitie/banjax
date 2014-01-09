@@ -80,36 +80,38 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
   send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::UA), true);
   send_zmq_mess(zmqsock, transaction_parts.count(TransactionMuncher::MISS) ? "MISS" : "HIT");
 
-  char* end;
-  size_t size = sizeof(LogEntry);
-  struct LogEntry* le = (LogEntry*)TSmalloc(size);
+  if (log_processor_interface) {
+    char* end;
+    size_t size = sizeof(LogEntry);
+    struct LogEntry* le = (LogEntry*)TSmalloc(size);
   
-  // Zero the struct, so all char[]'s within it are guaranteed to be
-  // 0-terminated later on.
-  memset(le, 0, sizeof(LogEntry) - 1);
+    // Zero the struct, so all char[]'s within it are guaranteed to be
+    // 0-terminated later on.
+    memset(le, 0, sizeof(LogEntry) - 1);
 
-  strncpy(le->hostname, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::HOST).c_str(),
-          sizeof(le->hostname) - 1);
-  strncpy(le->userAgent, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::UA).c_str(),
-          sizeof(le->userAgent) - 1);
-  strncpy(le->url, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::URL).c_str(),
-          sizeof(le->url) - 1);
+    strncpy(le->hostname, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::HOST).c_str(),
+            sizeof(le->hostname) - 1);
+    strncpy(le->userAgent, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::UA).c_str(),
+            sizeof(le->userAgent) - 1);
+    strncpy(le->url, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::URL).c_str(),
+            sizeof(le->url) - 1);
 
-  le->endTime = rawtime;
-  le->msDuration = strtol(VALID_OR_EMPTY(*cur_validity, TransactionMuncher::TXN_MS_DURATION).c_str(), &end, 10);
-  le->httpCode = atoi(VALID_OR_EMPTY(*cur_validity, TransactionMuncher::STATUS).c_str());
-  le->payloadsize= strtol(VALID_OR_EMPTY(*cur_validity, TransactionMuncher::CONTENT_LENGTH).c_str(), &end, 10);
+    le->endTime = rawtime;
+    le->msDuration = strtol(VALID_OR_EMPTY(*cur_validity, TransactionMuncher::TXN_MS_DURATION).c_str(), &end, 10);
+    le->httpCode = atoi(VALID_OR_EMPTY(*cur_validity, TransactionMuncher::STATUS).c_str());
+    le->payloadsize= strtol(VALID_OR_EMPTY(*cur_validity, TransactionMuncher::CONTENT_LENGTH).c_str(), &end, 10);
 
-  // TODO: stale? error?
-  le->cacheLookupStatus = transaction_parts.count(TransactionMuncher::MISS)
+    // TODO: stale? error?
+    le->cacheLookupStatus = transaction_parts.count(TransactionMuncher::MISS)
       ? CacheLookupStatus::Hit : CacheLookupStatus::Miss;
-
-  strncpy(le->useraddress, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP).c_str(),
-          sizeof(le->useraddress) - 1);
-  strncpy(le->contenttype, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::CONTENT_TYPE).c_str(),
-          sizeof(le->contenttype) - 1);
-  Banjax::SendLogEntryToLogProcessor(le);
-  TSfree(le);
+    
+    strncpy(le->useraddress, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP).c_str(),
+            sizeof(le->useraddress) - 1);
+    strncpy(le->contenttype, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::CONTENT_TYPE).c_str(),
+            sizeof(le->contenttype) - 1);
+    log_processor_interface->SendLogEntryToLogProcessor(le);
+    TSfree(le);
+  }
 
   //std::string message((char*)le, sizeof(LogEntry));
   // XXX(oschaaf):

@@ -2,7 +2,7 @@ ACLOCAL_AMFLAGS = -I config-aux --install
 
 AM_CXXFLAGS = -Werror -Wall -Wextra -Wformat=2 -std=c++0x
 
-AM_CPPFLAGS = -I../include -I$(srcdir)/src -I/usr/local/trafficserver/include $(lib_CPPFLAGS) 
+AM_CPPFLAGS = -I../include -I../src/processor -I$(srcdir)/src -I/usr/local/trafficserver/include $(lib_CPPFLAGS) 
 
 LIBLIST=-l re2 -l zmq -l config++
 
@@ -22,6 +22,7 @@ banjax_la_SOURCES = 	banjax.cpp \
 						base64.cpp \
 						ip_database.cpp \
 						swabber_interface.cpp  \
+						log_processor_interface.cpp \
 						cookie_parser.cpp \
 						cookiehash.cpp \
 						challenge_manager.cpp \
