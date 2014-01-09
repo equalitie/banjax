@@ -47,8 +47,6 @@ PKG_CHECK_MODULES([libconfig], [libconfig++ >= 1.4.8])
 PKG_CHECK_MODULES([libzmq], [libzmq >= 2.2.0])
 # fast regex recognition
 #PKG_CHECK_MODULES([libre], [libre2 >= 2.0.0])
-
-
 LIBS="$libcrypto_LIBS $libconfig_LIBS $libzmq_LIBS $libre2_LIBS -lpthread"
 
 lib_CPPFLAGS="$libcrypto_CFLAGS $libconfig_CFLAGS"
@@ -82,5 +80,3 @@ AC_LANG([C++])
 
 #AC_CONFIG_FILES([Makefile])
 AC_OUTPUT(Makefile src/Makefile doc/Makefile test/Makefile src/processor/Makefile)
-
- 

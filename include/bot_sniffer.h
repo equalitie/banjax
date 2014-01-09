@@ -11,6 +11,7 @@
 #include <zmq.hpp>
 
 #include "banjax_filter.h"
+#include "log_processor_interface.h"
 
 class BotSniffer : public BanjaxFilter
 {
@@ -23,6 +24,8 @@ class BotSniffer : public BanjaxFilter
   unsigned int botbanger_port;
   std::string botbanger_server;
 
+  BanjaxLogProcessorInterface* log_processor_interface;
+
 public:
   const std::string BOTBANGER_LOG;
 
@@ -30,9 +33,16 @@ public:
      receives the config object need to read the ip list,
      subsequently it reads all the ips
 
+     @param log_processor_interface a pointer to log_processor interface which
+                                    provides interactions with log_processor
+                                    if it is not NULL, bot_sniffer will submit
+                                    logs to log_pocessor through this object
+
   */
- BotSniffer(const std::string& banjax_dir, const libconfig::Setting& main_root)
-   :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME), context (1), zmqsock (context, ZMQ_PUB), botbanger_server("*"), BOTBANGER_LOG("botbanger_log")
+ BotSniffer(const std::string& banjax_dir, const libconfig::Setting& main_root, BanjaxLogProcessorInterface* global_log_processor_interface = NULL)
+   :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME), context (1), zmqsock (context, ZMQ_PUB), botbanger_server("*"), 
+    log_processor_interface(global_log_processor_interface), 
+    BOTBANGER_LOG("botbanger_log")
   {
     queued_tasks[HTTP_CLOSE] = static_cast<FilterTaskFunction>(&BotSniffer::execute);
     load_config(main_root[BANJAX_FILTER_NAME]);

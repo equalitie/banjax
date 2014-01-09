@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I config-aux --install
 AM_CXXFLAGS = -Werror -Wall -Wextra -Wformat=2 -std=c++0x
-AM_CPPFLAGS = -I../include -I/usr/local/trafficserver/include $(lib_CPPFLAGS) -pthread
+AM_CPPFLAGS = -I../include -I../src/processor -I/usr/local/trafficserver/include $(lib_CPPFLAGS) -pthread
 
 noinst_PROGRAMS  = unittests
 
