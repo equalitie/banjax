@@ -25,6 +25,7 @@ class LogEntryProcessorEventListener
 public:
 	virtual void OnLogEntryStart(LogEntry *le)=0; // fires before a LogEntry is processed
 	virtual void OnLogEntryEnd(LogEntry *le,string &output,vector<externalAction> &actionList)=0; // fires when a LogEntry has been processed
+	virtual bool IsOwnedByProcessor() {return true;} // is this listener owned by the processor and should it be deleted
 	virtual ~LogEntryProcessorEventListener() {;}
 };
 
@@ -83,6 +84,7 @@ public:
 	void RegisterEventListener(BotBangerEventListener *l); // register listener
 	void RegisterEventListener(HostHitMissEventListener *l); // register listener
 	void RegisterEventListener(LogEntryProcessorEventListener *l); // register listener
+
 
 	friend class LogEntryProcessorConfig;
 };
