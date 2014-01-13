@@ -11,8 +11,14 @@
 #ifndef BANJAX_LOG_PROCESSOR_INTERFACE_H
 #define BANJAX_LOG_PROCESSOR_INTERFACE_H
 
+namespace libconfig
+{
+class Setting;
+}
+
+#include <ts/ts.h>
 #include "log_entry_processor.h"
-class BanjaxLogProcessorInterface
+class BanjaxLogProcessorInterface:public LogEntryProcessorEventListener
 {
  protected:
   LogEntryProcessor *leProcessor;
@@ -38,8 +44,15 @@ class BanjaxLogProcessorInterface
   /**
      Destructor: stopping the thread, etc.
    */
-  ~BanjaxLogProcessorInterface();
+  virtual ~BanjaxLogProcessorInterface();
   
+  // this stops the LogEntryProcessor from deleting us
+  // it doesn't own us, we own the LogEntryProcessor
+  virtual bool IsOwnedByProcessor();
+
+  virtual void OnLogEntryStart(LogEntry *le);
+  virtual void OnLogEntryEnd(LogEntry *le,string &output,vector<externalAction> &actionList);
+
  };
 
 #endif /*db_tools.h*/

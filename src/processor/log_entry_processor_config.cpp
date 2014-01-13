@@ -45,7 +45,7 @@ bool LogEntryProcessorConfig::ReadFromSettings(LogEntryProcessor *lp,Config *con
 	return ReadFromSettings(lp,configuration->getRoot(),warnings,consoleSettings);
 }
 /* configure a LogProcessor from a libconfig::Config, consolesettings is a bitmask of LogEntryTrace entries */
-bool LogEntryProcessorConfig::ReadFromSettings(LogEntryProcessor *lp,Setting *configuration,vector<string> &warnings,int consoleSettings)
+bool LogEntryProcessorConfig::ReadFromSettings(LogEntryProcessor *lp,const Setting *configuration,vector<string> &warnings,int consoleSettings)
 {
 	try
 	{

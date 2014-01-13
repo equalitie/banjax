@@ -1,3 +1,5 @@
+// KS:moved this to /src/log_processor_interface, should be deleted in next iteration
+#ifdef DONOTCOMPILETHISPLEASE
 
 #include "log_entry.h"
 #include "log_entry_processor.h"
@@ -47,3 +49,4 @@ public:
 	}
 
 };
+#endif

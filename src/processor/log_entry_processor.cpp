@@ -208,7 +208,8 @@ void LogEntryProcessor::Cleanup()
 {
 	for (auto i=_eventListeners.begin();i!=_eventListeners.end();i++)
 	{
-		delete (*i);
+		if ((*i)->IsOwnedByProcessor())
+			delete (*i);
 	}
 	_eventListeners.clear();
 	if (_bbag) delete _bbag;

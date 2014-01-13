@@ -19,7 +19,7 @@ public:
 	/* configure a LogProcessor from a libconfig::Config, consolesettings is a bitmask of LogEntryTrace entries */
 	static bool ReadFromSettings(LogEntryProcessor *lp,Config *configuration,vector<string> &warnings,int consoleSettings);
 	/* configure a LogProcessor from a libconfig::Setting, consolesettings is a bitmask of LogEntryTrace entries */
-	static bool ReadFromSettings(LogEntryProcessor *lp,Setting *configuration,vector<string> &warnings,int consoleSettings);
+	static bool ReadFromSettings(LogEntryProcessor *lp,const Setting *configuration,vector<string> &warnings,int consoleSettings);
 	/* configure a LogProcessor from a libconfig::Settings, consolesettings is a bitmask of LogEntryTrace entries */
 	static bool ReadFromSettings(LogEntryProcessor *lp,Setting *hitMissSettings,Setting *botBangerSettings,vector<string> &warnings, int consoleSettings=0);
 };
