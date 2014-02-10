@@ -91,13 +91,14 @@
 					<img width="210" height="70" src="__captcha" id='captchaimg' alt="captcha" />
 					<input type="button" value="Regenerate" id="btnregen" onclick="DCaptcha.regen()" />
 					<br/><br />
-					<input type="text" maxlength="5" id="answer" onkeydown="DCaptcha.keydown()" placeholder="Captcha text" />
+					<input type="text" maxlength="5" id="answer" onkeydown="DCaptcha.keydown()" />
 					<input type="button" value="Send" id="btnsend" onclick="DCaptcha.send()" />
 				</div>
 			</div>
 		</div>
 		<script type="application/javascript">
 			var DCaptcha = {}
+			document.getElementById('answer').focus()
 
 			DCaptcha.send = function(e) {
 				DCaptcha.AJAXLoad(
