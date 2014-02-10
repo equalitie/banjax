@@ -112,11 +112,11 @@
 				document.getElementById('captchaimg').src = document.getElementById('captchaimg').src
 			}
 
-			DCaptcha.keydown = function(event) {
-				console.log(event)
-				//if ( == 13) {
-				//	DCaptcha.send()
-				//}
+			DCaptcha.keydown = function(e) {
+				e = e || window.event
+				if ((e.charCode || e.keyCode) == 13) {
+					DCaptcha.send()
+				}
 			}
 
 			DCaptcha.AJAXLoad = function(url) {
