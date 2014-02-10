@@ -114,9 +114,10 @@
 			}
 
 			DCaptcha.keydown = function(e) {
-				if ((e.charCode || e.keyCode) == 13) {
-					DCaptcha.send()
-				}
+				console.log(e)
+				//if ( == 13) {
+				//	DCaptcha.send()
+				//}
 			}
 
 			DCaptcha.AJAXLoad = function(url, callback) {
@@ -130,7 +131,6 @@
 				}
 				xmlhttp.onreadystatechange = function() {
 					if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-						console.log(xmlhttp.responseText)
 						callback(xmlhttp.responseText)
 					}
 				}
@@ -139,6 +139,8 @@
 			}
 
 			DCaptcha.checkResponse = function(response) {
+				console.log(response)
+				console.log(response.length)
 				if (response == 'OK') {
 					document.getElementById('message').style.color = '#0F0'
 					document.getElementById('message').innerHTML = 'Solved! Redirecting to destination...'
