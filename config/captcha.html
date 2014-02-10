@@ -102,8 +102,7 @@
 
 			DCaptcha.send = function(e) {
 				DCaptcha.AJAXLoad(
-					'/__validate/' + document.getElementById('answer').value,
-					DCaptcha.checkResponse()
+					'/__validate/' + document.getElementById('answer').value
 				)
 			}
 
@@ -113,14 +112,14 @@
 				document.getElementById('captchaimg').src = document.getElementById('captchaimg').src
 			}
 
-			DCaptcha.keydown = function(e) {
-				console.log(e)
+			DCaptcha.keydown = function(event) {
+				console.log(event)
 				//if ( == 13) {
 				//	DCaptcha.send()
 				//}
 			}
 
-			DCaptcha.AJAXLoad = function(url, callback) {
+			DCaptcha.AJAXLoad = function(url) {
 				// IE7+, Firefox, Chrome, Opera, Safari
 				if (window.XMLHttpRequest) {
 					var xmlhttp = new XMLHttpRequest()
@@ -131,28 +130,22 @@
 				}
 				xmlhttp.onreadystatechange = function() {
 					if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-						callback(xmlhttp.responseText)
+						if (xmlhttp.responseText == 'OK') {
+							document.getElementById('message').style.color = '#0F0'
+							document.getElementById('message').innerHTML = 'Solved! Redirecting to destination...'
+							document.location.reload()
+						}
+						else {
+							var ns = document.getElementById('captchaimg').src
+							document.getElementById('captchaimg').src = this.href = ns.split('?')[0] + '?' + new Date().getTime()
+							document.getElementById('message').style.color = '#F00'
+							document.getElementById('message').innerHTML = 'Invalid answer, please try again.'
+							document.getElementById('answer').val = ''
+						}
 					}
 				}
 				xmlhttp.open('GET', url, true)
 				xmlhttp.send()
-			}
-
-			DCaptcha.checkResponse = function(response) {
-				console.log(response)
-				console.log(response.length)
-				if (response == 'OK') {
-					document.getElementById('message').style.color = '#0F0'
-					document.getElementById('message').innerHTML = 'Solved! Redirecting to destination...'
-					document.location.reload()
-				}
-				else {
-					var ns = document.getElementById('captchaimg').src
-					document.getElementById('captchaimg').src = this.href = ns.split('?')[0] + '?' + new Date().getTime()
-					document.getElementById('message').style.color = '#F00'
-					document.getElementById('message').innerHTML = 'Invalid answer, please try again.'
-					document.getElementById('answer').val = ''
-				}
 			}
 		</script>
 	</body>
