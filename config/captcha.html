@@ -90,10 +90,10 @@
 				<p id="message">&nbsp;</p>
 				<div id="captcha">
 					<img width="210" height="70" src="__captcha" id='captchaimg' alt="captcha" />
-					<input type="button" value="Regenerate" id="btnregen" onclick="DCaptcha.regen()" />
+					<input type="button" value="Regenerate" id="btnregen" onclick="DCaptcha.regen(event)" />
 					<br/><br />
-					<input type="text" maxlength="5" id="answer" onkeydown="DCaptcha.keydown()" />
-					<input type="button" value="Send" id="btnsend" onclick="DCaptcha.send()" />
+					<input type="text" maxlength="5" id="answer" onkeydown="DCaptcha.keydown(event)" />
+					<input type="button" value="Send" id="btnsend" onclick="DCaptcha.send(event)" />
 				</div>
 			</div>
 		</div>
@@ -114,8 +114,7 @@
 			}
 
 			DCaptcha.keydown = function(e) {
-				e = e || window.event
-				if ((e.charCode || e.keyCode) == 13) {
+				if (((window.Event)?e.which:e.keyCode) == 13) {
 					DCaptcha.send()
 				}
 			}
