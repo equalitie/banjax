@@ -99,59 +99,58 @@
 		<script type="application/javascript">
 			var DCaptcha = {}
 
-			(function(){
+			DCaptcha.send = function(e) {
+				DCaptcha.AJAXLoad(
+					'/__validate/' + document.getElementById('answer').value,
+					DCaptcha.checkResponse()
+				)
+			}
 
-				DCaptcha.send = function(e) {
-					AJAXLoad('/__validate/' + document.getElementById('answer').value, done)
+			DCaptcha.regen = function(e) {
+				var ns = document.getElementById('captchaimg').src
+				document.getElementById('captchaimg').src = ns.split('?')[0]+'?'+new Date().getTime()
+				document.getElementById('captchaimg').src = document.getElementById('captchaimg').src
+			}
+
+			DCaptcha.keydown = function(e) {
+				if (e.which == 13) {
+					DCaptcha.send()
 				}
+			}
 
-				DCaptcha.regen = function(e) {
+			DCaptcha.AJAXLoad = function(url, callback) {
+				// IE7+, Firefox, Chrome, Opera, Safari
+				if (window.XMLHttpRequest) {
+					var xmlhttp = new XMLHttpRequest()
+				}
+				// IE6, IE5
+				else {
+					var xmlhttp = new ActiveXObject('Microsoft.XMLHTTP')
+				}
+				xmlhttp.onreadystatechange = function() {
+					if (xmlhttp.readyState == 4
+						&& xmlhttp.status == 200) {
+						callback(xmlhttp.responseText)
+					}
+				}
+				xmlhttp.open('GET', url, true)
+				xmlhttp.send()
+			}
+
+			DCaptcha.checkResponse = function(response) {
+				if (response == 'OK') {
+					document.getElementById('message').style.color = '#0F0'
+					document.getElementById('message').innerHTML = 'Solved! Redirecting to destination...'
+					document.location.reload()
+				}
+				else {
 					var ns = document.getElementById('captchaimg').src
-					document.getElementById('captchaimg').src = ns.split('?')[0]+'?'+new Date().getTime()
-					document.getElementById('captchaimg').src = document.getElementById('captchaimg').src
+					document.getElementById('captchaimg').src = this.href = ns.split('?')[0] + '?' + new Date().getTime()
+					document.getElementById('message').style.color = '#F00'
+					document.getElementById('message').innerHTML = 'Invalid answer, please try again.'
+					document.getElementById('answer').val = ''
 				}
-
-				DCaptcha.keydown = function(e) {
-					if (e.which == 13) {
-						DCaptcha.send()
-					}
-				}
-
-				function AJAXLoad(url, callback) {
-					// IE7+, Firefox, Chrome, Opera, Safari
-					if (window.XMLHttpRequest) {
-						var xmlhttp = new XMLHttpRequest()
-					}
-					// IE6, IE5
-					else {
-						var xmlhttp = new ActiveXObject('Microsoft.XMLHTTP')
-					}
-					xmlhttp.onreadystatechange = function() {
-						if (xmlhttp.readyState == 4
-							&& xmlhttp.status == 200) {
-							callback(xmlhttp.responseText)
-						}
-					}
-					xmlhttp.open('GET', url, true)
-					xmlhttp.send()
-				}
-
-				function done(response) {
-					if (response == 'OK') {
-						document.getElementById('message').style.color = '#0F0'
-						document.getElementById('message').innerHTML = 'Solved! Redirecting to destination...'
-						document.location.reload()
-					}
-					else {
-						var ns = document.getElementById('captchaimg').src
-						document.getElementById('captchaimg').src = this.href = ns.split('?')[0] + '?' + new Date().getTime()
-						document.getElementById('message').style.color = '#F00'
-						document.getElementById('message').innerHTML = 'Invalid answer, please try again.'
-						document.getElementById('answer').val = ''
-					}
-				}
-
-			})()
+			}
 		</script>
 	</body>
 </html>
