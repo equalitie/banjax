@@ -113,7 +113,7 @@
 			}
 
 			DCaptcha.keydown = function(e) {
-				if (e.which == 13) {
+				if ((e.charCode || e.keyCode) == 13) {
 					DCaptcha.send()
 				}
 			}
@@ -128,8 +128,8 @@
 					var xmlhttp = new ActiveXObject('Microsoft.XMLHTTP')
 				}
 				xmlhttp.onreadystatechange = function() {
-					if (xmlhttp.readyState == 4
-						&& xmlhttp.status == 200) {
+					if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+						console.log(xmlhttp.responseText)
 						callback(xmlhttp.responseText)
 					}
 				}
