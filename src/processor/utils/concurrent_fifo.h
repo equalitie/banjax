@@ -4,10 +4,6 @@
 #include <pthread.h>
 #include <string.h>
 
-
-
-
-
 class lock
 {
 	pthread_mutex_t &_mutex;
@@ -61,7 +57,6 @@ public:
 	{
 		pthread_mutex_init(&_mutex,NULL);
 		pthread_cond_init(&_condv,NULL);
-
 
 	}
 	~ConcurrentFifo()

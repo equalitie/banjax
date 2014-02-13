@@ -47,6 +47,11 @@ bool LogEntryProcessorConfig::ReadFromSettings(LogEntryProcessor *lp,Config *con
 /* configure a LogProcessor from a libconfig::Config, consolesettings is a bitmask of LogEntryTrace entries */
 bool LogEntryProcessorConfig::ReadFromSettings(LogEntryProcessor *lp,const Setting *configuration,vector<string> &warnings,int consoleSettings)
 {
+
+  //eq-review 2014-02-13: This kind of hardcoding of filters isn't acceptable
+  //vmon talked to Kees and he suggested a factory based approach but we at 
+  //least a mid way approach that a user adding a new filter doesn't need to
+  //edit every other function and file
 	try
 	{
 
@@ -262,8 +267,7 @@ bool LogEntryProcessorConfig::setupBotBanger(LogEntryProcessor *lp,Setting *botB
 /* configure a LogProcessor from a libconfig::Settings, consolesettings is a bitmask of LogEntryTrace entries */
 bool LogEntryProcessorConfig::ReadFromSettings(LogEntryProcessor *lp,Setting *hitMissSettings,Setting *botBangerSettings,vector<string> &warnings, int consoleSettings)
 {
-	UNUSED(botBangerSettings);
-
+    //eq-review 2014-02-13??: UNUSED(botBangerSettings);
 
 	lp->Cleanup();
 	if (!setupHitMiss(lp,hitMissSettings,warnings,consoleSettings)) return false;

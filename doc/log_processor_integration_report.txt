@@ -1,0 +1,6 @@
+* TODO Check botsniffer with no event listener subscribed to log processor
+** TODO Edit the constructor of LogEntryProcessor to disable hitmiss and botbanger
+*** TODO Request: disabling hitmiss/botbanger should be possible from the banjax.conf
+* TODO Check hitmiss
+* TODO Check BotBanger
+* TODO Check the whole system
