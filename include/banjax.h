@@ -10,11 +10,6 @@
 #include <string>
 #include <list>
 
-class ATSEventHandler;
-class BanjaxFilter;
-class LogEntryProcessor;
-class LogEntry;
-
 #include "ip_database.h"
 #include "swabber_interface.h"
 
