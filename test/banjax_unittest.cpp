@@ -8,7 +8,7 @@
  */
 
 #include "banjax.h"
-#include "gtest.h"
+#include "gtest/include/gtest.h"
 
 class BanjaxTest : public testing:Test
 {

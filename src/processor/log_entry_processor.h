@@ -1,13 +1,9 @@
 #ifndef PROCESSOR_H
 #define PROCESSOR_H
 
-
-
-
 #include "utils/concurrent_fifo.h"
 #include "utils/svm/svm.h"
 #include "external_action.h"
-
 
 struct LogEntry;
 class BotBangerAggregator;

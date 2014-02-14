@@ -1,6 +1,7 @@
+
 ACLOCAL_AMFLAGS = -I config-aux --install
 AM_CXXFLAGS = -Werror -Wall -Wextra -Wformat=2 -std=c++0x
-AM_CPPFLAGS = -I../include -I../src/processor -I/usr/local/trafficserver/include $(lib_CPPFLAGS) -pthread
+AM_CPPFLAGS = -I../include -I../src -I../utils -I../src/processor -I/usr/local/trafficserver/include $(lib_CPPFLAGS) -pthread
 
 noinst_PROGRAMS  = unittests
 
@@ -53,9 +54,9 @@ unittests_SOURCES = unittest_common.cpp \
 					../src/processor/hosthitmiss/host_hit_miss_aggregator.cpp \
 					../src/processor/test/host_hit_miss_aggregator_test.cpp \
 					../src/processor/hosthitmiss/host_hit_miss_feature.cpp \
-					../src/processor/utils/string_utils.cpp \
-					../src/processor/utils/svm/svm.cpp \
-					../src/processor/utils/hashfunctions/crc32.cpp \
+					../src/utils/string_utils.cpp \
+					../src/utils/svm/svm.cpp \
+					../src/utils/hashfunctions/crc32.cpp \
 					../src/processor/log_entry_processor.cpp \
 					../src/processor/log_entry_processor_config.cpp
 

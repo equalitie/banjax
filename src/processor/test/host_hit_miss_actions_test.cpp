@@ -47,8 +47,8 @@ TEST(host_hit_miss_actions,test_actions_request_match)
 			hhm.Aggregate(&le);
 			if (i==0) // we triggered a new range
 			{
-				EXPECT_EQ(1,actionList.size());
-				actionList.clear();
+			  EXPECT_EQ((unsigned)1,actionList.size());
+			  actionList.clear();
 
 			}
 		}
@@ -61,9 +61,9 @@ TEST(host_hit_miss_actions,test_actions_request_match)
 		}
 
 		if (c<=3000)
-			EXPECT_EQ(1,actionList.size());
+			EXPECT_EQ((unsigned)1,actionList.size());
 		else
-			EXPECT_EQ(0,actionList.size());
+			EXPECT_EQ((unsigned)0,actionList.size());
 		if (c==0)
 			EXPECT_STREQ((string(le.hostname)+string(":test1:")).c_str(),actionList[0].c_str());
 		else
@@ -102,7 +102,7 @@ TEST(host_hit_miss_actions,test_actions_ratio_match_zero)
 
 	le.cacheLookupStatus=CacheLookupStatus::Miss;
 	hhm.Aggregate(&le);
-	EXPECT_EQ(1,actionList.size());
+	EXPECT_EQ((unsigned)1,actionList.size());
 	EXPECT_STREQ("host1:zero:",actionList[0].c_str());
 	actionList.clear();
 
@@ -110,19 +110,19 @@ TEST(host_hit_miss_actions,test_actions_ratio_match_zero)
 	le.endTime+=5;
 	le.cacheLookupStatus=CacheLookupStatus::Hit;
 	hhm.Aggregate(&le);
-	EXPECT_EQ(0,actionList.size());
+	EXPECT_EQ((unsigned)0,actionList.size());
 
 	// add a miss record, we expect the ratio to go down, but not to zero, so no action
 	le.endTime+=5;
 	le.cacheLookupStatus=CacheLookupStatus::Miss;
 	hhm.Aggregate(&le);
-	EXPECT_EQ(0,actionList.size());
+	EXPECT_EQ((unsigned)0,actionList.size());
 
 	// slide the window past the period, expect an action, because the hit is out of the picture
 	le.endTime+=65;
 	le.cacheLookupStatus=CacheLookupStatus::Miss;
 	hhm.Aggregate(&le);
-	EXPECT_EQ(1,actionList.size());
+	EXPECT_EQ((unsigned)1,actionList.size());
 	EXPECT_STREQ("host1:zero:zero",actionList[0].c_str());
 	actionList.clear();
 
@@ -146,7 +146,7 @@ TEST(host_hit_miss_actions,test_actions_ratio_match_one)
 
 	le.cacheLookupStatus=CacheLookupStatus::Hit;
 	hhm.Aggregate(&le);
-	EXPECT_EQ(1,actionList.size());
+	EXPECT_EQ((unsigned)1,actionList.size());
 	EXPECT_STREQ("host1:one:",actionList[0].c_str());
 	actionList.clear();
 
@@ -154,19 +154,19 @@ TEST(host_hit_miss_actions,test_actions_ratio_match_one)
 	le.endTime+=5;
 	le.cacheLookupStatus=CacheLookupStatus::Miss;
 	hhm.Aggregate(&le);
-	EXPECT_EQ(0,actionList.size());
+	EXPECT_EQ((unsigned)0,actionList.size());
 
 	// add a miss record, we expect the ratio to go up, but not to 1, so no action
 	le.endTime+=5;
 	le.cacheLookupStatus=CacheLookupStatus::Hit;
 	hhm.Aggregate(&le);
-	EXPECT_EQ(0,actionList.size());
+	EXPECT_EQ((unsigned)0,actionList.size());
 
 	// slide the window past the period, expect an action, because the hit is out of the picture
 	le.endTime+=65;
 	le.cacheLookupStatus=CacheLookupStatus::Hit;
 	hhm.Aggregate(&le);
-	EXPECT_EQ(1,actionList.size());
+	EXPECT_EQ((unsigned)1,actionList.size());
 	EXPECT_STREQ("host1:one:one",actionList[0].c_str());
 	actionList.clear();
 }
@@ -197,7 +197,7 @@ TEST(host_hit_miss_actions,test_actions_ratio_match_half)
 		le.cacheLookupStatus=hit ? CacheLookupStatus::Hit : CacheLookupStatus::Miss;
 		hhm.Aggregate(&le);
 
-		EXPECT_EQ(1,actionList.size());
+		EXPECT_EQ((unsigned)1,actionList.size());
 
 		if (hit)
 		{
@@ -233,7 +233,7 @@ TEST(host_hit_miss_actions,test_actions_runtime_1000)
 
 	le.cacheLookupStatus=CacheLookupStatus::Miss;
 	hhm.Aggregate(&le);
-	EXPECT_EQ(1,actionList.size());
+	EXPECT_EQ((unsigned)1,actionList.size());
 	actionList.clear();
 
 	time_t start_time=le.endTime;
@@ -249,7 +249,7 @@ TEST(host_hit_miss_actions,test_actions_runtime_1000)
 			break;
 		}
 	}
-	EXPECT_EQ(1,actionList.size()); // we should have had a match
+	EXPECT_EQ((unsigned)1,actionList.size()); // we should have had a match
 }
 
 /* test ratio, request number matrix   */
@@ -291,11 +291,11 @@ void test_actions_ratio_request_matrix_inner(int requests,double ratio,int lower
 
 	if (expect_action)
 	{
-		EXPECT_EQ(1,actionList.size());
+		EXPECT_EQ((unsigned)1,actionList.size());
 	}
 	else
 	{
-		EXPECT_EQ(0,actionList.size());
+		EXPECT_EQ((unsigned)0,actionList.size());
 	}
 
 

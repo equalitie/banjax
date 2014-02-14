@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I config-aux --install
 AM_CXXFLAGS = -Werror -Wall -Wextra -Wformat=2 -std=c++0x -Wno-error=unused-result -pthread
-AM_CPPFLAGS = -I../../include  $(lib_CPPFLAGS) -pthread
+AM_CPPFLAGS = -I../../include  -I.. $(lib_CPPFLAGS) -pthread
 
 
 noinst_PROGRAMS  = LogProcessor
@@ -30,9 +30,9 @@ LogProcessor_SOURCES = \
 	hosthitmiss/host_hit_miss_actions.cpp \
 	hosthitmiss/host_hit_miss_aggregator.cpp \
 	hosthitmiss/host_hit_miss_feature.cpp \
-	utils/string_utils.cpp \
-	utils/svm/svm.cpp \
-	utils/hashfunctions/crc32.cpp \
+	../utils/string_utils.cpp \
+	../utils/svm/svm.cpp \
+	../utils/hashfunctions/crc32.cpp \
 	log_processor_main.cpp \
 	log_entry_processor.cpp \
 	log_entry_processor_config.cpp

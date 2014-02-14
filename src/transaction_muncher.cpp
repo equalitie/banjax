@@ -247,6 +247,8 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
 const TransactionParts&
 TransactionMuncher::retrieve_response_parts(uint64_t requested_log_parts)
 {
+  TSDebug("banjax", "retrieving response parts %ld", requested_log_parts);
+  
   //only turn those bits that are off in valid_parts and off in requested
   uint64_t parts_to_retreive = (~valid_parts) & requested_log_parts;
   
@@ -272,12 +274,14 @@ TransactionMuncher::retrieve_response_parts(uint64_t requested_log_parts)
 
     TSMLoc field_loc = TSMimeHdrFieldFind(response_header, response_header_location, "Content-Length", 12);
     if (!field_loc) {
+      TSDebug("banjax", "field_loc for Content-Length is empty");
       cur_trans_parts[CONTENT_LENGTH] = "0";
     }
     else {
       int field_length;
       const char* content_length = TSMimeHdrFieldValueStringGet(response_header, response_header_location, field_loc, 0, &field_length);
       
+      TSDebug("banjax", "Content-Length: %s", content_length);
       cur_trans_parts[CONTENT_LENGTH] = string(content_length, field_length);
 
       TSHandleMLocRelease(response_header, response_header_location, field_loc);
