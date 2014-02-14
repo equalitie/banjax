@@ -56,7 +56,7 @@ TEST(bot_banger_aggregator,eviction_test_same_timestamp)
 		bag.Aggregate(&le);
 	}
 	// we now have 100 ip's
-	EXPECT_EQ(0,evictedIps.size());
+	EXPECT_EQ((unsigned)0,evictedIps.size());
 
 	// add 101st , trigger eviction
 	sprintf(le.useraddress,"50.50.50.%d",100);
@@ -64,7 +64,7 @@ TEST(bot_banger_aggregator,eviction_test_same_timestamp)
 
 	// there should be 10 unique ips which are evicted, doesn't matter which, because the
 	// timestamp is the same for all entries but, last one should not be evicted
-	EXPECT_EQ(10,evictedIps.size());
+	EXPECT_EQ((unsigned)10,evictedIps.size());
 	set<string> checkUnique;
 	for(auto i=evictedIps.begin();i!=evictedIps.end();i++)
 	{
@@ -72,7 +72,7 @@ TEST(bot_banger_aggregator,eviction_test_same_timestamp)
 		checkUnique.insert(*i);
 
 	}
-	EXPECT_EQ(10,checkUnique.size()); // there should be 10 unique entries in the evict list
+	EXPECT_EQ((unsigned)10,checkUnique.size()); // there should be 10 unique entries in the evict list
 
 	evictedIps.clear();
 	checkUnique.clear();
@@ -84,20 +84,20 @@ TEST(bot_banger_aggregator,eviction_test_same_timestamp)
 		bag.Aggregate(&le);
 	}
 	// should not be any evicted IP's
-	EXPECT_EQ(0,evictedIps.size());
+	EXPECT_EQ((unsigned)0,evictedIps.size());
 
 	// add 111th, should trigger eviction
 	sprintf(le.useraddress,"50.50.50.%d",110);
 	bag.Aggregate(&le);
 
-	EXPECT_EQ(10,evictedIps.size());
+	EXPECT_EQ((unsigned)10,evictedIps.size());
 	for(auto i=evictedIps.begin();i!=evictedIps.end();i++)
 	{
 		EXPECT_STRCASENE("50.50.50.100",(*i).c_str()); // last one should not be in list
 		checkUnique.insert(*i);
 
 	}
-	EXPECT_EQ(10,checkUnique.size()); // there should be 10 unique entries in the evict list
+	EXPECT_EQ((unsigned)10,checkUnique.size()); // there should be 10 unique entries in the evict list
 }
 
 // test eviction with differing timestamp
@@ -116,7 +116,7 @@ TEST(bot_banger_aggregator,eviction_test_ascending_timestamp)
 		bag.Aggregate(&le);
 	}
 	// we now have 100 ip's
-	EXPECT_EQ(0,evictedIps.size());
+	EXPECT_EQ((unsigned)0,evictedIps.size());
 
 	// add 101st , trigger eviction
 	sprintf(le.useraddress,"50.50.50.%d",100);
@@ -126,7 +126,7 @@ TEST(bot_banger_aggregator,eviction_test_ascending_timestamp)
 	// there should be 10 unique ips which are evicted, these should be
 	// the first ones, with the oldest timestamp
 	//, last one should not be evicted
-	EXPECT_EQ(10,evictedIps.size());
+	EXPECT_EQ((unsigned)10,evictedIps.size());
 
 	int n=0;
 	char temp[100];
@@ -159,14 +159,14 @@ TEST(bot_banger_aggregator,eviction_test_ascending_timestamp)
 		bag.Aggregate(&le);
 	}
 
-	EXPECT_EQ(0,evictedIps.size());
+	EXPECT_EQ((unsigned)0,evictedIps.size());
 
 	// add 111th, should trigger eviction
 	le.endTime++;
 	sprintf(le.useraddress,"50.50.50.%d",110);
 	bag.Aggregate(&le);
 
-	EXPECT_EQ(10,evictedIps.size());
+	EXPECT_EQ((unsigned)10,evictedIps.size());
 	n=100; // we now expect 100 till 109 to be flushed
 	for(auto i=evictedIps.begin();i!=evictedIps.end();i++,n++)
 	{

@@ -116,9 +116,11 @@ Banjax::Banjax()
   for(unsigned int cur_queue = BanjaxFilter::HTTP_START; cur_queue < BanjaxFilter::TOTAL_NO_OF_QUEUES; cur_queue++, ATSEventHandler::banjax_active_queues[cur_queue] = task_queues[cur_queue].empty() ? false : true);
 
   //Ask each filter what part of http transaction they are interested in
+  TSDebug("banjax", "How many filters in filters? %ld",filters.size());
   for(list<BanjaxFilter*>::iterator cur_filter = filters.begin(); cur_filter != filters.end(); cur_filter++) {
     all_filters_requested_part |= (*cur_filter)->requested_info();
     all_filters_response_part |= (*cur_filter)->response_info();
+    TSDebug("banjax", "req, resp %ld, %ld",all_filters_requested_part,all_filters_response_part);
   }
 
 }
