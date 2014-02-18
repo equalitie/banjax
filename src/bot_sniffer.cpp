@@ -69,11 +69,13 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
   std::strftime(time_buffer,80,"%Y-%m-%dT%H:%M:%S",timeinfo);
   
   uint64_t* cur_validity = (uint64_t*)transaction_parts.at(TransactionMuncher::VALIDITY_STAT).data();
+
+  TSDebug("banjax", "size = %s", VALID_OR_EMPTY(*cur_validity, TransactionMuncher::CONTENT_LENGTH).c_str());
   send_zmq_mess(zmqsock, BOTBANGER_LOG, true);
 
   send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP), true);
   send_zmq_mess(zmqsock, time_buffer, true);
-  send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::URL), true);
+  send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::URL_WITH_HOST), true);
   send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::PROTOCOL), true);
   send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::STATUS), true);
   send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::CONTENT_LENGTH), true);
