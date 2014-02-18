@@ -117,6 +117,7 @@ White listed IPs do not go through any other filter configured passed white_list
 
 White listed ips need to be entered separately in double quotation in white_listed_ips array, separated by comma.
 
+---------------
     white_lister :
     {
       white_listed_ips = ( "127.0.0.1", 
@@ -155,7 +156,7 @@ Sample Attacks:
 * If the bot always requesting "http://host.com/vmon" you can use the first rule.
 * If a bot requesting pages with rate of higher than 100 request per minute and you want to ban any IP with higher requests than that use the second rule.
 
-
+---------------
     regex_banner :
     {
       banned_regexes = ( { rule = "too much veggie monster";
@@ -197,7 +198,7 @@ Sample Attacks:
 
 * If wiki.deflect.ca is being attacked by a botnet that is not able to run Java Script or you would like to slow down each bot request by making them solve a problem before being served, at the same time you want to ban anybody who failed to solve 10 problems, you can use the second rule. 
 
-
+---------------
     challenger :
     {
       key = "thisisakey";
@@ -225,7 +226,7 @@ Sample Attacks:
 ---------------
 * If you have Learn2ban model for your attack and Botbanger is running on your edge listening to port 22621 then you can add the following to banjax.conf to inform BotBanger about the requests to the edge
 
-
+---------------
     bot_sniffer :
     {
        botbanger_port = 22621;
