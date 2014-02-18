@@ -64,7 +64,7 @@ public:
   uint64_t requested_info() { return 
       TransactionMuncher::IP                 |
       TransactionMuncher::UA                 |
-      TransactionMuncher::URL                |
+      TransactionMuncher::URL_WITH_HOST      |
       TransactionMuncher::PROTOCOL;           
       };
 
