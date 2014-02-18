@@ -1,0 +1,39 @@
+--- transaction_muncher.cpp
++++ transaction_muncher.cpp
+@@ -272,22 +272,23 @@
+  if (parts_to_retreive & TransactionMuncher::CONTENT_LENGTH) {
+   //if (TS_HTTP_STATUS_OK == resp_status) {
+ 
+-    TSMLoc field_loc = TSMimeHdrFieldFind(response_header, response_header_location, "Content-Length", 12);
+-    if (!field_loc) {
+-      TSDebug("banjax", "field_loc for Content-Length is empty");
+-      cur_trans_parts[CONTENT_LENGTH] = "0";
+-    }
+-    else {
+-      int field_length;
+-      const char* content_length = TSMimeHdrFieldValueStringGet(response_header, response_header_location, field_loc, 0, &field_length);
++   TSMLoc field_loc = TSMimeHdrFieldFind(response_header, response_header_location, TS_MIME_FIELD_CONTENT_LENGTH, TS_MIME_LEN_CONTENT_LENGTH);
++   if (!field_loc) {
++     TSDebug("banjax", "field_loc for Content-Length is empty");
++     cur_trans_parts[CONTENT_LENGTH] = "0";
++   }
++   else {
++     int field_length;
++     const char* content_length = TSMimeHdrFieldValueStringGet(response_header, response_header_location, field_loc, 0, &field_length);
+       
+-      TSDebug("banjax", "Content-Length: %s", content_length);
+-      cur_trans_parts[CONTENT_LENGTH] = string(content_length, field_length);
++     cur_trans_parts[CONTENT_LENGTH] = string(content_length, field_length);
++     TSDebug("banjax", "Content-Length: %s", cur_trans_parts[CONTENT_LENGTH].c_str());
+ 
+-      TSHandleMLocRelease(response_header, response_header_location, field_loc);
++     TSHandleMLocRelease(response_header, response_header_location, field_loc);
+          
+-    }
+-    valid_parts |= CONTENT_LENGTH;
++   }
++   valid_parts |= CONTENT_LENGTH;
++
+  }
+  
+  TSMLoc field_loc = TSMimeHdrFieldFind(response_header, response_header_location, TS_MIME_FIELD_CONTENT_TYPE, TS_MIME_LEN_CONTENT_TYPE);

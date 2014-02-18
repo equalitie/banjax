@@ -269,7 +269,7 @@ TransactionMuncher::retrieve_response_parts(uint64_t requested_log_parts)
  if (parts_to_retreive & TransactionMuncher::CONTENT_LENGTH) {
   //if (TS_HTTP_STATUS_OK == resp_status) {
 
-    TSMLoc field_loc = TSMimeHdrFieldFind(response_header, response_header_location, "Content-Length", 12);
+    TSMLoc field_loc = TSMimeHdrFieldFind(response_header, response_header_location, TS_MIME_FIELD_CONTENT_LENGTH, TS_MIME_LEN_CONTENT_LENGTH);
     if (!field_loc) {
       cur_trans_parts[CONTENT_LENGTH] = "0";
     }
