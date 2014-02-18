@@ -107,7 +107,7 @@ If you would like to debug banjax in gdb you need to configure it as follow:
 
 Available Filters
 =================
-Currently 3 filters are implemented in Banjax. One can configure each filter behavior in banjax.conf. The configuration of each filter should start with the name of the filter followed by colon, then the configuration will stays between {} followed by semi-colon. 
+Currently 4 filters are implemented in Banjax. One can configure each filter behavior in banjax.conf. The configuration of each filter should start with the name of the filter followed by colon, then the configuration will stays between {} followed by semi-colon. 
 
 The order that each filter configuration appears in banjax.conf matters and  determine the order that banjax.conf run the filter. For example, there is no point to put white_lister filter at the end.
 
@@ -150,6 +150,11 @@ Banjax bans based on 1/1000*hit_per_interval per millisecond rate. Hence it does
 
 If you want to ban a specific regex in first apperance you need to set hits_per_interval = 0
 
+Sample Attacks:
+---------------
+* If the bot always requesting "http://host.com/vmon" you can use the first rule.
+* If a bot requesting pages with rate of higher than 100 request per minute and you want to ban any IP with higher requests than that use the second rule.
+
 regex_banner :
 {
   banned_regexes = ( { rule = "too much veggie monster";
@@ -160,22 +165,22 @@ regex_banner :
                      { rule = "dos";
                        regex = "[\\s\\S]*";
                        interval = 60;
-                       hits_per_interval = 10;
+                       hits_per_interval = 100;
                      }
                    );
 };
 
 Challenger:
 -----------
-Challenger serves different challenges to confirm the legitimacy of the client. Currently partial inverse SHA256 or Captcha puzzles are supported. The hash solution of the puzzle is also sent along side with the ip of the requester. It is mainly meant to be a cache busting prevetion mechanism.
+Challenger serves different challenges to confirm the legitimacy of the client. Currently partial inverse SHA256 or Captcha puzzles are supported. The hash solution of the puzzle is also sent along side with the ip of the requester. It is mainly meant to be a cache busting prevention mechanism.
 
 key: is the string from which MAC key that is used to authenticate the cookie is being used. MAC prevents the attacker from tampering with the challenge or reuse its solution for different bots.
 
-difficualty: it determines the number of leading zeros that the  SHA256(solution) at least should have in binary representation. Hence adding this value by 1 doubles the difficulty of the challenge. However in current version only multiple of four bits is supported as difficulty hence it can be 4,8,16,... each one is 16 times harder than proceeding one.
+difficulty: it determines the number of leading zeros that the  SHA256(solution) at least should have in binary representation. Hence adding this value by 1 doubles the difficulty of the challenge. However in current version only multiple of four bits is supported as difficulty hence it can be 4,8,16,... each one is 16 times harder than proceeding one.
 
 For each host then the user needs to specifies the following parameters:
 
-name: the host name as it appears in the url, "www.host.com" and "host.com" are treated as two different hosts and needs two seperate config records.
+name: the host name as it appears in the url, "www.host.com" and "host.com" are treated as two different hosts and needs two separate config records.
 
 validity_period: determine how often the challenger should re-challenge a client in seconds. When under cache-busting attack, it is advisable to decrease this number. Also because the solution is cookie based each client will be challenged once for each website. 
 
@@ -185,10 +190,16 @@ challenge: the name of the html file that contains the challenge. by default it 
 
 no_of_fails_to_ban (optional): If specifies, challenger reports the ip to swabber, if the ip asks for the challenge this many times and fails to solve it (ip needs two request per captcha challenges).
 
+Sample Attacks:
+---------------
+* If www.equalit.ie is under cache busting attack and you want to prevent the bots from reaching the origin you can use the first set of host rules, so challenger serves captcha before reaching to the origin. Note that you need a new set of host rule for equalit.ie if both www.equalit.ie and equalit.ie are resolving to your website.
+
+* If wiki.deflect.ca is being attacked by a botnet that is not able to run Java Script or you would like to slow down each bot request by making them solve a problem before being served, at the same time you want to ban anybody who failed to solve 10 problems, you can use the second rule. 
+
     challenger :
     {
       key = "thisisakey";
-      difficulty = 4; #only multiple of 4 is allowed                                                                                                                                                                   
+      difficulty = 4; #only multiple of 4 is allowed                                                                                                                                                        
       hosts = (
              { name = "www.equalit.ie";
                challenge_type = "captcha";
@@ -206,12 +217,16 @@ no_of_fails_to_ban (optional): If specifies, challenger reports the ip to swabbe
 
 BotSniffer
 ==========
-Bot sniffer reports the detail of each transaction to BotBanger to test the requester against a pre-learned model to see if the behavoir of the ip resembles a bot. The only config is the zmq socket port where BotSniffer should publish the log into:
+Bot sniffer reports the detail of each transaction to BotBanger to test the requester against a pre-learned model to see if the behavior of the ip resembles a bot. The only config is the zmq socket port where BotSniffer should publish the log into:
 
-    bot_sniffer :
-    {
-       botbanger_port = 22621;
-    };
+Sample Attacks:
+---------------
+* If you have Learn2ban model for your attack and Botbanger is running on your edge listening to port 22621 then you can add the following to banjax.conf to inform BotBanger about the requests to the edge
+
+bot_sniffer :
+{
+  botbanger_port = 22621;
+};
 
 How To Write A Filter
 =====================
