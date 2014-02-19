@@ -40,6 +40,7 @@
 				text-align: center;
 				margin: 25px 0 -30px 0;
 				font-weight: bold;
+				color: #050;
 			}
 			div#captcha {
 				margin: 40px auto;
@@ -87,7 +88,7 @@
 		</noscript>
 		<div id="captchaWrapper">
 			<div id="captchaContent">
-				<p id="message">&nbsp;</p>
+				<p id="message">Please enter the letters below to proceed to <strong id="domainName"></strong>.</p>
 				<div id="captcha">
 					<img width="210" height="70" src="__captcha" id='captchaimg' alt="captcha" />
 					<input type="button" value="Regenerate" id="btnregen" onclick="DCaptcha.regen(event)" />
@@ -100,6 +101,7 @@
 		<script type="application/javascript">
 			var DCaptcha = {}
 			document.getElementById('answer').focus()
+			document.getElementById('domainName').innerHTML = window.location.hostname
 
 			DCaptcha.send = function(e) {
 				DCaptcha.AJAXLoad(
@@ -129,7 +131,7 @@
 				xmlhttp.onreadystatechange = function() {
 					if (xmlhttp.readyState != 4) { return }
 					if (xmlhttp.status == 200 && xmlhttp.responseText == 'OK') {
-						document.getElementById('message').style.color = '#020'
+						document.getElementById('message').style.color = '#050'
 						document.getElementById('message').innerHTML = 'Solved! Redirecting to destination...'
 						document.location.reload()
 						return
