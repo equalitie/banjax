@@ -153,8 +153,8 @@ If you want to ban a specific regex in first apperance you need to set hits_per_
 
 Sample Attacks:
 ---------------
-* If the bot always requesting "http://host.com/vmon" you can use the first rule.
-* If a bot requesting pages with rate of higher than 100 request per minute and you want to ban any IP with higher requests than that use the second rule.
+* If the bot net is alway requesting "http://host.com/vmon" you can use the first rule.
+* If a bot is requesting pages with rate of higher than 100 request per minute and you want to ban any IP with higher requests than that use the second rule.
 
 ---------------
     regex_banner :
