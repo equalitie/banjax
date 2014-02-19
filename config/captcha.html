@@ -138,7 +138,7 @@
 					}
 					var ns = document.getElementById('captchaimg').src
 					document.getElementById('captchaimg').src = this.href = ns.split('?')[0] + '?' + new Date().getTime()
-					document.getElementById('answer').val = ''
+					document.getElementById('answer').value = ''
 				}
 				xmlhttp.open('GET', url, true)
 				xmlhttp.send()
