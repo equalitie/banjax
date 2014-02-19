@@ -139,6 +139,10 @@
 					var ns = document.getElementById('captchaimg').src
 					document.getElementById('captchaimg').src = this.href = ns.split('?')[0] + '?' + new Date().getTime()
 					document.getElementById('answer').value = ''
+					document.getElementById('answer').style.background = '#F00'
+					window.setTimeout(function() {
+						document.getElementById('answer').style.background = '#EEE'
+					}, 1000)
 				}
 				xmlhttp.open('GET', url, true)
 				xmlhttp.send()
