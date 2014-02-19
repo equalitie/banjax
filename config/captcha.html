@@ -127,19 +127,19 @@
 					var xmlhttp = new ActiveXObject('Microsoft.XMLHTTP')
 				}
 				xmlhttp.onreadystatechange = function() {
-					if (xmlhttp.readyState == 4) {
-						if (xmlhttp.status == 200 && xmlhttp.responseText == 'OK') {
-							document.getElementById('message').style.color = '#020'
-							document.getElementById('message').innerHTML = 'Solved! Redirecting to destination...'
-							document.location.reload()
-							return
-						}
-						var ns = document.getElementById('captchaimg').src
-						document.getElementById('captchaimg').src = this.href = ns.split('?')[0] + '?' + new Date().getTime()
-						document.getElementById('message').style.color = '#E53825'
-						document.getElementById('message').innerHTML = 'Invalid answer, please try again.'
-						document.getElementById('answer').val = ''
+					if (xmlhttp.readyState != 4) { return }
+					if (xmlhttp.status == 200 && xmlhttp.responseText == 'OK') {
+						document.getElementById('message').style.color = '#020'
+						document.getElementById('message').innerHTML = 'Solved! Redirecting to destination...'
+						document.location.reload()
+						return
 					}
+					var ns = document.getElementById('captchaimg').src
+					document.getElementById('captchaimg').src = this.href = ns.split('?')[0] + '?' + new Date().getTime()
+					document.getElementById('message').style.color = '#E53825'
+					document.getElementById('message').innerHTML = 'Invalid answer, please try again.'
+					document.getElementById('answer').val = ''
+				}
 				xmlhttp.open('GET', url, true)
 				xmlhttp.send()
 			}
