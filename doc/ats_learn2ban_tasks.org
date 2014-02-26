@@ -1,0 +1,6 @@
+* TODO Clean up Bill's implementation.
+* TODO Regex shouldn't be hard coded and should be in a file or database.
+* TODO iptable ban
+* TODO instead of baning directly write in fail2ban socket.
+* TODO Considering iptable regex.
+* TODO We need simplified clone of fail2ban, fail2ban-sister which read the model for
