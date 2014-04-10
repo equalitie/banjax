@@ -77,6 +77,7 @@ public:
         GO_AHEAD_NO_COMMENT,
         I_RESPOND,
         NO_WORRIES_SERVE_IMMIDIATELY,
+        SERVE_FRESH,
         CALL_OTHER_FILTERS,
         CALL_ME_ON_RESPONSE
    };

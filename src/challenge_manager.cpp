@@ -41,9 +41,9 @@ using namespace std;
 //the name of challenges should appear in same order they 
 //appears in ChallengType enum in challenge_manager.h
 const char* ChallengeDefinition::CHALLENGE_LIST[] = {"sha_inverse",
-                                                      "captcha"};
+                                                     "captcha", "auth"};
 const char* ChallengeDefinition::CHALLENGE_FILE_LIST[] = {"solver.html",
-                                     "captcha.html"};
+                                                          "captcha.html", "auth.html"};
 
 string ChallengeManager::zeros_in_javascript = "00"; // needs to be in accordance with the number above
 
@@ -60,6 +60,7 @@ std::string ChallengeManager::sub_zeros = "$zeros";
 void
 ChallengeManager::load_config(libconfig::Setting& cfg, const std::string& banjax_dir)
 {
+  //TODO: we should read the auth password from config and store it somewhere
    try
    {
      const libconfig::Setting &challenger_hosts = cfg["hosts"];
@@ -363,6 +364,8 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
     case ChallengeDefinition::CHALLENGE_CAPTCHA:
       {
         if (ChallengeManager::is_captcha_url(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
+          //FIXME: This opens the door to attack edge using the captcha url, we probably need to 
+          //count captcha urls as failures as well.
           return FilterResponse(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
         } else if (is_captcha_answer(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
           return FilterResponse(static_cast<ResponseGenerator>(&ChallengeManager::generate_response));
@@ -394,6 +397,13 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
           ((FilterExtendedResponse*)(failure_response.response_data))->set_cookie_header.append("deflect=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly");
           return failure_response;
         }
+    case ChallengeDefinition::CHALLENGE_AUTH:
+      //If the url has the magic word to activate the auth challenge
+      //    Check if the auth cookie is valid
+      //      return FilterResponse(FilterResponse::SERVE_FRESH);
+      //    eles
+      //      do all failure/banning ritual?
+      break;
     }
 
   report_success(transaction_parts.at(TransactionMuncher::IP));
