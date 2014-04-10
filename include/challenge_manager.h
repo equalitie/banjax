@@ -32,7 +32,8 @@ public:
 
   enum ChallengeType {
     CHALLENGE_SHA_INVERSE,
-    CHALLENGE_CAPTCHA
+    CHALLENGE_CAPTCHA,
+    CHALLENGE_AUTH
   };
 
   static const char* CHALLENGE_LIST[];
@@ -188,7 +189,7 @@ public:
     */
   ChallengeManager(const string& banjax_dir, const libconfig::Setting& main_root, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
     :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
-    too_many_failures_message("<html><header></header><body>You are a failure!</body></html>"),
+    too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
      too_many_failures_message_length(too_many_failures_message.length()),
      swabber_interface(global_swabber_interface)
 

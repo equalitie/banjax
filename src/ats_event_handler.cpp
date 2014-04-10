@@ -154,6 +154,10 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
         continue_filtering = false;
         break;
 
+      case FilterResponse::SERVE_FRESH:
+        //Somehow tell ATS not to serve this request from the cache
+        break;
+
       case FilterResponse::I_RESPOND:
         // from here on, cur_filter_result is owned by the continuation data.
         cd->response_info = cur_filter_result;
