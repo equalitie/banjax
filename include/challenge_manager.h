@@ -72,7 +72,10 @@ class HostChallengeSpec {
 
   unsigned long challenge_validity_period; //how many second the challenge is valid for this host
   HostChallengeSpec()
-    : fail_tolerance_threshold() {}
+    : fail_tolerance_threshold() {};
+  //needed by auth challeng
+  std::string password_hash;
+  std::string magic_word;
 
 };
 
@@ -91,6 +94,18 @@ union ChallengerStateUnion
   
 };
 
+
+class ChallengerExtendedResponse : public FilterExtendedResponse
+{
+ public:
+  HostChallengeSpec* responding_challenge; 
+
+ ChallengerExtendedResponse(ResponseGenerator requested_response_generator = NULL, HostChallengeSpec* cookied_challenge = NULL)
+   :  FilterExtendedResponse(requested_response_generator),
+    responding_challenge(cookied_challenge) 
+    {};
+  
+};
 class ChallengeManager : public BanjaxFilter {
 protected:	
   // MAC key. 
@@ -103,25 +118,47 @@ protected:
   static std::string zeros_in_javascript;
 	
   std::vector<std::string> split(const std::string &, char);
+
+  //Challenge specific validity checks
+  /**
+   * Checks if the SHA256 of the cookie has the correct number of zeros
+   * @param  cookie the value of the cookie
+   * @return        true if the SHA256 of the cookie verifies the challenge
+   */
   bool check_sha(const char* cookiestr);
-	bool replace(std::string &original, std::string &from, std::string &to);
 
-    //Hosts that challenger needs to check
-    std::vector<std::string> challenged_hosts;
+  /**
+   * Checks if the second part of the cookie indeed SHA256 of the
+   *  challenge toen +  SHA256(password) 
+   * @param  cookie the value of the cookie
+   * @return  true if the cookie verifies the challenge
+   */
+  bool check_auth_validity(const char* cookiestr, const std::string password_hash)
+  { (void) cookiestr;
+    (void) password_hash;
+    return true; /*test*/};
 
-    std::string solver_page;
-	// substrings of the page that needs to be replaced
-	static std::string sub_token;	// token
-	static std::string sub_time;	// time until which the cookie is valid
-	static std::string sub_url;		// url that should be queried
-	static std::string sub_zeros;	// number of trailing zeros
+  bool replace(std::string &original, std::string &from, std::string &to);
 
-	// base64 encoding functions
-	static const char b64_table[65];
-	static const char reverse_table[128];
+  //Hosts that challenger needs to check
+  std::vector<std::string> challenged_hosts;
 
+  std::string solver_page;
+  // substrings of the page that needs to be replaced
+  static std::string sub_token;	// token
+  static std::string sub_time;	// time until which the cookie is valid
+  static std::string sub_url;		// url that should be queried
+  static std::string sub_zeros;	// number of trailing zeros
+    
+  // base64 encoding functions
+  static const char b64_table[65];
+  static const char reverse_table[128];
+  
   bool is_captcha_url(const std::string& url);
   bool is_captcha_answer(const std::string& url);
+
+  //for auth challenge
+  bool url_contains_magic_word(const std::string& url, const std::string& magic_word);
 
   std::map<std::string, ChallengeDefinition::ChallengeType> challenge_type;
   ChallengeSpec* challenge_specs[ChallengeDefinition::CHALLENGE_COUNT];
@@ -163,17 +200,19 @@ protected:
    * Checks if the cookie is valid: sha256, ip, and time
    * @param  cookie the value of the cookie
    * @param  ip     the client ip
+   * @param  cookied_challenge the challenge structure that the cookie is
+   *         supposed to address
    * @return        true if the cookie is valid
    */
 
-  bool check_cookie(std::string answer, std::string cookie_value, std::string client_ip, bool validate_sha);
+  bool check_cookie(std::string answer, std::string cookie_value, std::string client_ip, const HostChallengeSpec& cookied_challenge);
   
   //TODO: This needs to be changed to adopt Otto's approach in placing
   //the variable info in cookie header and make the jscript to read them
   //nonetheless it is more efficient to have the html generated in a
   //referenece sent to the function rather than copying it in the stack
   //upon return
-  void generate_html(std::string ip, long time, std::string url, const TransactionParts& transaction_parts, FilterExtendedResponse* response_info, string& generated_html);
+  void generate_html(std::string ip, long time, std::string url, const TransactionParts& transaction_parts, ChallengerExtendedResponse* response_info, string& generated_html);
 
   /**
      gets a time in long format in future and turn it into browser and human
@@ -246,6 +285,9 @@ public:
      This basically calls the function to generate the html
    */
   virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
+  //and a pointer to it use later
+  ResponseGenerator challenger_resopnder;
+
 
 };
 
