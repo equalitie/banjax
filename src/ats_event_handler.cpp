@@ -155,7 +155,11 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
         break;
 
       case FilterResponse::SERVE_FRESH:
-        //Somehow tell ATS not to serve this request from the cache
+        //Tell ATS not to cache this request, hopefully it means that 
+        //It shouldn't be served from the cache either.
+        //TODO: One might need to investigate TSHttpTxnRespCacheableSet()
+        if (TSHttpTxnServerRespNoStoreSet(cd->txnp, true) != TS_SUCCESS)
+          TSDebug(BANJAX_PLUGIN_NAME, "Unable to make the response uncachable" );
         break;
 
       case FilterResponse::I_RESPOND:
