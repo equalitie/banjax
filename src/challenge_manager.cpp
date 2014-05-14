@@ -39,6 +39,8 @@ using namespace std;
 
 //The name of Challenges should be declared here
 //the name of challenges should appear in same order they 
+//FIXME: this is not the best practice, it is better to make 
+//CHALLENGE_LIST an array of pairs of name and id
 //appears in ChallengType enum in challenge_manager.h
 const char* ChallengeDefinition::CHALLENGE_LIST[] = {"sha_inverse",
                                                      "captcha", "auth"};
@@ -477,7 +479,7 @@ std::string ChallengeManager::generate_response(const TransactionParts& transact
   (void) response_info;
   TransactionParts test_muncher;
   generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity, 
-                transaction_parts.at(TransactionMuncher::URL_WITH_HOST),
+                (((ChallengerExtendedResponse*)(response_info.response_data))->alternative_url.empty()) ? transaction_parts.at(TransactionMuncher::URL_WITH_HOST) : (((ChallengerExtendedResponse*)(response_info.response_data))->alternative_url),
                 transaction_parts,
                 //NULL, buf_str);//, 
                 ((ChallengerExtendedResponse*)(response_info.response_data)), buf_str);
