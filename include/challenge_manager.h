@@ -28,7 +28,7 @@ const size_t AES_KEY_LENGTH = 16;
 class ChallengeDefinition
 {
 public:
-  static const unsigned int CHALLENGE_COUNT = 2;
+  static const unsigned int CHALLENGE_COUNT = 3;
 
   enum ChallengeType {
     CHALLENGE_SHA_INVERSE,
@@ -99,6 +99,7 @@ class ChallengerExtendedResponse : public FilterExtendedResponse
 {
  public:
   HostChallengeSpec* responding_challenge; 
+  std::string alternative_url;
 
  ChallengerExtendedResponse(ResponseGenerator requested_response_generator = NULL, HostChallengeSpec* cookied_challenge = NULL)
    :  FilterExtendedResponse(requested_response_generator),
@@ -230,7 +231,8 @@ public:
     :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
     too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
      too_many_failures_message_length(too_many_failures_message.length()),
-     swabber_interface(global_swabber_interface)
+    swabber_interface(global_swabber_interface),
+    challenger_resopnder(static_cast<ResponseGenerator>(&ChallengeManager::generate_response))
 
   {
     queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&ChallengeManager::execute);

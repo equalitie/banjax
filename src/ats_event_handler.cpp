@@ -158,7 +158,8 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
         //Tell ATS not to cache this request, hopefully it means that 
         //It shouldn't be served from the cache either.
         //TODO: One might need to investigate TSHttpTxnRespCacheableSet()
-        if (TSHttpTxnServerRespNoStoreSet(cd->txnp, true) != TS_SUCCESS)
+        if (TSHttpTxnServerRespNoStoreSet(cd->txnp, true) != TS_SUCCESS 
+            || TSHttpTxnConfigIntSet(cd->txnp, TS_CONFIG_HTTP_CACHE_HTTP, 0) != TS_SUCCESS)
           TSDebug(BANJAX_PLUGIN_NAME, "Unable to make the response uncachable" );
         break;
 

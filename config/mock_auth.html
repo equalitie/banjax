@@ -29,7 +29,6 @@ b?(q=t(a,l),s=q.binLen,j=q.value):"B64"===b?(q=A(a),s=q.binLen,j=q.value):n("inp
                 var challenge_token = "$token";
                 var expiration = "$time"
                 var i = 0;
-                var hash_value = 1;
                 var mock_password = "howisbabbyformed?"
                 var hash_obj = new jsSHA(mock_password, "TEXT");
                 var hashed_password = hash_obj.getHash("SHA-256","HEX");
