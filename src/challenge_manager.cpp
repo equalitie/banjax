@@ -188,7 +188,6 @@ bool ChallengeManager::check_sha(const char* cookiestr){
   outputBuffer[64] = 0;
 
   //TSDebug(BANJAX_PLUGIN_NAME, "SHA256 = %s", outputBuffer);
-
   for(unsigned i=0; i<number_of_trailing_zeros/4; i++){
     if(outputBuffer[i] != '0'){
       //TSDebug(BANJAX_PLUGIN_NAME, "i= %d, out = %c", i, outputBuffer[i]);
@@ -199,6 +198,46 @@ bool ChallengeManager::check_sha(const char* cookiestr){
   return true;
 }
 
+/**
+ * Checks if the second part of the cookie indeed SHA256 of the
+ *  challenge token +  SHA256(password) 
+ * @param  cookie the value of the cookie
+ * @return  true if the cookie verifies the challenge
+ */
+bool ChallengeManager::check_auth_validity(const char* cookiestr, const std::string password_hash)
+{
+  static const unsigned int b64token_length = (int)((COOKIE_LENGTH*4+3)/3);
+  static const unsigned int b64_sha256_length = (int)((SHA256_DIGEST_LENGTH*4+3)/3)+1;
+  static const unsigned int to_be_hashed_length = b64token_length+b64_sha256_length;
+
+  unsigned long cookie_len = strlen((char*)cookiestr);
+  if (cookie_len <to_be_hashed_length)
+      return false;
+
+  //hash it ourselves
+  unsigned char hash[SHA256_DIGEST_LENGTH];
+  SHA256_CTX sha256;
+  SHA256_Init(&sha256);
+  char to_be_hashed[to_be_hashed_length];
+  memcpy(to_be_hashed, cookiestr, b64token_length);
+  memcpy(to_be_hashed+b64token_length, password_hash.c_str(), password_hash.size());
+  
+  SHA256_Update(&sha256, to_be_hashed, to_be_hashed_length);
+  SHA256_Final(hash, &sha256);
+
+  //get the hash from the cookie
+  char hashed_solution[SHA256_DIGEST_LENGTH];
+  std::string cookiedata=Base64::Decode((const char *)cookiestr+b64token_length, (const char *)(cookiestr+cookie_len));
+
+  memcpy(hashed_solution,cookiedata.c_str(),SHA256_DIGEST_LENGTH);
+
+  //now compare
+  if (memcmp(hashed_solution, hash, SHA256_DIGEST_LENGTH))
+    return false;
+   
+  return true;
+
+}
 
 /**
  * Checks if the cookie is valid: sha256, ip, and time
@@ -516,8 +555,9 @@ ChallengeManager::report_failure(std::string client_ip, HostChallengeSpec* faile
     //cur_ip_state.detail.no_of_failures = 0;
   }
   else { //only report if we haven't report to swabber cause otherwise it nulifies the work of swabber which has forgiven the ip and delete it from db
-  ip_database->set_ip_state(client_ip, CHALLENGER_FILTER_ID, cur_ip_state.state_allocator);
+    ip_database->set_ip_state(client_ip, CHALLENGER_FILTER_ID, cur_ip_state.state_allocator);
   }
+
   return banned;
 
 }
