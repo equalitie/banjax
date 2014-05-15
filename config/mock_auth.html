@@ -31,10 +31,10 @@ b?(q=t(a,l),s=q.binLen,j=q.value):"B64"===b?(q=A(a),s=q.binLen,j=q.value):n("inp
                 var i = 0;
                 var mock_password = "howisbabbyformed?"
                 var hash_obj = new jsSHA(mock_password, "TEXT");
-                var hashed_password = hash_obj.getHash("SHA-256","HEX");
+                var hashed_password = hash_obj.getHash("SHA-256","B64");
                 var solution = challenge_token + hashed_password;
 	            var hash_obj = new jsSHA(solution, "TEXT");
-		        var hash_value = hash_obj.getHash("SHA-256","HEX");
+		        var hash_value = hash_obj.getHash("SHA-256","B64");
                 solution = challenge_token + hash_value
                 document.cookie="deflect" + "=" + solution +  "; expires="+expiration+"; path=/";
                window.location.assign("$url")

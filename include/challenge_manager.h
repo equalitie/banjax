@@ -130,14 +130,11 @@ protected:
 
   /**
    * Checks if the second part of the cookie indeed SHA256 of the
-   *  challenge toen +  SHA256(password) 
+   *  challenge token +  SHA256(password) 
    * @param  cookie the value of the cookie
    * @return  true if the cookie verifies the challenge
    */
-  bool check_auth_validity(const char* cookiestr, const std::string password_hash)
-  { (void) cookiestr;
-    (void) password_hash;
-    return true; /*test*/};
+  bool check_auth_validity(const char* cookiestr, const std::string password_hash);
 
   bool replace(std::string &original, std::string &from, std::string &to);
 
