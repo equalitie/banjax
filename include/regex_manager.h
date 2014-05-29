@@ -71,7 +71,7 @@ class RegexManager : public BanjaxFilter
              the matched regex (for loging) or NULL in miss
   */
 
-  std::pair<RegexResult,RatedRegex*> parse_request(std::string ip, std::string ats_record);
+  std::pair<RegexResult,RatedRegex*> parse_request(std::string ip, std::string ats_record, std::string method);
   /**
      receives the db object need to read the regex list,
      subsequently it reads all the regexs

@@ -217,10 +217,12 @@ TEST_F(RegexManagerTest, get_counter)
   mock_transaction[TransactionMuncher::URL] = "http://dont_ban_me/";
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
   mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
+  FilterResponse cur_filter_result = FilterResponse::GO_AHEAD_NO_COMMENT;
 
-  for ( i=0; i<10; i++) {
-    FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
+  for ( int i=0; i<10; i++) {
+    cur_filter_result = test_regex_manager->execute(mock_transaction);
   }
+  
   EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
 
 }
@@ -241,12 +243,14 @@ TEST_F(RegexManagerTest, post_get_counter)
   mock_transaction[TransactionMuncher::URL] = "http://dont_ban_me/";
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
   mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
-  for ( i=0; i<9; i++ ) {
-    FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
+  FilterResponse cur_filter_result = FilterResponse::GO_AHEAD_NO_COMMENT;
+
+  for ( int i=0; i<9; i++ ) {
+    cur_filter_result = test_regex_manager->execute(mock_transaction);
   }
 
   mock_transaction[TransactionMuncher::METHOD] = "POST";
-  FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
+  cur_filter_result = test_regex_manager->execute(mock_transaction);
   
   EXPECT_EQ(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
 

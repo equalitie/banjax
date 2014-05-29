@@ -91,7 +91,7 @@ RegexManager::parse_request(string ip, string ats_record, string method)
           //if it is less than zero we don't do anything
 	  
  	  //select appropriate rate, dependent on whether GET or POST request
-	  if (method == 'GET') {
+	  if (method.find("GET") != std::string::npos) {
 
 	  } else {
 
