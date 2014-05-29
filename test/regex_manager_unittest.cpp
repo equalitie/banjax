@@ -168,6 +168,7 @@ TEST_F(RegexManagerTest, match)
 
   //first we make a mock up request
   TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::METHOD] = "GET";
   mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
   mock_transaction[TransactionMuncher::URL] = "http://simple_to_ban_me/";
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
@@ -189,6 +190,7 @@ TEST_F(RegexManagerTest, miss)
 
   //first we make a mock up request
   TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::METHOD] = "GET";
   mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
   mock_transaction[TransactionMuncher::URL] = "http://dont_ban_me/";
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
@@ -196,6 +198,56 @@ TEST_F(RegexManagerTest, miss)
 
   FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
 
+  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
+
+}
+
+/**
+   make up a fake GET request and check that the manager is banning based on request interval counter
+ */
+TEST_F(RegexManagerTest, get_counter)
+{
+
+  open_config();
+
+  //first we make a mock up request
+  TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::METHOD] = "GET";
+  mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
+  mock_transaction[TransactionMuncher::URL] = "http://dont_ban_me/";
+  mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
+  mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
+
+  for ( i=0; i<10; i++) {
+    FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
+  }
+  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
+
+}
+
+/**
+   make up a fake GET request and check that the manager is not banning when
+   the request method changes to POST despite passing the allowed rate
+ */
+TEST_F(RegexManagerTest, post_get_counter)
+{
+
+  open_config();
+
+  //first we make a mock up request
+  TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::METHOD] = "GET";
+  mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
+  mock_transaction[TransactionMuncher::URL] = "http://dont_ban_me/";
+  mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
+  mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
+  for ( i=0; i<9; i++ ) {
+    FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
+  }
+
+  mock_transaction[TransactionMuncher::METHOD] = "POST";
+  FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
+  
   EXPECT_EQ(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
 
 }
@@ -211,6 +263,7 @@ TEST_F(RegexManagerTest, match_special_chars)
 
   //first we make a mock up request
   TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::METHOD] = "GET";
   mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
   mock_transaction[TransactionMuncher::URL] = "http://not%20so%20simple%20to%20ban//";
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
@@ -232,6 +285,7 @@ TEST_F(RegexManagerTest, forbidden_response)
 
   //first we make a mock up request
   TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::METHOD] = "GET";
   mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
   mock_transaction[TransactionMuncher::URL] = "http://simple_to_ban_me/";
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";

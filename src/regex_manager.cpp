@@ -61,7 +61,7 @@ RegexManager::load_config(libconfig::Setting& cfg)
   @return: 1 match 0 not match < 0 error.
 */
 pair<RegexManager::RegexResult,RatedRegex*>
-RegexManager::parse_request(string ip, string ats_record)
+RegexManager::parse_request(string ip, string ats_record, string method)
 {
   for(list<RatedRegex*>::iterator it=rated_banning_regexes.begin(); it != rated_banning_regexes.end(); it++) {
       if (RE2::FullMatch(ats_record, *((*it)->re2_regex))) {
@@ -89,6 +89,13 @@ RegexManager::parse_request(string ip, string ats_record)
         } else { //we have a record, update the rate and ban if necessary.
           //we move the interval by the differences of the "begin_in_ms - cur_time_msec - interval*1000"
           //if it is less than zero we don't do anything
+	  
+ 	  //select appropriate rate, dependent on whether GET or POST request
+	  if (method == 'GET') {
+
+	  } else {
+
+          }
           long time_window_movement = cur_time_msec - cur_ip_state.detail.begin_msec - (*it)->interval;
           if (time_window_movement > 0) { //we need to move
             cur_ip_state.detail.begin_msec += time_window_movement;
@@ -131,7 +138,11 @@ FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
   ats_record+= ats_record_parts[TransactionMuncher::UA];
 
   TSDebug(BANJAX_PLUGIN_NAME, "Examining %s for banned matches", ats_record.c_str());
-  pair<RegexResult,RatedRegex*> result = parse_request(ats_record_parts[TransactionMuncher::IP],ats_record);
+  pair<RegexResult,RatedRegex*> result = parse_request(
+						ats_record_parts[TransactionMuncher::IP],
+						ats_record,
+						ats_record_parts[TransactionMuncher::METHOD]
+						);
   if (result.first == REGEX_MATCHED) {
     TSDebug(BANJAX_PLUGIN_NAME, "asking swabber to ban client ip: %s", ats_record_parts[TransactionMuncher::IP].c_str());
     
