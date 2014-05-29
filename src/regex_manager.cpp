@@ -72,7 +72,13 @@ RegexManager::parse_request(string ip, string ats_record, string method)
             TSDebug(BANJAX_PLUGIN_NAME, "simple regex, ban immidiately");
             return make_pair(REGEX_MATCHED, (*it));
         }
-
+	//select appropriate rate, dependent on whether GET or POST request
+	int METHOD_TYPE;
+	if (method.find("GET") != std::string::npos) {
+	  METHOD_TYPE = 0;	
+	} else {
+	  METHOD_TYPE = 1;
+        }
         /* we need to check the rate condition here */
         //getting current time in msec
         timeval cur_time; gettimeofday(&cur_time, NULL);
@@ -81,35 +87,29 @@ RegexManager::parse_request(string ip, string ats_record, string method)
         /* first we check if we already have a state for this ip */
         RegexBannerStateUnion cur_ip_state;
         cur_ip_state.state_allocator =  ip_database->get_ip_state(ip, REGEX_BANNER_FILTER_ID);
-        if (cur_ip_state.detail.begin_msec == 0) {//We don't have a record 
-          cur_ip_state.detail.begin_msec = cur_time_msec;
-          cur_ip_state.detail.rate = 0;
+        if (cur_ip_state.detail[METHOD_TYPE].begin_msec == 0) {//We don't have a record 
+          cur_ip_state.detail[METHOD_TYPE].begin_msec = cur_time_msec;
+          cur_ip_state.detail[METHOD_TYPE].rate = 0;
           ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.state_allocator);
 
         } else { //we have a record, update the rate and ban if necessary.
           //we move the interval by the differences of the "begin_in_ms - cur_time_msec - interval*1000"
           //if it is less than zero we don't do anything
-	  
- 	  //select appropriate rate, dependent on whether GET or POST request
-	  if (method.find("GET") != std::string::npos) {
-
-	  } else {
-
-          }
-          long time_window_movement = cur_time_msec - cur_ip_state.detail.begin_msec - (*it)->interval;
+ 
+          long time_window_movement = cur_time_msec - cur_ip_state.detail[METHOD_TYPE].begin_msec - (*it)->interval;
           if (time_window_movement > 0) { //we need to move
-            cur_ip_state.detail.begin_msec += time_window_movement;
-            cur_ip_state.detail.rate = cur_ip_state.detail.rate - (cur_ip_state.detail.rate * time_window_movement - 1)/(double) (*it)->interval;
-            cur_ip_state.detail.rate =  cur_ip_state.detail.rate < 0 ? 0 : cur_ip_state.detail.rate; //just to make sure
+            cur_ip_state.detail[METHOD_TYPE].begin_msec += time_window_movement;
+            cur_ip_state.detail[METHOD_TYPE].rate= cur_ip_state.detail[METHOD_TYPE].rate - (cur_ip_state.detail[METHOD_TYPE].rate * time_window_movement - 1)/(double) (*it)->interval;
+            cur_ip_state.detail[METHOD_TYPE].rate =  cur_ip_state.detail[METHOD_TYPE].rate < 0 ? 0 : cur_ip_state.detail[METHOD_TYPE].rate; //just to make sure
           }
           else {
             //we are still in the same interval so just increase the hit by 1
-            cur_ip_state.detail.rate += 1/(double) (*it)->interval;
+            cur_ip_state.detail[METHOD_TYPE].rate += 1/(double) (*it)->interval;
           }
-          TSDebug(BANJAX_PLUGIN_NAME, "with rate %f /msec", cur_ip_state.detail.rate);
+          TSDebug(BANJAX_PLUGIN_NAME, "with rate %f /msec", cur_ip_state.detail[METHOD_TYPE].rate);
           ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.state_allocator);
         }
-        if (cur_ip_state.detail.rate >= (*it)->rate) {
+        if (cur_ip_state.detail[METHOD_TYPE].rate >= (*it)->rate) {
           TSDebug(BANJAX_PLUGIN_NAME, "exceeding excessive rate %f /msec", (*it)->rate);
           //clear the record to avoid multiple reporting to swabber
           //we are not clearing the state cause it is not for sure that
