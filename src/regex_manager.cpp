@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <zmq.hpp>
-
+#include <iostream> 
 #include <re2/re2.h> //google re2
 
 #include <ts/ts.h>
@@ -64,21 +64,23 @@ pair<RegexManager::RegexResult,RatedRegex*>
 RegexManager::parse_request(string ip, string ats_record, string method)
 {
   for(list<RatedRegex*>::iterator it=rated_banning_regexes.begin(); it != rated_banning_regexes.end(); it++) {
+      int METHOD_TYPE;
+      if (method.find("GET") != std::string::npos) {
+        METHOD_TYPE = 0;	
+      } else {
+        METHOD_TYPE = 1;
+      }
       if (RE2::FullMatch(ats_record, *((*it)->re2_regex))) {
+
         TSDebug(BANJAX_PLUGIN_NAME, "requests matched %s", (char*)((*it)->re2_regex->pattern()).c_str());  
         //if it is a simple regex i.e. with rate 0 we bans immidiately without
         //wasting time and mem
         if ((*it)->rate == 0) {
-            TSDebug(BANJAX_PLUGIN_NAME, "simple regex, ban immidiately");
+            TSDebug(BANJAX_PLUGIN_NAME, "simple regex, ban immediately");
             return make_pair(REGEX_MATCHED, (*it));
         }
 	//select appropriate rate, dependent on whether GET or POST request
-	int METHOD_TYPE;
-	if (method.find("GET") != std::string::npos) {
-	  METHOD_TYPE = 0;	
-	} else {
-	  METHOD_TYPE = 1;
-        }
+
         /* we need to check the rate condition here */
         //getting current time in msec
         timeval cur_time; gettimeofday(&cur_time, NULL);
@@ -87,6 +89,7 @@ RegexManager::parse_request(string ip, string ats_record, string method)
         /* first we check if we already have a state for this ip */
         RegexBannerStateUnion cur_ip_state;
         cur_ip_state.state_allocator =  ip_database->get_ip_state(ip, REGEX_BANNER_FILTER_ID);
+
         if (cur_ip_state.detail[METHOD_TYPE].begin_msec == 0) {//We don't have a record 
           cur_ip_state.detail[METHOD_TYPE].begin_msec = cur_time_msec;
           cur_ip_state.detail[METHOD_TYPE].rate = 0;
@@ -143,6 +146,7 @@ FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
 						ats_record,
 						ats_record_parts[TransactionMuncher::METHOD]
 						);
+
   if (result.first == REGEX_MATCHED) {
     TSDebug(BANJAX_PLUGIN_NAME, "asking swabber to ban client ip: %s", ats_record_parts[TransactionMuncher::IP].c_str());
     

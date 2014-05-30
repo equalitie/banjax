@@ -34,7 +34,9 @@ struct RegexBannerState {
 union RegexBannerStateUnion
 {
   FilterState state_allocator;
-  RegexBannerState * detail = new RegexBannerState[2];
+  RegexBannerState detail[2] = {{0, 0},
+				{0, 0}};
+  
 
   RegexBannerStateUnion()
     : state_allocator() { }

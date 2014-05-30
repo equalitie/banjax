@@ -111,6 +111,11 @@ class RegexManagerTest : public testing::Test {
     mock_config << "regex = \".*not%20so%20simple%20to%20ban[\\s\\S]*\";" << endl;
     mock_config << "interval = 1; " << endl;
     mock_config << "hits_per_interval = 0;" << endl;
+    mock_config << "}," << endl;
+    mock_config << "{ rule = \"flooding ban\"; " << endl;
+    mock_config << "regex = \".*flooding_ban.*\";" << endl;
+    mock_config << "interval = 30; " << endl;
+    mock_config << "hits_per_interval = 10;" << endl;
     mock_config << "});" << endl;
     mock_config << "};" << endl;
     
@@ -214,12 +219,12 @@ TEST_F(RegexManagerTest, get_counter)
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::METHOD] = "GET";
   mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
-  mock_transaction[TransactionMuncher::URL] = "http://dont_ban_me/";
+  mock_transaction[TransactionMuncher::URL] = "http://flooding_ban/";
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
   mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
   FilterResponse cur_filter_result = FilterResponse::GO_AHEAD_NO_COMMENT;
 
-  for ( int i=0; i<10; i++) {
+  for ( int i=0; i<11; i++) {
     cur_filter_result = test_regex_manager->execute(mock_transaction);
   }
   
@@ -240,12 +245,12 @@ TEST_F(RegexManagerTest, post_get_counter)
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::METHOD] = "GET";
   mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
-  mock_transaction[TransactionMuncher::URL] = "http://dont_ban_me/";
+  mock_transaction[TransactionMuncher::URL] = "http://flooding_ban/";
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
   mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
   FilterResponse cur_filter_result = FilterResponse::GO_AHEAD_NO_COMMENT;
 
-  for ( int i=0; i<9; i++ ) {
+  for ( int i=0; i<2; i++ ) {
     cur_filter_result = test_regex_manager->execute(mock_transaction);
   }
 
