@@ -89,7 +89,6 @@ RegexManager::parse_request(string ip, string ats_record, string method)
         /* first we check if we already have a state for this ip */
         RegexBannerStateUnion cur_ip_state;
         cur_ip_state.state_allocator =  ip_database->get_ip_state(ip, REGEX_BANNER_FILTER_ID);
-
         if (cur_ip_state.detail[METHOD_TYPE].begin_msec == 0) {//We don't have a record 
           cur_ip_state.detail[METHOD_TYPE].begin_msec = cur_time_msec;
           cur_ip_state.detail[METHOD_TYPE].rate = 0;
