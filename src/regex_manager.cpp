@@ -71,7 +71,6 @@ RegexManager::parse_request(string ip, string ats_record, string method)
         METHOD_TYPE = 1;
       }
       if (RE2::FullMatch(ats_record, *((*it)->re2_regex))) {
-
         TSDebug(BANJAX_PLUGIN_NAME, "requests matched %s", (char*)((*it)->re2_regex->pattern()).c_str());  
         //if it is a simple regex i.e. with rate 0 we bans immidiately without
         //wasting time and mem

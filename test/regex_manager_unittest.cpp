@@ -233,6 +233,33 @@ TEST_F(RegexManagerTest, get_counter)
 }
 
 /**
+   make up a two GET requests to different domains from same IP and ensure not banned
+ */
+
+TEST_F(RegexManagerTest, get_different_domains)
+{
+
+  open_config();
+
+  //first we make a mock up request
+  TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::METHOD] = "GET";
+  mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
+  mock_transaction[TransactionMuncher::URL] = "http://flooding_ban/";
+  mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
+  mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
+  FilterResponse cur_filter_result = FilterResponse::GO_AHEAD_NO_COMMENT;
+
+  
+  cur_filter_result = test_regex_manager->execute(mock_transaction);
+
+  mock_transaction[TransactionMuncher::URL] = "http://differnet_domain/";
+  cur_filter_result = test_regex_manager->execute(mock_transaction);
+
+  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
+
+}
+/**
    make up a fake GET request and check that the manager is not banning when
    the request method changes to POST despite passing the allowed rate
  */
