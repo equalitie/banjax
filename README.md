@@ -68,7 +68,7 @@ Banjax is using automake frame work, to make and install banjax, cd into banjax 
 
 You need the following dev deb package to compile banjax in addition to libre2 described above:
 
-    apt-get install build-essential git mercurial libzmq-dev libconfig++-dev
+    apt-get install build-essential git mercurial libzmq-dev libconfig++-dev unzip
 
 
 You also need google test framework to be installed
