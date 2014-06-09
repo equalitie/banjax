@@ -41,3 +41,4 @@ Makefile.in
 #libtools
 src/.libs
 *.la
+*.orig

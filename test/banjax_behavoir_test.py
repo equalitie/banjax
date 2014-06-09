@@ -63,7 +63,7 @@ class BanjaxBehavoirTest(unittest.TestCase):
 
     def do_curl(self, url):
         tr()
-        
+
         curl_proc = subprocess.Popen(["curl", url],
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
@@ -117,6 +117,45 @@ class BanjaxBehavoirTest(unittest.TestCase):
         result = self.do_curl(BANNED_URL)
         self.assertEqual(result[self.STD_OUT],self.ALLOWED_PAGE);
 
+    def test_auth_challenged_success(self):
+        """
+        This test simulate a correct password entered in the auth page
+        after entring the password it checks that ATS serves directly
+        from origin everytime
+        """
+        tr()
+        self.replace_config("auth_challenger.conf")
+        result = self.do_curl(MAGIC_URL)
+        self.assertEqual(result[self.STD_OUT],self.ALLOWED_PAGE);
+        result = self.do_curl(NO_CACHE_PAGE_URL, cookie = ALLOWED_COOKIE)
+        self.assertEqual(result[self.STD_OUT],self.CACHED_PAGE);
+        self.replace_page(NO_CACHE_PAGE_FILE, result[self.STD_OUT],self.UN_CACHED_PAGE)
+        self.assertEqual(result[self.STD_OUT],self.UN_CACHED_PAGE);
+
+    def test_auth_challenged_failure(self):
+        """
+        The test simulate entering a wrong password in the auth challenge
+        a banned message is expected to be served
+        """
+        tr()
+        self.replace_config("auth_challenger.conf")
+        result = self.do_curl(MAGIC_URL)
+        self.assertEqual(result[self.STD_OUT],self.ALLOWED_PAGE);
+        result = self.do_curl(NO_CACHE_PAGE_URL, cookie = BAD_PASS_COOKIE)
+        self.assertEqual(result[self.STD_OUT],self.MANNED_MESSAGE);
+
+    def test_auth_challenged_unchallenged_cached(self):
+        """
+        This test request a website with auth challenge but it does
+        not invoke the magic word, hence ATS should serve the page
+        through cache consitantly
+        """
+        tr()
+        self.replace_config("auth_challenger.conf")
+        result = self.do_curl(NO_CACHE_PAGE_URL)
+        self.assertEqual(result[self.STD_OUT],self.CACHED_PAGE);
+        self.replace_page(NO_CACHE_PAGE_FILE, result[self.STD_OUT],self.UN_CACHED_PAGE)
+        self.assertEqual(result[self.STD_OUT],self.CACHED_PAGE);
 
 # Synthesize TimelineTest+TestCase subclasses for every 'tl_*' file in
 # the test directory.
