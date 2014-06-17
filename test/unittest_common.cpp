@@ -1,6 +1,6 @@
 #include <string>
 #include <ts/ts.h>
-
+#include <iostream>
 using namespace std;
 
 #include "banjax_common.h"

@@ -116,6 +116,11 @@ class RegexManagerTest : public testing::Test {
     mock_config << "regex = \".*flooding_ban.*\";" << endl;
     mock_config << "interval = 30; " << endl;
     mock_config << "hits_per_interval = 10;" << endl;
+    mock_config << "}," << endl;
+    mock_config << "{ rule = \"flooding ban 2\"; " << endl;
+    mock_config << "regex = \".*flooding_diff_ban.*\";" << endl;
+    mock_config << "interval = 30; " << endl;
+    mock_config << "hits_per_interval = 10;" << endl;
     mock_config << "});" << endl;
     mock_config << "};" << endl;
     
@@ -207,58 +212,7 @@ TEST_F(RegexManagerTest, miss)
 
 }
 
-/**
-   make up a fake GET request and check that the manager is banning based on request interval counter
- */
-TEST_F(RegexManagerTest, get_counter)
-{
 
-  open_config();
-
-  //first we make a mock up request
-  TransactionParts mock_transaction;
-  mock_transaction[TransactionMuncher::METHOD] = "GET";
-  mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
-  mock_transaction[TransactionMuncher::URL] = "http://flooding_ban/";
-  mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
-  mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
-  FilterResponse cur_filter_result = FilterResponse::GO_AHEAD_NO_COMMENT;
-
-  for ( int i=0; i<11; i++) {
-    cur_filter_result = test_regex_manager->execute(mock_transaction);
-  }
-  
-  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
-
-}
-
-/**
-   make up a two GET requests to different domains from same IP and ensure not banned
- */
-
-TEST_F(RegexManagerTest, get_different_domains)
-{
-
-  open_config();
-
-  //first we make a mock up request
-  TransactionParts mock_transaction;
-  mock_transaction[TransactionMuncher::METHOD] = "GET";
-  mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
-  mock_transaction[TransactionMuncher::URL] = "http://flooding_ban/";
-  mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
-  mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
-  FilterResponse cur_filter_result = FilterResponse::GO_AHEAD_NO_COMMENT;
-
-  
-  cur_filter_result = test_regex_manager->execute(mock_transaction);
-
-  mock_transaction[TransactionMuncher::URL] = "http://differnet_domain/";
-  cur_filter_result = test_regex_manager->execute(mock_transaction);
-
-  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
-
-}
 /**
    make up a fake GET request and check that the manager is not banning when
    the request method changes to POST despite passing the allowed rate
@@ -281,7 +235,7 @@ TEST_F(RegexManagerTest, post_get_counter)
     cur_filter_result = test_regex_manager->execute(mock_transaction);
   }
 
-  mock_transaction[TransactionMuncher::METHOD] = "POST";
+  mock_transaction[TransactionMuncher::URL] = "http://flooding_diff_ban/";
   cur_filter_result = test_regex_manager->execute(mock_transaction);
   
   EXPECT_EQ(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);

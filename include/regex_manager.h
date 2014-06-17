@@ -7,18 +7,20 @@
 #define REGEX_MANAGER_H
 
 #include <utility> //for pair
-
+#include <vector>
 #include "banjax_filter.h"
 #include "swabber_interface.h"
 
 struct RatedRegex
 {
+  unsigned int id;
   std::string rule_name;
   RE2* re2_regex;
   unsigned int interval; //interval to look in mseconds
   float rate; //threshold /interval
 
-  RatedRegex(std::string new_rule_name, RE2* regex, unsigned int observation_interval, float excessive_rate):
+  RatedRegex(unsigned int new_id, std::string new_rule_name, RE2* regex, unsigned int observation_interval, float excessive_rate):
+    id(new_id),
     rule_name(new_rule_name),
     re2_regex(regex),
     interval(observation_interval),
@@ -26,21 +28,34 @@ struct RatedRegex
 
 };
 
-struct RegexBannerState {
+struct RegexState {
   unsigned long begin_msec;
   float rate;
+  RegexState() { begin_msec = 0; rate = 0.0;}  
 };
+
+/*typedef std::vector<RegexState>* RegexBannerState;
 
 union RegexBannerStateUnion
 {
   FilterState state_allocator;
-  RegexBannerState detail[2] = {{0, 0},
-				{0, 0}};
-  
+  RegexBannerState detail;
 
   RegexBannerStateUnion()
     : state_allocator() { }
-  
+  ~RegexBannerStateUnion() { delete detail;}  
+};
+*/
+
+class RegexBannerStateUnion
+{
+public:
+  std::vector<RegexState> detail;
+  FilterState state_allocator;
+
+  RegexBannerStateUnion()
+    : state_allocator() { }
+
 };
 
 class RegexManager : public BanjaxFilter
@@ -73,12 +88,14 @@ class RegexManager : public BanjaxFilter
              the matched regex (for loging) or NULL in miss
   */
 
-  std::pair<RegexResult,RatedRegex*> parse_request(std::string ip, std::string ats_record, std::string method);
+  std::pair<RegexResult,RatedRegex*> parse_request(std::string ip, std::string ats_record);
   /**
      receives the db object need to read the regex list,
      subsequently it reads all the regexs
 
   */
+
+  RegexBannerStateUnion cur_ip_state;
  RegexManager(const std::string& banjax_dir, const libconfig::Setting& main_root, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
    :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME),
     forbidden_message("<html><header></header><body>Forbidden</body></html>"),
