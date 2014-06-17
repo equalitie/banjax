@@ -34,6 +34,8 @@ struct FilterState
   long long single_filter_state[2];
   FilterState()
   : single_filter_state() {}
+
+  //virtual ~FilterState() {int a = 0; (void)a;}
 };
 
 struct IPState

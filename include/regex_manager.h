@@ -29,7 +29,10 @@ struct RatedRegex
 struct RegexBannerState {
   unsigned long begin_msec;
   float rate;
+  
 };
+
+//typedef std::vector<RegexState>* RegexBannerState;
 
 union RegexBannerStateUnion
 {
@@ -38,6 +41,8 @@ union RegexBannerStateUnion
 
   RegexBannerStateUnion()
     : state_allocator() { }
+
+  //~RegexBannerStateUnion() { delete detail;}
   
 };
 
