@@ -112,16 +112,18 @@ You should also need to have write access to the folder where http origin server
 
 usage: banjax_behavior_test.py [-h] [--banjax-dir BANJAX_DIR]
                                [--banjax-test-dir BANJAX_TEST_DIR]
+                               [--ats-bin-dir ATS_BIN_DIR]
                                [--http-doc-root HTTP_DOC_ROOT]
 
 optional arguments:
   -h, --help   shows help
   --banjax-dir banjax config folder (default: /usr/local/trafficserver/modules/banjax/)
+  --ats-bin-dir the folder which contains ats binary files (default: /usr/local/trafficserver/bin/)
   --banjax-test-dir (default: current folder)
   --http-doc-root origin website folder (default: /var/www)
 
 cd test
-python banjax_behavior_test
+python banjax_behavior_test.py
 
 Debugging
 ----------
