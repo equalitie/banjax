@@ -19,7 +19,7 @@ class BanjaxBehavoirTest(unittest.TestCase):
 
     BANNED_URL = "localhost/vmon"
     BANNED_MESSAGE = "<html><header></header><body>Forbidden</body></html>"
-    ATS_HOST = "127.0.0.1:8080"
+    ATS_HOST = "127.0.0.1"
 
     MAGIC_WORD = "iloveyoumoinonplus"
     AUTH_COOKIE = "deflect=DeeiSdkg/fu1w5hnq0p9V1A/fXawj5/TAAAAAAuRHVwMK26GySv0PJmDDd7QccMDiJSU/3uffRiGLQ60s="
@@ -28,17 +28,18 @@ class BanjaxBehavoirTest(unittest.TestCase):
     CACHED_PAGE = "cached_page.html"
     UNCACHED_PAGE = "uncached_page.html"
 
-    #STD_IN = 0
     STD_OUT = 0
     STD_ERR = 1
 
     SOLVER_PAGE_PREFIX_LEN = 100;
     COMP_LEN = 100;
 
+    ATS_INIT_DELAY = 5
 
     banjax_dir = "/usr/local/trafficserver/modules/banjax"
-    banjax_test_dir = "/home/vmon/doc/code/deflect/ats_lab/banjax/test"
-    http_doc_root = "/srv/http"
+    banjax_test_dir = "/root/dev/banjax/test"
+    ats_bin_dir = "/usr/local/trafficserver/bin"
+    http_doc_root = "/var/www"
 
     # def __init__(self, banjax_dir = "/usr/local/trafficserver/modules/banjax"):
     #     """
@@ -76,12 +77,15 @@ class BanjaxBehavoirTest(unittest.TestCase):
     def replace_config(self, new_config_filename):
         shutil.copyfile(self.banjax_test_dir + "/" + new_config_filename , BanjaxBehavoirTest.banjax_dir + "/banjax.conf")
         #We need to restart ATS to make banjax to read the config again
-        traffic_proc = subprocess.Popen(["traffic_line", "-L"],
+        traffic_proc = subprocess.Popen([BanjaxBehavoirTest.ats_bin_dir + "/trafficserver", "restart"],
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
         traffic_proc.wait()
+        import time
+        time.sleep(BanjaxBehavoirTest.ATS_INIT_DELAY)
         return (traffic_proc.stdout.read(), traffic_proc.stderr.read())
+        return ('','')
 
     def put_page(self, page_filename):
         shutil.copyfile(BanjaxBehavoirTest.banjax_test_dir + "/" + page_filename, BanjaxBehavoirTest.http_doc_root + "/" +page_filename)
@@ -139,7 +143,6 @@ class BanjaxBehavoirTest(unittest.TestCase):
         self.assertEqual(result[self.STD_OUT],self.BANNED_MESSAGE);
 
     def ntest_unbanned_challenged_url(self):
-        tr()
         self.replace_config("challenged_url_test.conf")
         result = self.do_curl(ALLOWED_URL)
         self.assertEqual(result[self.STD_OUT][0:self.SOLVER_PAGE_PREFIX_LEN],self.SOLVER_PAGE_PREFIX);
@@ -181,7 +184,7 @@ class BanjaxBehavoirTest(unittest.TestCase):
         self.assertEqual(result[BanjaxBehavoirTest.STD_ERR], "")
         #request to guarantee cache
         self.put_page(BanjaxBehavoirTest.CACHED_PAGE)
-        result = self.do_curl(BanjaxBehavoirTest.ATS_HOST + "/" + BanjaxBehavoirTest.CACHED_PAGE, cookie = BanjaxBehavoirTest.AUTH_COOKIE)
+        result = self.do_curl(BanjaxBehavoirTest.ATS_HOST + "/" + BanjaxBehavoirTest.CACHED_PAGE, cookie = BanjaxBehavoirTest.BAD_AUTH_COOKIE)
         self.assertEqual(result[self.STD_OUT], self.read_page(BanjaxBehavoirTest.CACHED_PAGE))
 
         #check if it is reading from cache if the cookie is bad
@@ -201,7 +204,7 @@ class BanjaxBehavoirTest(unittest.TestCase):
         result = self.do_curl(BanjaxBehavoirTest.ATS_HOST + "/" + BanjaxBehavoirTest.CACHED_PAGE)
         self.assertEqual(result[self.STD_OUT], self.read_page(BanjaxBehavoirTest.CACHED_PAGE))
         self.replace_page(BanjaxBehavoirTest.CACHED_PAGE,BanjaxBehavoirTest.UNCACHED_PAGE)
-        result = self.do_curl(BanjaxBehavoirTest.ATS_HOST + "/" + BanjaxBehavoirTest.CACHED_PAGE, cookie = BanjaxBehavoirTest.AUTH_COOKIE)
+        result = self.do_curl(BanjaxBehavoirTest.ATS_HOST + "/" + BanjaxBehavoirTest.CACHED_PAGE)
         self.assertEqual(result[self.STD_OUT],self.read_page(BanjaxBehavoirTest.CACHED_PAGE));
 
 # Synthesize TimelineTest+TestCase subclasses for every 'tl_*' file in
@@ -213,7 +216,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--banjax-dir', default=BanjaxBehavoirTest.banjax_dir)
-    parser.add_argument('--banjax-test-dir', default=os.path.dirname(os.getcwd()))
+    parser.add_argument('--banjax-test-dir', default=os.getcwd())
+    parser.add_argument('--ats-bin-dir', default=BanjaxBehavoirTest.ats_bin_dir)
     parser.add_argument('--http-doc-root', default=BanjaxBehavoirTest.http_doc_root)
     parser.add_argument('unittest_args', nargs='*')
 
@@ -221,11 +225,12 @@ if __name__ == '__main__':
     BanjaxBehavoirTest.banjax_dir = args.banjax_dir
     BanjaxBehavoirTest.banjax_test_dir = args.banjax_test_dir
     BanjaxBehavoirTest.http_doc_root = args.http_doc_root
-    
-    traffic_proc = subprocess.Popen(["trafficserver", "start"],
-                                    stdin=subprocess.PIPE,
-                                    stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE)
+    BanjaxBehavoirTest.ats_bin_dir = args.ats_bin_dir
+
+    traffic_proc = subprocess.Popen([BanjaxBehavoirTest.ats_bin_dir + "/trafficserver", "start"],
+                                     stdin=subprocess.PIPE,
+                                     stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
     traffic_proc.wait()
 
     print traffic_proc.stdout.read()
