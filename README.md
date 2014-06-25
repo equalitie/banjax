@@ -100,6 +100,29 @@ Testing:
 --------
 running unittests in banjax/test will run the unittests corresponding to banjax filters.
 
+Behavior tests needs to be run as root. You also need to add the following line to conf/remap.conf
+
+regex_map   http://^(www\.)?127.0.0.1$/ ORIGIN_URL
+
+For example, if the http server is running on the same machine, listening on port 8080, you should add:
+
+regex_map   http://^(www\.)?127.0.0.1$/ http://127.0.0.1:8080/ 
+
+You should also need to have write access to the folder where http origin server websites from.
+
+usage: banjax_behavior_test.py [-h] [--banjax-dir BANJAX_DIR]
+                               [--banjax-test-dir BANJAX_TEST_DIR]
+                               [--http-doc-root HTTP_DOC_ROOT]
+
+optional arguments:
+  -h, --help   shows help
+  --banjax-dir banjax config folder (default: /usr/local/trafficserver/modules/banjax/)
+  --banjax-test-dir (default: current folder)
+  --http-doc-root origin website folder (default: /var/www)
+
+cd test
+python banjax_behavior_test
+
 Debugging
 ----------
 If you would like to debug banjax in gdb you need to configure it as follow:
@@ -174,7 +197,7 @@ Sample Attacks:
 
 Challenger:
 -----------
-Challenger serves different challenges to confirm the legitimacy of the client. Currently partial inverse SHA256 or Captcha puzzles are supported. The hash solution of the puzzle is also sent along side with the ip of the requester. It is mainly meant to be a cache busting prevention mechanism.
+Challenger serves different challenges to confirm the legitimacy of the client for the requested access (read, edit, etc). Currently partial inverse SHA256 , Captcha puzzles or password authentication are supported. The hash solution of the puzzle is also sent along side with the ip of the requester. It is mainly meant to be a cache busting prevention mechanism as well as cache-less access to the website.
 
 key: is the string from which MAC key that is used to authenticate the cookie is being used. MAC prevents the attacker from tampering with the challenge or reuse its solution for different bots.
 
@@ -186,11 +209,15 @@ name: the host name as it appears in the url, "www.host.com" and "host.com" are 
 
 validity_period: determine how often the challenger should re-challenge a client in seconds. When under cache-busting attack, it is advisable to decrease this number. Also because the solution is cookie based each client will be challenged once for each website. 
 
-challenge_type: can be "captcha" or "sha_inverse" at the moment.
+challenge_type: can be "captcha", "sha_inverse" or "auth" at the moment.
 
-challenge: the name of the html file that contains the challenge. by default it is "captcha.html" and "solver.html", however user can copy these files (residing in modules/banjax/) to costumize the appearance for example for localization.
+challenge: the name of the html file that contains the challenge. by default it is "captcha.html", "solver.html" and "auth.html", however user can copy these files (residing in modules/banjax/) to customize the appearance for example for localization.
 
 no_of_fails_to_ban (optional): If specifies, challenger reports the ip to swabber, if the ip asks for the challenge this many times and fails to solve it (ip needs two request per captcha challenges).
+
+password_hash (mandatory for auth): B64 encoded of SHA256 of the password that needs to be verified by challenger.
+
+magic_word (mandatory for auth): the word that need to appear in the requested url in order for the challenger to serve the auth challenge token, to enable the client to generate the auth cookie.
 
 Sample Attacks:
 ---------------
@@ -213,7 +240,16 @@ Sample Attacks:
                challenge_type = "sha_inverse";
                challenge = "solver.html";
                no_of_fails_to_ban = 10;
-               validity_period = 120;}
+               validity_period = 120;},
+             { name = "127.0.0.1";
+               challenge_type = "auth";
+               challenge = "auth.html";
+               password_hash = "BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM="
+               magic_word = "iec1OoghAogh0ionieJaot4p"
+	           validity_period = 1200;
+               no_of_fails_to_ban = 10;
+           });
+
             )
     };
 
