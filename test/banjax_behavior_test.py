@@ -175,6 +175,13 @@ class BanjaxBehavoirTest(unittest.TestCase):
         result = self.do_curl(BanjaxBehavoirTest.ATS_HOST + "/" + BanjaxBehavoirTest.CACHED_PAGE, cookie = BanjaxBehavoirTest.AUTH_COOKIE)
         self.assertEqual(result[self.STD_OUT],self.read_page(BanjaxBehavoirTest.UNCACHED_PAGE));
 
+        #check that the nocache reply is not cached
+        self.replace_page(BanjaxBehavoirTest.UNCACHED_PAGE,BanjaxBehavoirTest.CACHED_PAGE)
+        result = self.do_curl(BanjaxBehavoirTest.ATS_HOST + "/" + BanjaxBehavoirTest.CACHED_PAGE, cookie = BanjaxBehavoirTest.AUTH_COOKIE)
+        self.assertEqual(result[self.STD_OUT],self.read_page(BanjaxBehavoirTest.CACHED_PAGE));
+
+
+
     def test_auth_challenged_failure(self):
         """
         The test simulate entering a wrong password in the auth challenge
