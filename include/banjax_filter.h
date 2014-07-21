@@ -77,6 +77,7 @@ public:
         GO_AHEAD_NO_COMMENT,
         I_RESPOND,
         NO_WORRIES_SERVE_IMMIDIATELY,
+        SERVE_FRESH,
         CALL_OTHER_FILTERS,
         CALL_ME_ON_RESPONSE
    };
@@ -97,7 +98,7 @@ public:
      If you are only intended to call afunction for the matter of information 
      gathering you should not use the response_generator
    */
-  FilterResponse(ResponseGenerator cur_response_generator)
+ FilterResponse(ResponseGenerator cur_response_generator)
     :response_type(I_RESPOND),
      response_data((void*) new FilterExtendedResponse(cur_response_generator))
   {}
