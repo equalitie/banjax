@@ -62,7 +62,7 @@ class HostChallengeSpec {
  public:
   //Challenge Types    
 
-  std::string host_name; //this is actually redundant as we are indexing by hostname
+  std::string name; //this is actually redundant as we are indexing by hostname
   ChallengeDefinition::ChallengeType challenge_type;
   
   std::string challenge_stream;
@@ -161,8 +161,10 @@ protected:
   std::map<std::string, ChallengeDefinition::ChallengeType> challenge_type;
   ChallengeSpec* challenge_specs[ChallengeDefinition::CHALLENGE_COUNT];
   
-  typedef std::map<std::string, HostChallengeSpec*> HostSettingsMap;
-  HostSettingsMap host_settings_;
+  typedef std::map<std::string, HostChallengeSpec*> ChallengeSettingsMap;
+  typedef std::map<std::string, std::list<HostChallengeSpec*>> HostChallengeMap;
+  ChallengeSettingsMap challenge_settings;
+  HostChallengeMap host_challenges;
 
   //We store the forbidden message at the begining so we can copy it fast 
   //everytime. It is being stored here for being used again
@@ -183,7 +185,7 @@ protected:
    *
    * @return true if no_of_failures exceeded the threshold
    */
-  bool report_failure(std::string client_ip, HostChallengeSpec* failed_host);
+  bool report_failure(std::string client_ip, HostChallengeSpec* failed_challenge, std::string failed_host);
 
   /**
    * Should be called upon successful solution of a challenge to wipe up the
