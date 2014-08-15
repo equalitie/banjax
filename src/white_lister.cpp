@@ -11,7 +11,7 @@
 #include <ts/ts.h>
 
 using namespace std;
-
+#include "util.h"
 #include "white_lister.h"
 
 /**
@@ -28,7 +28,7 @@ WhiteLister::load_config(libconfig::Setting& cfg)
 
      //now we compile all of them and store them for later use
      for(unsigned int i = 0; i < count; i++)
-       white_list.push_back((const char*)(ip_white_list[i]));
+       white_list.push_back(make_mask_for_range((const char*)(ip_white_list[i])));
 
    }
    catch(const libconfig::SettingNotFoundException &nfex)
@@ -41,11 +41,11 @@ WhiteLister::load_config(libconfig::Setting& cfg)
 FilterResponse WhiteLister::execute(const TransactionParts& transaction_parts)
 {
 
-  for(list<string>::iterator it= white_list.begin(); it != white_list.end(); it++)
+  for(list<SubnetRange>::iterator it= white_list.begin(); it != white_list.end(); it++)
     {
-      if (*it == transaction_parts.at(TransactionMuncher::IP))
+      if (is_match(transaction_parts.at(TransactionMuncher::IP), *it))
         {
-          TSDebug(BANJAX_PLUGIN_NAME, "white listed ip: %s", (*it).c_str());
+          TSDebug(BANJAX_PLUGIN_NAME, "white listed ip: %s in range %X", transaction_parts.at(TransactionMuncher::IP).c_str(), (*it).first);
           return FilterResponse(FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
         }
     }
@@ -53,4 +53,5 @@ FilterResponse WhiteLister::execute(const TransactionParts& transaction_parts)
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
                     
 }
+
 
