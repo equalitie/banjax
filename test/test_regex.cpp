@@ -66,7 +66,7 @@ using namespace std;
    and to check if the regex manager has picked them correctly and
    match them correctly.
  */
-class RegexManagerTest : public testing::Test {
+class RegexTester : public testing::Test {
  protected:
 
   libconfig::Config cfg;
@@ -79,7 +79,7 @@ class RegexManagerTest : public testing::Test {
   IPDatabase test_ip_database;
   SwabberInterface test_swabber_interface;
 
-  RegexManagerTest()
+  RegexTester()
     :  test_swabber_interface(&test_ip_database)
   {}
 
