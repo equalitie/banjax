@@ -30,6 +30,11 @@ RegexManager::load_config(libconfig::Setting& cfg)
 {
    try
    {
+     RE2::Options opt;
+     opt.set_log_errors(false);
+     opt.set_perl_classes(true);
+     opt.set_posix_syntax(true);
+     opt.set_never_capture(true);
      const libconfig::Setting &banned_regexes_list = cfg["banned_regexes"];
  
      unsigned int count = banned_regexes_list.getLength();
@@ -42,7 +47,7 @@ RegexManager::load_config(libconfig::Setting& cfg)
        unsigned int observation_interval = banned_regexes_list[i]["interval"];
        unsigned int threshold  = banned_regexes_list[i]["hits_per_interval"];
        
-       rated_banning_regexes.push_back(new RatedRegex(cur_rule, new RE2((const char*)(banned_regexes_list[i]["regex"])), observation_interval * 1000, threshold /(double)(observation_interval* 1000)));
+       rated_banning_regexes.push_back(new RatedRegex(cur_rule, new RE2((const char*)(banned_regexes_list[i]["regex"]), opt), observation_interval * 1000, threshold /(double)(observation_interval* 1000)));
        
      }
 
