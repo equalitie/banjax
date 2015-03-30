@@ -43,6 +43,7 @@
 
 #include <re2/re2.h> //google re2
 
+#include <yaml-cpp/yaml.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -65,7 +66,7 @@ using namespace std;
 class WhiteListerTest : public testing::Test {
  protected:
 
-  libconfig::Config cfg;
+  YAML::Node cfg;
   string TEMP_DIR;
   string TEST_CONF_FILE;
 
@@ -114,9 +115,9 @@ class WhiteListerTest : public testing::Test {
 
   void open_config()
   {
-    libconfig::Config cfg;
+    YAML::Node cfg;
     try  {
-      cfg.readFile(TEST_CONF_FILE.c_str());
+      cfg= YAML::LoadFile(TEST_CONF_FILE.c_str());
     }
     catch(const libconfig::FileIOException &fioex)  {
       ASSERT_TRUE(false);
@@ -125,8 +126,7 @@ class WhiteListerTest : public testing::Test {
       ASSERT_TRUE(false);
     }
 
-    const libconfig::Setting& config_root = cfg.getRoot();
-    test_white_lister = new WhiteLister(TEMP_DIR, config_root);
+    test_white_lister = new WhiteLister(TEMP_DIR, cfg["white_listed_ips"]);
 
   }
 

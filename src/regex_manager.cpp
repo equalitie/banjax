@@ -26,7 +26,7 @@ using namespace std;
   and compile them
  */
 void
-RegexManager::load_config(libconfig::Setting& cfg)
+RegexManager::load_config(YAML::Node cfg)
 {
    try
    {
@@ -35,19 +35,16 @@ RegexManager::load_config(libconfig::Setting& cfg)
      opt.set_perl_classes(true);
      opt.set_posix_syntax(true);
      opt.set_never_capture(true);
-     const libconfig::Setting &banned_regexes_list = cfg["banned_regexes"];
- 
-     unsigned int count = banned_regexes_list.getLength();
 
      //now we compile all of them and store them for later use
-     for(unsigned int i = 0; i < count; i++) {
-       string cur_rule = (const char*) banned_regexes_list[i]["rule"];
+     for(YAML::const_iterator it = cfg.begin(); it != cfg.end(); ++it) {
+       string cur_rule = (const char*) (*it)["rule"].as<std::string>().c_str();
        TSDebug(BANJAX_PLUGIN_NAME, "initiating rule %s", cur_rule.c_str());
 
-       unsigned int observation_interval = banned_regexes_list[i]["interval"];
-       unsigned int threshold  = banned_regexes_list[i]["hits_per_interval"];
+       unsigned int observation_interval = (*it)["interval"].as<unsigned int>();
+       unsigned int threshold  = (*it)["hits_per_interval"].as<unsigned int>();
        
-       rated_banning_regexes.push_back(new RatedRegex(cur_rule, new RE2((const char*)(banned_regexes_list[i]["regex"]), opt), observation_interval * 1000, threshold /(double)(observation_interval* 1000)));
+       rated_banning_regexes.push_back(new RatedRegex(cur_rule, new RE2((const char*)((*it)["regex"].as<std::string>().c_str()), opt), observation_interval * 1000, threshold /(double)(observation_interval* 1000)));
        
      }
 

@@ -4,7 +4,7 @@ AM_CPPFLAGS = -I../include -I/usr/local/trafficserver/include $(lib_CPPFLAGS) -p
 
 noinst_PROGRAMS  = unittests
 
-LIBLIST=-lre2 -lzmq -lconfig++
+LIBLIST=-lre2 -lzmq -lconfig++ -lyaml-cpp
 
 unittests_LDFLAGS = \
 	-module \

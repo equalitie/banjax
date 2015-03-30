@@ -8,6 +8,7 @@
 
 #include <assert.h>
 #include <libconfig.h++>
+#include <yaml-cpp/yaml.h>
 
 #include "banjax_common.h"
 #include "transaction_muncher.h"
@@ -133,7 +134,7 @@ class BanjaxFilter
      @param banjax_dir the directory which contains banjax config files
      @param cfg the object that contains the configuration of the filter
   */
-  virtual void load_config(libconfig::Setting& cfg, const std::string& banjax_dir) {(void) cfg; (void)banjax_dir; assert(0);};
+  virtual void load_config(YAML::Node& cfg, const std::string& banjax_dir) {(void) cfg; (void)banjax_dir; assert(0);};
  public:
   const unsigned int BANJAX_FILTER_ID;
   const std::string BANJAX_FILTER_NAME;
@@ -174,7 +175,7 @@ class BanjaxFilter
      subsequently it reads all the regexs
 
   */
- BanjaxFilter(const std::string& banjax_dir, const libconfig::Setting& main_root, unsigned int child_id, std::string child_name)
+ BanjaxFilter(const std::string& banjax_dir, YAML::Node main_root, unsigned int child_id, std::string child_name)
     : BANJAX_FILTER_ID(child_id),
       BANJAX_FILTER_NAME(child_name),
     queued_tasks()

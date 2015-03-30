@@ -43,6 +43,7 @@
 
 #include <re2/re2.h> //google re2
 
+#include <yaml-cpp/yaml.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -132,9 +133,9 @@ class RegexManagerTest : public testing::Test {
 
   void open_config()
   {
-    libconfig::Config cfg;
+    YAML::Node cfg;
     try  {
-      cfg.readFile(TEST_CONF_FILE.c_str());
+      cfg= YAML::LoadFile(TEST_CONF_FILE.c_str());
     }
     catch(const libconfig::FileIOException &fioex)  {
       ASSERT_TRUE(false);
@@ -143,8 +144,7 @@ class RegexManagerTest : public testing::Test {
       ASSERT_TRUE(false);
     }
 
-    const libconfig::Setting& config_root = cfg.getRoot();
-    test_regex_manager = new RegexManager(TEMP_DIR, config_root, &test_ip_database, &test_swabber_interface);
+    test_regex_manager = new RegexManager(TEMP_DIR, cfg["challenger"]["regex_banner"], &test_ip_database, &test_swabber_interface);
 
   }
 

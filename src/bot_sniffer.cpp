@@ -29,11 +29,11 @@ using namespace std;
   Reads botbanger's port from the config
  */
 void
-BotSniffer::load_config(libconfig::Setting& cfg)
+BotSniffer::load_config(YAML::Node& cfg)
 {
    try
    {
-     botbanger_port = cfg["botbanger_port"];
+     botbanger_port = cfg["botbanger_port"].as<unsigned int>();
      
    }
    catch(const libconfig::SettingNotFoundException &nfex)

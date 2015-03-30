@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include <yaml-cpp/yaml.h>
 #include <openssl/sha.h>
 
 #include "swabber_interface.h"
@@ -226,7 +227,7 @@ public:
 
        @param main_root the root of the configuration structure
     */
-  ChallengeManager(const string& banjax_dir, const libconfig::Setting& main_root, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
+  ChallengeManager(const string& banjax_dir, YAML::Node main_root, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
     :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
     too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
      too_many_failures_message_length(too_many_failures_message.length()),
@@ -243,7 +244,7 @@ public:
     }
     
     ip_database = global_ip_database;
-    load_config(main_root[BANJAX_FILTER_NAME], banjax_dir);
+    load_config(main_root, banjax_dir);
     
   }
 
@@ -254,7 +255,7 @@ public:
 
     @param cfg the config node for "challenger"
   */
-  virtual void load_config(libconfig::Setting& cfg, const std::string& banjax_dir);
+  virtual void load_config(YAML::Node cfg, const std::string& banjax_dir);
 
   /**
      Overloaded to tell banjax that we need url, host 

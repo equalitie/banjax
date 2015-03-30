@@ -19,16 +19,15 @@ using namespace std;
   and compile them
  */
 void
-WhiteLister::load_config(libconfig::Setting& cfg)
+WhiteLister::load_config(YAML::Node cfg)
 {
    try
    {
-     const libconfig::Setting &ip_white_list = cfg["white_listed_ips"];
-     unsigned int count = ip_white_list.getLength();
+     unsigned int count = cfg.size();
 
      //now we compile all of them and store them for later use
      for(unsigned int i = 0; i < count; i++)
-       white_list.push_back((const char*)(ip_white_list[i]));
+       white_list.push_back((const char*)(cfg[i].as<std::string>().c_str()));
 
    }
    catch(const libconfig::SettingNotFoundException &nfex)

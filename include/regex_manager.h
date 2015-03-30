@@ -7,7 +7,7 @@
 #define REGEX_MANAGER_H
 
 #include <utility> //for pair
-
+#include <yaml-cpp/yaml.h>
 #include "banjax_filter.h"
 #include "swabber_interface.h"
 
@@ -82,7 +82,7 @@ class RegexManager : public BanjaxFilter
      subsequently it reads all the regexs
 
   */
- RegexManager(const std::string& banjax_dir, const libconfig::Setting& main_root, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
+ RegexManager(const std::string& banjax_dir, YAML::Node main_root, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
    :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME),
     forbidden_message("<html><header></header><body>Forbidden</body></html>"),
     forbidden_message_length(forbidden_message.length()),
@@ -90,7 +90,7 @@ class RegexManager : public BanjaxFilter
   {
     queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&RegexManager::execute);
     ip_database = global_ip_database;
-    load_config(main_root[BANJAX_FILTER_NAME]);
+    load_config(main_root);
   }
 
   /**
@@ -98,7 +98,7 @@ class RegexManager : public BanjaxFilter
     reads all the regular expressions from the database.
     and compile them
   */
-  virtual void load_config(libconfig::Setting& cfg);
+  virtual void load_config(YAML::Node cfg);
 
   /**
      Overloaded to tell banjax that we need url, host, ua and ip

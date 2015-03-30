@@ -46,26 +46,18 @@ extern Banjax* ATSEventHandler::banjax;
    you need to add it inside this function
 */
 void
-Banjax::filter_factory(const string& banjax_dir, const libconfig::Setting& main_root)
+Banjax::filter_factory(const string& banjax_dir, YAML::Node main_root)
 {
-  unsigned int filter_count = main_root.getLength();
   
-  for(unsigned int i = 0; i < filter_count; i++) {
-    string cur_filter_name = main_root[i].getName();
     BanjaxFilter* cur_filter;
-    if (cur_filter_name == REGEX_BANNER_FILTER_NAME) {
-      cur_filter = new RegexManager(banjax_dir, main_root, &ip_database, &swabber_interface);
-    } else if (cur_filter_name == CHALLENGER_FILTER_NAME){
-      cur_filter = new ChallengeManager(banjax_dir, main_root, &ip_database, &swabber_interface);
-    } else if (cur_filter_name == WHITE_LISTER_FILTER_NAME){
-      cur_filter = new WhiteLister(banjax_dir, main_root);
-    } else if (cur_filter_name == BOT_SNIFFER_FILTER_NAME){
+    if (main_root["challenger"]["regex_banner"]) {
+      cur_filter = new RegexManager(banjax_dir, main_root["challenger"]["regex_banner"], &ip_database, &swabber_interface);
+    } else if (main_root["challenger"]["challenges"]){
+      cur_filter = new ChallengeManager(banjax_dir, main_root["challenger"], &ip_database, &swabber_interface);
+    } else if (main_root["white_listed_ips"]){
+      cur_filter = new WhiteLister(banjax_dir, main_root["white_listed_ips"]);
+    } else if (main_root["botbanger_port"]){
       cur_filter = new BotSniffer(banjax_dir, main_root);
-    } else {
-      //unrecognized filter, warning and pass
-      TSDebug(BANJAX_PLUGIN_NAME, "I do not recognize filter %s requested in the config", cur_filter_name.c_str());
-      continue;
-
     }
 
     for(unsigned int i = BanjaxFilter::HTTP_START; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++) {
@@ -74,10 +66,10 @@ Banjax::filter_factory(const string& banjax_dir, const libconfig::Setting& main_
         task_queues[i].push_back(FilterTask(cur_filter,cur_filter->queued_tasks[i]));
       }
     }
-
-    filters.push_back(cur_filter);
-  }
-}
+    if(cur_filter){
+      filters.push_back(cur_filter);
+    }
+} 
 
 Banjax::Banjax()
   :swabber_interface(&ip_database),
@@ -135,7 +127,7 @@ Banjax::read_configuration()
 
   try
   {
-    cfg.readFile(absolute_config_file.c_str());
+    cfg = YAML::LoadFile(absolute_config_file);
   }
   catch(const libconfig::FileIOException &fioex)
   {
@@ -148,7 +140,13 @@ Banjax::read_configuration()
     return;
   }
 
-  filter_factory(banjax_dir, (const libconfig::Setting&)cfg.getRoot());
+  for(YAML::const_iterator it=cfg["include"].begin();it!=cfg["include"].end();++it ) {
+    YAML::Node sub_cfg = YAML::LoadFile((*it).as<std::string>());
+    cfg["challenger"]["challenges"].push_back(sub_cfg["challenges"]);
+    cfg["challenger"]["regex_banner"].push_back(sub_cfg["regex_banner"]); 
+  }
+
+  filter_factory(banjax_dir, cfg);
 
 }
 

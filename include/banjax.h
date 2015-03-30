@@ -7,6 +7,7 @@
 #ifndef BANJAX_H
 #define BANJAX_H
 #include <libconfig.h++>
+#include <yaml-cpp/yaml.h>
 #include <string>
 #include <list>
 
@@ -43,7 +44,7 @@ class Banjax
   //configuration
   static const std::string CONFIG_FILENAME;
   //libconfig object
-  libconfig::Config cfg;
+  YAML::Node cfg;
 
   /* open the mysql database and read the configs from the database
      this include the regex and l2b models
@@ -60,7 +61,7 @@ class Banjax
      @param main_root is libconfig++ ref to the root of
                       config file
   */
-  void filter_factory(const std::string& banjax_dir, const libconfig::Setting& main_root);
+  void filter_factory(const std::string& banjax_dir, YAML::Node cfg);
 
   uint64_t all_filters_requested_part;
   uint64_t all_filters_response_part;

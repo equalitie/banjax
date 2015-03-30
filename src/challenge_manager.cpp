@@ -60,38 +60,32 @@ std::string ChallengeManager::sub_zeros = "$zeros";
   and compile them
 */
 void
-ChallengeManager::load_config(libconfig::Setting& cfg, const std::string& banjax_dir)
+ChallengeManager::load_config(YAML::Node cfg, const std::string& banjax_dir)
 {
   //TODO: we should read the auth password from config and store it somewhere
    try
    {
-     const libconfig::Setting &challenger_hosts = cfg["challenges"];
-     unsigned int count = challenger_hosts.getLength();
-
      //now we compile all of them and store them for later use
-     for(unsigned int i = 0; i < count; i++) {
-       libconfig::Setting& challenge_config = challenger_hosts[i];
+     for(YAML::const_iterator it=cfg["challenges"].begin();it!=cfg["challenges"].end();++it) {
        HostChallengeSpec*  host_challenge_spec = new HostChallengeSpec;
        
-       host_challenge_spec->name = (const char*)challenge_config["name"];
+       host_challenge_spec->name = (const char*)(*it)["name"].as<std::string>().c_str();
       
-       const libconfig::Setting &challenged_domains = challenge_config["domains"];
-
        //it is fundamental to establish what type of challenge we are dealing
        //with
-       std::string requested_challenge_type = challenge_config["challenge_type"];
+       std::string requested_challenge_type = (*it)["challenge_type"].as<std::string>();
        host_challenge_spec->challenge_type = challenge_type[requested_challenge_type];
 
-       host_challenge_spec->challenge_validity_period = (unsigned int)challenge_config["validity_period"];
+       host_challenge_spec->challenge_validity_period = (*it)["validity_period"].as<unsigned int>();
 
        //how much failure are we going to tolerate
        //0 means infinite tolerance
-       if (challenge_config.exists("no_of_fails_to_ban"))
-         host_challenge_spec->fail_tolerance_threshold = (unsigned int)challenge_config["no_of_fails_to_ban"];
+       if ((*it)["no_of_fails_to_ban"])
+         host_challenge_spec->fail_tolerance_threshold = (*it)["no_of_fails_to_ban"].as<unsigned int>();
        // TODO(oschaaf): host name can be configured twice, and could except here
        std::string challenge_file;
-       if (challenge_config.exists("challenge"))
-         challenge_file = (const char*)challenge_config["challenge"];
+       if ((*it)["challenge"])
+         challenge_file = (const char*)(*it)["challenge"].as<std::string>().c_str();
 
        // If no file is configured, default to hard coded solver_page.
        if (challenge_file.size() == 0) {
@@ -114,21 +108,21 @@ ChallengeManager::load_config(libconfig::Setting& cfg, const std::string& banjax
        }
 
        //Auth challenege specific data
-       if (challenge_config.exists("password_hash"))
-         host_challenge_spec->password_hash = (const char*)challenge_config["password_hash"];
+       if ((*it)["password_hash"])
+         host_challenge_spec->password_hash = (const char*)(*it)["password_hash"].as<std::string>().c_str();
 
-       if (challenge_config.exists("magic_word"))
-         host_challenge_spec->magic_word = (const char*)challenge_config["magic_word"];
+       if ((*it)["magic_word"])
+         host_challenge_spec->magic_word = (const char*)(*it)["magic_word"].as<std::string>().c_str();
 
        //add it to the host map
        challenge_settings[host_challenge_spec->name] = host_challenge_spec;
        //here we are updating the dictionary that relate each
        //domain to many challenges
-       unsigned int domain_count = challenged_domains.getLength();
+       unsigned int domain_count = (*it)["domains"].size();
 
        //now we compile all of them and store them for later use
        for(unsigned int i = 0; i < domain_count; i++) {
-         string cur_domain = (const char*) challenged_domains[i];
+         string cur_domain = (const char*)(*it)["domains"][i].as<std::string>().c_str();
          host_challenges[cur_domain].push_back(host_challenge_spec);
 
        }
@@ -137,11 +131,11 @@ ChallengeManager::load_config(libconfig::Setting& cfg, const std::string& banjax
 
      //we use SHA256 to generate a key from the user passphrase
      //we will use half of the hash as we are using AES128
-     string challenger_key = cfg["key"];
+     string challenger_key = cfg["challenger"]["key"].as<std::string>();
 
      SHA256((const unsigned char*)challenger_key.c_str(), challenger_key.length(), hashed_key);
  
-     number_of_trailing_zeros = cfg["difficulty"];
+     number_of_trailing_zeros = cfg["challenger"]["difficulty"].as<unsigned int>();
      assert(!(number_of_trailing_zeros % 4));
      zeros_in_javascript = string(number_of_trailing_zeros / 4, '0');
  

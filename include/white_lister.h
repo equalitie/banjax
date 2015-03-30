@@ -7,6 +7,7 @@
 #ifndef WHITE_LISTER_H
 #define WHITE_LISTER_H
 
+#include <yaml-cpp/yaml.h>
 #include "banjax_filter.h"
 
 class WhiteLister : public BanjaxFilter
@@ -22,11 +23,11 @@ class WhiteLister : public BanjaxFilter
      subsequently it reads all the ips
 
   */
- WhiteLister(const std::string& banjax_dir, const libconfig::Setting& main_root)
+ WhiteLister(const std::string& banjax_dir, YAML::Node main_root)
    :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME)
   {
     queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&WhiteLister::execute);
-    load_config(main_root[BANJAX_FILTER_NAME]);
+    load_config(main_root);
   }
 
   /**
@@ -34,7 +35,7 @@ class WhiteLister : public BanjaxFilter
     reads all the regular expressions from the database.
     and compile them
   */
-  virtual void load_config(libconfig::Setting& cfg);
+  virtual void load_config(YAML::Node cfg);
 
   /**
      Overloaded to tell banjax that we need url, host, ua and ip

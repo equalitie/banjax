@@ -8,7 +8,7 @@
 #define BANJAX_COMMON_H
 
 #include <string>
-
+#include <yaml-cpp/yaml.h>
 const char BANJAX_PLUGIN_NAME[]="banjax";
 
 #endif
