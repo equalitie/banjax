@@ -69,11 +69,10 @@ using namespace std;
 class RegexManagerTest : public testing::Test {
  protected:
 
-  libconfig::Config cfg;
   string TEMP_DIR;
-  string TEST_CONF_FILE;
+  string TEST_CONF_FILE, TEST_CONF_FILE_SUB;
 
-  fstream  mock_config;
+  fstream  mock_config, mock_config_sub;
   BanjaxFilter* test_regex_manager;
   
   IPDatabase test_ip_database;
@@ -93,28 +92,29 @@ class RegexManagerTest : public testing::Test {
     char random_suffix[7]; 
     sprintf(random_suffix,"%i", rand()%100000);
     TEST_CONF_FILE = TEMP_DIR + "/test"+random_suffix+".conf";
+    TEST_CONF_FILE_SUB = TEMP_DIR + "/test"+random_suffix+"_sub.conf";
     try {
       mock_config.open(TEST_CONF_FILE,ios::out);
+      mock_config_sub.open(TEST_CONF_FILE_SUB,ios::out);
     }  catch (std::ifstream::failure e) {
   
       ASSERT_TRUE(false);
     }
     
-    mock_config << "regex_banner :" << endl;
-    mock_config << "{" << endl;
-    mock_config << "banned_regexes = ( {" << endl;
-    mock_config << "rule = \"simple to ban\"; " << endl;
-    mock_config << "regex = \".*simple_to_ban.*\";" << endl;
-    mock_config << "interval = 1; " << endl;
-    mock_config << "hits_per_interval = 0;" << endl;
-    mock_config << "}," << endl;
-    mock_config << "{ rule = \"hard to ban\"; " << endl;
-    mock_config << "regex = \".*not%20so%20simple%20to%20ban[\\s\\S]*\";" << endl;
-    mock_config << "interval = 1; " << endl;
-    mock_config << "hits_per_interval = 0;" << endl;
-    mock_config << "});" << endl;
-    mock_config << "};" << endl;
+    mock_config_sub << "regex_banner:" << endl;
+    mock_config_sub << "  - rule: simple to ban" << endl;
+    mock_config_sub << "    regex: \'.*simple_to_ban.*\'" << endl;
+    mock_config_sub << "    interval: 1" << endl;
+    mock_config_sub << "    hits_per_interval: 0" << endl;
+    mock_config_sub << "  - rule: hard to ban" << endl;
+    mock_config_sub << "    regex: \'.*not%20so%20simple%20to%20ban[\\s\\S]*\'" << endl;
+    mock_config_sub << "    interval: 1" << endl;
+    mock_config_sub << "    hits_per_interval: 0" << endl;
     
+    mock_config_sub.close();
+
+    mock_config << "include:" << endl;
+    mock_config << " - " + TEST_CONF_FILE_SUB << endl;
     mock_config.close();
   }
 
@@ -135,7 +135,7 @@ class RegexManagerTest : public testing::Test {
   {
     YAML::Node cfg;
     try  {
-      cfg= YAML::LoadFile(TEST_CONF_FILE.c_str());
+      cfg= YAML::LoadFile(TEST_CONF_FILE_SUB.c_str());
     }
     catch(const libconfig::FileIOException &fioex)  {
       ASSERT_TRUE(false);
@@ -144,7 +144,7 @@ class RegexManagerTest : public testing::Test {
       ASSERT_TRUE(false);
     }
 
-    test_regex_manager = new RegexManager(TEMP_DIR, cfg["challenger"]["regex_banner"], &test_ip_database, &test_swabber_interface);
+    test_regex_manager = new RegexManager(TEMP_DIR, cfg["regex_banner"], &test_ip_database, &test_swabber_interface);
 
   }
 

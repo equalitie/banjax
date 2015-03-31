@@ -89,13 +89,9 @@ class WhiteListerTest : public testing::Test {
       ASSERT_TRUE(false);
     }
     
-    mock_config << "white_lister :" << endl;
-    mock_config << "{" << endl;
-    mock_config << "white_listed_ips = ( " << endl;
-    mock_config << "\"127.0.0.1\"," << endl;
-    mock_config << "\"x.y.z.w\"" << endl;
-    mock_config << ");" << endl;
-    mock_config << "};" << endl;
+    mock_config << "white_listed_ips: " << endl;
+    mock_config << " - 127.0.0.1" << endl;
+    mock_config << " - x.y.z.w" << endl;
     
     mock_config.close();
   }
