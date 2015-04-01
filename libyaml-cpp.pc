@@ -1,0 +1,10 @@
+prefix=/usr
+exec_prefix=/usr
+libdir=${exec_dir}/lib/x86_64-linux-gnu
+includedir=${prefix}/include
+
+Name: Yaml-cpp
+Description: A YAML parser and emitter for C++
+Version: 0.5.1
+Libs: -L{libdir} -lyaml-cpp
+Cflags: -I${includedir}

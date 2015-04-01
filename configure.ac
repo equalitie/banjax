@@ -30,6 +30,7 @@ PKG_CHECK_MODULES([libzmq], [libzmq >= 2.2.0])
 # fast regex recognition
 #PKG_CHECK_MODULES([libre], [libre2 >= 2.0.0])
 #check for lib yaml-cpp
+#PKG_CHECK_MODULES([libyaml], [libyaml-cpp >= 0.5.1])
 
 LIBS="$libcrypto_LIBS $libconfig_LIBS $libzmq_LIBS $libre2_LIBS $libyaml_LIBS"
 
