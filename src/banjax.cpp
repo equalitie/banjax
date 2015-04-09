@@ -122,30 +122,30 @@ Banjax::read_configuration()
   string sep = "/";
   string banjax_dir = TSPluginDirGet() + sep + BANJAX_PLUGIN_NAME;
   string absolute_config_file = /*TSInstallDirGet() + sep + */ banjax_dir + sep+ CONFIG_FILENAME;
-
   TSDebug(BANJAX_PLUGIN_NAME, "Reading configuration from [%s]", absolute_config_file.c_str());
+
 
   try
   {
     cfg = YAML::LoadFile(absolute_config_file);
   }
-  catch(const libconfig::FileIOException &fioex)
+  catch(YAML::ParserException& e)
   {
-    TSDebug(BANJAX_PLUGIN_NAME, "I/O error while reading config file [%s].", absolute_config_file.c_str());
-    return;
-  }
-  catch(const libconfig::ParseException &pex)
-  {
-    TSDebug(BANJAX_PLUGIN_NAME, "Parse error while reading the config file");
+    TSDebug(BANJAX_PLUGIN_NAME, "I/O error while reading config file [%s]: [%s].", absolute_config_file.c_str(), e.what());
     return;
   }
 
+  TSDebug(BANJAX_PLUGIN_NAME, "Finished loading main conf");
+
   for(YAML::const_iterator it=cfg["include"].begin();it!=cfg["include"].end();++it ) {
     string inc_loc = banjax_dir + sep + (*it).as<std::string>();
+    TSDebug(BANJAX_PLUGIN_NAME, "Reading configuration from [%s]", inc_loc.c_str());
     YAML::Node sub_cfg = YAML::LoadFile(inc_loc);
     cfg["challenger"]["challenges"].push_back(sub_cfg["challenges"]);
     cfg["challenger"]["regex_banner"].push_back(sub_cfg["regex_banner"]); 
+    TSDebug(BANJAX_PLUGIN_NAME, "Finished reading from [%s]", inc_loc.c_str());
   }
+  TSDebug(BANJAX_PLUGIN_NAME, "Finished loading include confs");
 
   filter_factory(banjax_dir, cfg);
 
