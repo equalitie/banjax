@@ -63,6 +63,7 @@ void
 ChallengeManager::load_config(YAML::Node cfg, const std::string& banjax_dir)
 {
   //TODO: we should read the auth password from config and store it somewhere
+   TSDebug(BANJAX_PLUGIN_NAME, "Loading challenger manager conf");
    try
    {
      //now we compile all of them and store them for later use
@@ -140,9 +141,10 @@ ChallengeManager::load_config(YAML::Node cfg, const std::string& banjax_dir)
      zeros_in_javascript = string(number_of_trailing_zeros / 4, '0');
  
    }
-   catch(const libconfig::SettingNotFoundException &nfex) {
-     TSDebug(BANJAX_PLUGIN_NAME, "Bad config for filter %s", BANJAX_FILTER_NAME.c_str());
+   catch(YAML::RepresentationException& e) {
+     TSDebug(BANJAX_PLUGIN_NAME, "Bad config for filter %s: %s", BANJAX_FILTER_NAME.c_str(), e.what());
    }
+   TSDebug(BANJAX_PLUGIN_NAME, "Done loading challenger manager conf");
 
    // load the page
     //ifstream ifs("../challenger/solver.html");

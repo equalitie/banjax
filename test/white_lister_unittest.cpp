@@ -92,6 +92,15 @@ class WhiteListerTest : public testing::Test {
     mock_config << "white_listed_ips: " << endl;
     mock_config << " - 127.0.0.1" << endl;
     mock_config << " - x.y.z.w" << endl;
+    mock_config << "" << endl;
+    mock_config << "botbanger_port: 1234" << endl;
+    mock_config << "" << endl;
+    mock_config << "challenger:" << endl;
+    mock_config << "  key: testtest" << endl;
+    mock_config << "  difficulty: 8" << endl;
+    mock_config << "" << endl;
+    mock_config << "include:" << endl;
+    mock_config << " - banjax.d/general.conf" << endl;
     
     mock_config.close();
   }

@@ -21,6 +21,7 @@ using namespace std;
 void
 WhiteLister::load_config(YAML::Node cfg)
 {
+   TSDebug(BANJAX_PLUGIN_NAME, "Loading white lister manager conf");
    try
    {
      unsigned int count = cfg.size();
@@ -30,11 +31,12 @@ WhiteLister::load_config(YAML::Node cfg)
        white_list.push_back((const char*)(cfg[i].as<std::string>().c_str()));
 
    }
-   catch(const libconfig::SettingNotFoundException &nfex)
-     {
-       // Ignore.
+   catch(YAML::RepresentationException& e)
+     {       
+       TSDebug(BANJAX_PLUGIN_NAME, "Error loading white lister config: %s", e.what());
      }
 
+   TSDebug(BANJAX_PLUGIN_NAME, "Done loading white lister manager conf");
 }
 
 FilterResponse WhiteLister::execute(const TransactionParts& transaction_parts)

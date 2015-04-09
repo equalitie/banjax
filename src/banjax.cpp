@@ -142,7 +142,15 @@ Banjax::read_configuration()
     TSDebug(BANJAX_PLUGIN_NAME, "Reading configuration from [%s]", inc_loc.c_str());
     YAML::Node sub_cfg = YAML::LoadFile(inc_loc);
     cfg["challenger"]["challenges"].push_back(sub_cfg["challenges"]);
-    cfg["challenger"]["regex_banner"].push_back(sub_cfg["regex_banner"]); 
+
+    for(YAML::const_iterator subit = sub_cfg["challenges"].begin(); subit!=sub_cfg["challenges"].end();++subit) {
+      cfg["challenger"]["challenges"].push_back((*subit));
+    }
+    TSDebug(BANJAX_PLUGIN_NAME, "Finished loading include challenges");
+    for(YAML::const_iterator subit = sub_cfg["regex_banner"].begin(); subit!=sub_cfg["regex_banner"].end();++subit) {
+      cfg["challenger"]["regex_banner"].push_back((*subit)); 
+    }
+    TSDebug(BANJAX_PLUGIN_NAME, "Finished loading include regex rules");
     TSDebug(BANJAX_PLUGIN_NAME, "Finished reading from [%s]", inc_loc.c_str());
   }
   TSDebug(BANJAX_PLUGIN_NAME, "Finished loading include confs");

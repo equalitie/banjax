@@ -30,12 +30,15 @@ RegexManager::load_config(YAML::Node cfg)
 {
    try
    {
+
+     TSDebug(BANJAX_PLUGIN_NAME, "Setting regex re2 options");
      RE2::Options opt;
      opt.set_log_errors(false);
      opt.set_perl_classes(true);
      opt.set_posix_syntax(true);
      opt.set_never_capture(true);
 
+     TSDebug(BANJAX_PLUGIN_NAME, "Loading regex manager conf");
      //now we compile all of them and store them for later use
      for(YAML::const_iterator it = cfg.begin(); it != cfg.end(); ++it) {
        string cur_rule = (const char*) (*it)["rule"].as<std::string>().c_str();
@@ -49,10 +52,12 @@ RegexManager::load_config(YAML::Node cfg)
      }
 
     }
-   catch(const libconfig::SettingNotFoundException &nfex)
+   catch(YAML::RepresentationException& e)
      {
-       // Ignore.
+       TSDebug(BANJAX_PLUGIN_NAME, "Error loading regex manager conf [%s].", e.what());
+	return;
      }
+     TSDebug(BANJAX_PLUGIN_NAME, "Done loading regex manager conf");
  
 }
 

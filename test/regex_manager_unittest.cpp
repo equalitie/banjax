@@ -112,7 +112,16 @@ class RegexManagerTest : public testing::Test {
     mock_config_sub << "    hits_per_interval: 0" << endl;
     
     mock_config_sub.close();
-
+    mock_config << "white_listed_ips: " << endl;
+    mock_config << " - 127.0.0.1" << endl;
+    mock_config << " - x.y.z.w" << endl;
+    mock_config << "" << endl;
+    mock_config << "botbanger_port: 1234" << endl;
+    mock_config << "" << endl;
+    mock_config << "challenger:" << endl;
+    mock_config << "  key: testtest" << endl;
+    mock_config << "  difficulty: 8" << endl;
+    mock_config << "" << endl;
     mock_config << "include:" << endl;
     mock_config << " - " + TEST_CONF_FILE_SUB << endl;
     mock_config.close();
@@ -135,7 +144,7 @@ class RegexManagerTest : public testing::Test {
   {
     YAML::Node cfg;
     try  {
-      cfg= YAML::LoadFile(TEST_CONF_FILE_SUB.c_str());
+      cfg= YAML::LoadFile(TEST_CONF_FILE.c_str());
     }
     catch(const libconfig::FileIOException &fioex)  {
       ASSERT_TRUE(false);
@@ -143,9 +152,19 @@ class RegexManagerTest : public testing::Test {
     catch(const libconfig::ParseException &pex)   {
       ASSERT_TRUE(false);
     }
+    for(YAML::const_iterator it=cfg["include"].begin();it!=cfg["include"].end();++it ) {
+      string inc_loc = (*it).as<std::string>();
+      YAML::Node sub_cfg = YAML::LoadFile(inc_loc);
+      
+      for(YAML::const_iterator subit = sub_cfg["challenges"].begin(); subit!=sub_cfg["challenges"].end();++subit) {
+        cfg["challenger"]["challenges"].push_back((*subit));
+      }
+      for(YAML::const_iterator subit = sub_cfg["regex_banner"].begin(); subit!=sub_cfg["regex_banner"].end();++subit) {
+        cfg["challenger"]["regex_banner"].push_back((*subit)); 
+      }
+    }
 
-    test_regex_manager = new RegexManager(TEMP_DIR, cfg["regex_banner"], &test_ip_database, &test_swabber_interface);
-
+    test_regex_manager = new RegexManager(TEMP_DIR, cfg["challenger"]["regex_banner"], &test_ip_database, &test_swabber_interface);
   }
 
 };
