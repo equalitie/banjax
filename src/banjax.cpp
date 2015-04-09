@@ -141,7 +141,8 @@ Banjax::read_configuration()
   }
 
   for(YAML::const_iterator it=cfg["include"].begin();it!=cfg["include"].end();++it ) {
-    YAML::Node sub_cfg = YAML::LoadFile((*it).as<std::string>());
+    string inc_loc = banjax_dir + sep + (*it).as<std::string>();
+    YAML::Node sub_cfg = YAML::LoadFile(inc_loc);
     cfg["challenger"]["challenges"].push_back(sub_cfg["challenges"]);
     cfg["challenger"]["regex_banner"].push_back(sub_cfg["regex_banner"]); 
   }
