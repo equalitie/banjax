@@ -50,7 +50,6 @@ RegexManager::load_config(YAML::Node cfg)
        rated_banning_regexes.push_back(new RatedRegex(cur_rule, new RE2((const char*)((*it)["regex"].as<std::string>().c_str()), opt), observation_interval * 1000, threshold /(double)(observation_interval* 1000)));
        
      }
-
     }
    catch(YAML::RepresentationException& e)
      {

@@ -141,7 +141,6 @@ Banjax::read_configuration()
     string inc_loc = banjax_dir + sep + (*it).as<std::string>();
     TSDebug(BANJAX_PLUGIN_NAME, "Reading configuration from [%s]", inc_loc.c_str());
     YAML::Node sub_cfg = YAML::LoadFile(inc_loc);
-    cfg["challenger"]["challenges"].push_back(sub_cfg["challenges"]);
 
     for(YAML::const_iterator subit = sub_cfg["challenges"].begin(); subit!=sub_cfg["challenges"].end();++subit) {
       cfg["challenger"]["challenges"].push_back((*subit));
