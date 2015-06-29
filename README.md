@@ -27,15 +27,11 @@ Requirements:
 
 Following standard Debian packages are required by banjax
 
-     apt-get install libzmq libconfig++
-
-You also need mercurial to get Google re2:
-
-    apt-get install mercurial
+     apt-get install libzmq libconfig++ yaml-cpp
 
 Google re2 regex engine:
 
-        hg clone https://re2.googlecode.com/hg re2
+        hg clone https://github.com/google/re2
         cd re2
         make test
         make install
@@ -69,16 +65,6 @@ Banjax is using automake frame work, to make and install banjax, cd into banjax 
 You need the following dev deb package to compile banjax in addition to libre2 described above:
 
     apt-get install build-essential git mercurial libzmq-dev libconfig++-dev unzip
-
-
-You also need google test framework to be installed
-
-    wget http://googletest.googlecode.com/files/gtest-1.7.0.zip
-    unzip gtest-1.7.0.zip
-    cd gtest-1.7.0
-    ./configure
-    make
-    cp lib/.libs/libgtest*.a /usr/lib
 
 invoke following sequences of command
 

@@ -2,4 +2,6 @@
 # See LICENSE for other credits and copying information
 
 AUTOMAKE_OPTIONS = foreign
-SUBDIRS = src test #doc
+
+SUBDIRS = src gtest test  #doc
+

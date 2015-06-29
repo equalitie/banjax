@@ -40,9 +40,12 @@ Makefile.in
 /config-aux/compile
 
 #libtools
+.libs
 src/.libs
 *.la
 
+#gtest
+gtest/lib/
 /test/unittests
 install-sh
 libtool
