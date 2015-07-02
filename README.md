@@ -31,7 +31,7 @@ Following standard Debian packages are required by banjax
 
 Google re2 regex engine:
 
-        hg clone https://github.com/google/re2
+        git clone https://github.com/google/re2
         cd re2
         make test
         make install
@@ -41,18 +41,19 @@ Copy banjax.so file in:
 
      /usr/local/trafficserver/modules
 
-Copy banjax.conf file in:
+Copy banjax.conf file to the folder of your choice. The default directroy that banjax is going to look for banjax.conf is ATS default plugin dircetory, for example:
 
      /usr/local/trafficserver/modules/banjax/
 
 Add a line
 
-    banjax.so
+    banjax.so [/path/to/the/folder/where/banjax.conf/resides]
 
 to 
 
     /usr/local/trafficserver/conf/plugins.conf
 
+If you omit the path arguement, banjax will look into ATS plugin directory for banjax.conf.
 
 Installation from source
 ------------------------

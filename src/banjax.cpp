@@ -18,6 +18,11 @@
 #include <list>
 #include <iostream>
 #include <iomanip>
+
+//check if the banjax.conf folder exists and is a folder indeed
+#include <sys/stat.h>
+//#include <libexplain/stat.h>
+
 using namespace std;
 
 #include <re2/re2.h>
@@ -35,11 +40,24 @@ using namespace std;
 #include "swabber_interface.h"
 #include "ats_event_handler.h"
 
+#define TSError_does_not_work_in_TSPluginInit
+
+#ifdef TSError_does_not_work_in_TSPluginInit
+#define TSError TSErrorAlternative
+#endif
+
 extern TSCont Banjax::global_contp;
 
 extern const string Banjax::CONFIG_FILENAME = "banjax.conf";
 
 extern Banjax* ATSEventHandler::banjax;
+
+void TSErrorAlternative(const char* error_str)
+{
+  fprintf(stderr,"ERROR: %s\n", error_str);
+  
+}
+
 /**
    Read the config file and create filters whose name is
    mentioned in the config file. If you make a new filter
@@ -71,11 +89,18 @@ Banjax::filter_factory(const string& banjax_dir, YAML::Node main_root)
     }
 } 
 
-Banjax::Banjax()
-  :swabber_interface(&ip_database),
-   all_filters_requested_part(0), 
-   all_filters_response_part(0)
+/**
+   Constructor 
+
+   @param banjax_config_dir path to the folder containing banjax.conf
+*/
+Banjax::Banjax(const string& banjax_config_dir)
+  :    all_filters_requested_part(0), 
+       all_filters_response_part(0),
+       banjax_config_dir(banjax_config_dir),
+       swabber_interface(&ip_database)
 {
+ 
   //Everything is static in ATSEventHandle so it is more like a namespace
   //than a class (we never instatiate from it). so the only reason
   //we have to create this object is to set the static reference to banjax into 
@@ -120,7 +145,7 @@ Banjax::read_configuration()
 {
   // Read the file. If there is an error, report it and exit.
   string sep = "/";
-  string banjax_dir = TSPluginDirGet() + sep + BANJAX_PLUGIN_NAME;
+  string banjax_dir = TSPluginDirGet(); //+ sep + BANJAX_PLUGIN_NAME;
   string absolute_config_file = /*TSInstallDirGet() + sep + */ banjax_dir + sep+ CONFIG_FILENAME;
   TSDebug(BANJAX_PLUGIN_NAME, "Reading configuration from [%s]", absolute_config_file.c_str());
 
@@ -129,10 +154,14 @@ Banjax::read_configuration()
   {
     cfg = YAML::LoadFile(absolute_config_file);
   }
+  catch(YAML::BadFile& e) {
+    TSDebug(BANJAX_PLUGIN_NAME, "I/O error while reading config file [%s]: [%s]. Make sure that file exists.", absolute_config_file.c_str(), e.what());
+    TSReleaseAssert(false);
+  }
   catch(YAML::ParserException& e)
   {
-    TSDebug(BANJAX_PLUGIN_NAME, "I/O error while reading config file [%s]: [%s].", absolute_config_file.c_str(), e.what());
-    return;
+    TSDebug(BANJAX_PLUGIN_NAME, "parsing error while reading config file [%s]: [%s].", absolute_config_file.c_str(), e.what());
+    TSReleaseAssert(false);
   }
 
   TSDebug(BANJAX_PLUGIN_NAME, "Finished loading main conf");
@@ -164,23 +193,58 @@ Banjax* p_banjax_plugin;
 void
 TSPluginInit(int argc, const char *argv[])
 {
-  (void) argc; (void)argv;
   TSPluginRegistrationInfo info;
+
+  //set the config folder
+  std::string banjax_config_dir = TSPluginDirGet();
 
   info.plugin_name = (char*) BANJAX_PLUGIN_NAME;
   info.vendor_name = (char*) "eQualit.ie";
   info.support_email = (char*) "info@deflect.ca";
 
-  if (TSPluginRegister(TS_SDK_VERSION_3_0, &info) != TS_SUCCESS) {
-    TSError("Plugin registration failed. \n");
-  }
-
   if (!check_ts_version()) {
-    TSError("Plugin requires Traffic Server 3.0 or later\n");
-    return;
+    TSError("Plugin requires Traffic Server 3.0 or later");
+    goto fatal_err;
+
   }
+  
+  if (argc > 1) {//then use the path specified by the arguemnt
+    banjax_config_dir = argv[1];
+
+    struct stat stat_buffer;
+    if (stat(banjax_config_dir.c_str(), &stat_buffer) < 0) {
+      std::string error_str = "given banjax config directory " + banjax_config_dir + " doen't exist or is unaccessible.";
+      TSError(error_str.c_str());
+      // int err = errno;
+      // TSError(explain_errno_stat(err, banjax_config_dir.c_str(), &stat_buffer));
+    
+      goto fatal_err;
+      
+    }
+
+    if (!S_ISDIR(stat_buffer.st_mode)) {
+      std::string error_str = "given banjax config directory " + banjax_config_dir + " doesn't seem to be an actual directory";
+      TSError(error_str.c_str());
+      goto fatal_err;
+    }
+    
+  }
+  
   /* create the banjax object that control the whole procedure */
   p_banjax_plugin = (Banjax*)TSmalloc(sizeof(Banjax));
-  p_banjax_plugin = new(p_banjax_plugin) Banjax;
+  p_banjax_plugin = new(p_banjax_plugin) Banjax(banjax_config_dir);
+
+  //if everything went smoothly then register banjax
+  if (TSPluginRegister(TS_SDK_VERSION_3_0, &info) != TS_SUCCESS) {
+    TSError("Plugin registration failed.\n");
+    goto fatal_err;
+  }
+
+  return; //reaching this point means successfully registered
+  
+fatal_err:
+  TSError("Unable to register banjax due to a fatal error.");
+  TSError("Preventing ATS to run cause quietly starting ats without banjax is worst possible combination");
+  TSReleaseAssert(false);
 
 }

@@ -25,6 +25,19 @@ class BanjaxFilter;
 //object can exist
 class Banjax
 {
+ protected:
+  //it keeps all part of requests and responses which is
+  //requested by filter at initialization for later
+  //fast use
+  uint64_t all_filters_requested_part;
+  uint64_t all_filters_response_part;
+
+  //configuration
+  std::string banjax_config_dir; //this keeps the folder contains banjax.conf and banjax.d folder
+  static const std::string CONFIG_FILENAME;
+  //libconfig object
+  YAML::Node cfg;
+
   friend class ATSEventHandler;
 
  public:
@@ -40,11 +53,6 @@ class Banjax
   
   std::list<BanjaxFilter*> filters;
   TaskQueue task_queues[BanjaxFilter::TOTAL_NO_OF_QUEUES];
-
-  //configuration
-  static const std::string CONFIG_FILENAME;
-  //libconfig object
-  YAML::Node cfg;
 
   /* open the mysql database and read the configs from the database
      this include the regex and l2b models
@@ -63,14 +71,15 @@ class Banjax
   */
   void filter_factory(const std::string& banjax_dir, YAML::Node cfg);
 
-  uint64_t all_filters_requested_part;
-  uint64_t all_filters_response_part;
-
  public:
   uint64_t which_parts_are_requested() { return all_filters_requested_part;}
   uint64_t which_response_parts_are_requested() { return all_filters_response_part;}
-  /* Constructor */
-  Banjax();
+  /**
+     Constructor 
+
+     @param banjax_config_dir path to the folder containing banjax.conf
+   */
+  Banjax(const std::string& banjax_config_dir);
 
 };
 

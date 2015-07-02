@@ -14,7 +14,7 @@ class BanjaxTest : public testing:Test
 {
 
 protected:
-   Banjax test_banjax;
+  Banjax test_banjax("./config");
 
 };
 
