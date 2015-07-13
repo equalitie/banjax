@@ -19,21 +19,26 @@ using namespace std;
   and compile them
  */
 void
-WhiteLister::load_config(YAML::Node cfg)
+WhiteLister::load_config()
 {
    TSDebug(BANJAX_PLUGIN_NAME, "Loading white lister manager conf");
    try
    {
-     unsigned int count = cfg.size();
+     //look for white_listed_ips, they all should have been merged
+     //by the yaml merger
+     YAML::Node white_listed_ips = cfg["white_listed_ips"];
+     
+     unsigned int count = white_listed_ips.size();
 
      //now we compile all of them and store them for later use
      for(unsigned int i = 0; i < count; i++)
-       white_list.push_back((const char*)(cfg[i].as<std::string>().c_str()));
+       white_list.push_back((const char*)(white_listed_ips[i].as<std::string>().c_str()));
 
    }
    catch(YAML::RepresentationException& e)
      {       
        TSDebug(BANJAX_PLUGIN_NAME, "Error loading white lister config: %s", e.what());
+       throw;
      }
 
    TSDebug(BANJAX_PLUGIN_NAME, "Done loading white lister manager conf");

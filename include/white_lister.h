@@ -23,11 +23,11 @@ class WhiteLister : public BanjaxFilter
      subsequently it reads all the ips
 
   */
- WhiteLister(const std::string& banjax_dir, YAML::Node main_root)
-   :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME)
+ WhiteLister(const std::string& banjax_dir, const FilterConfig& filter_config)
+   :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME)
   {
     queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&WhiteLister::execute);
-    load_config(main_root);
+    load_config();
   }
 
   /**
@@ -35,7 +35,7 @@ class WhiteLister : public BanjaxFilter
     reads all the regular expressions from the database.
     and compile them
   */
-  virtual void load_config(YAML::Node cfg);
+  virtual void load_config();
 
   /**
      Overloaded to tell banjax that we need url, host, ua and ip

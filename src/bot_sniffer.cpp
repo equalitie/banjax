@@ -29,7 +29,7 @@ using namespace std;
   Reads botbanger's port from the config
  */
 void
-BotSniffer::load_config(YAML::Node& cfg)
+BotSniffer::load_config()
 {
    try
    {

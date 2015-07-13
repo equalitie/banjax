@@ -221,14 +221,14 @@ protected:
    */
   std::string format_validity_time_for_cookie(long validity_time);
 public:
-    /**
-       construtor which receives the config object, set the filter 
-       name and calls the config reader function.
+  /**
+     construtor which receives the config object, set the filter 
+     name and calls the config reader function.
 
-       @param main_root the root of the configuration structure
-    */
-  ChallengeManager(const string& banjax_dir, YAML::Node main_root, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
-    :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
+     @param main_root the root of the configuration structure
+  */
+ ChallengeManager(const string& banjax_dir, const FilterConfig& filter_config, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
+    :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
     too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
      too_many_failures_message_length(too_many_failures_message.length()),
     swabber_interface(global_swabber_interface),
@@ -244,7 +244,7 @@ public:
     }
     
     ip_database = global_ip_database;
-    load_config(main_root, banjax_dir);
+    load_config(banjax_dir);
     
   }
 
@@ -255,7 +255,7 @@ public:
 
     @param cfg the config node for "challenger"
   */
-  virtual void load_config(YAML::Node cfg, const std::string& banjax_dir);
+  virtual void load_config(const std::string& banjax_dir);
 
   /**
      Overloaded to tell banjax that we need url, host 

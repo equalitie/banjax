@@ -7,6 +7,7 @@
 #define FILTER_LIST_H
 
 #include <string>
+#include <vector>
 
 enum FilterIDType {
   REGEX_BANNER_FILTER_ID,
@@ -14,10 +15,16 @@ enum FilterIDType {
   BOT_SNIFFER_FILTER_ID,
   WHITE_LISTER_FILTER_ID
 };
-  
+
 const std::string REGEX_BANNER_FILTER_NAME = "regex_banner";
 const std::string CHALLENGER_FILTER_NAME = "challenger";
 const std::string BOT_SNIFFER_FILTER_NAME = "bot_sniffer";
 const std::string WHITE_LISTER_FILTER_NAME = "white_lister";
+
+const std::vector<std::string> all_filters_names = {
+  REGEX_BANNER_FILTER_NAME,
+  CHALLENGER_FILTER_NAME,
+  BOT_SNIFFER_FILTER_NAME,
+  WHITE_LISTER_FILTER_NAME};
 
 #endif

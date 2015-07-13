@@ -20,6 +20,37 @@ class FilterResponse;
 
 typedef std::string (BanjaxFilter::*ResponseGenerator) (const TransactionParts& transactionp_parts, const FilterResponse& response_info);
 
+/** this is mainly created due to disablibity of yaml 
+    to merge nodes of the same name but also to manage 
+    priority
+  */
+class FilterConfig {
+public:
+  std::list<YAML::const_iterator> config_node_list;
+  int priority;
+
+};
+
+namespace YAML {
+  static Node operator|(const Node& a, const Node &b) {
+    Node result;
+    if (b.IsMap()) {
+      result = a;
+      for (auto n0 : b) {
+        result[n0.first.Scalar()] =  result[n0.first.Scalar()] | n0.second;
+      }
+    } else if (a.IsSequence() && b.IsSequence()) {
+      result = a;
+      for (auto n0 : b) {
+        result.push_back(n0);
+      }
+    } else {
+      result = b;
+    }
+    return result;
+  }
+}
+
 /**
    this is the standard extended response that the event handler expect to 
    process.
@@ -55,12 +86,13 @@ class FilterExtendedResponse
   /**
      A constructor that optionally set the response_generator on creation
    */
-  FilterExtendedResponse(ResponseGenerator requested_response_generator = NULL)
+ FilterExtendedResponse(ResponseGenerator requested_response_generator = NULL)
     : response_generator(requested_response_generator),
       content_type_(NULL),
       banned_ip(false),
       response_code(403)
-  {}
+  {
+  }
 
 };
 
@@ -102,7 +134,8 @@ public:
  FilterResponse(ResponseGenerator cur_response_generator)
     :response_type(I_RESPOND),
      response_data((void*) new FilterExtendedResponse(cur_response_generator))
-  {}
+  {
+  }
 
 };
 
@@ -127,6 +160,7 @@ class BanjaxFilter
 {
  protected:
   IPDatabase* ip_database;
+  YAML::Node cfg;
 
   /**
      It should be overriden by the filter to load its specific configurations
@@ -134,7 +168,7 @@ class BanjaxFilter
      @param banjax_dir the directory which contains banjax config files
      @param cfg the object that contains the configuration of the filter
   */
-  virtual void load_config(YAML::Node& cfg, const std::string& banjax_dir) {(void) cfg; (void)banjax_dir; assert(0);};
+  virtual void load_config(const std::string& banjax_dir) {(void) cfg; (void)banjax_dir; assert(0);};
  public:
   const unsigned int BANJAX_FILTER_ID;
   const std::string BANJAX_FILTER_NAME;
@@ -174,13 +208,21 @@ class BanjaxFilter
      receives the db object need to read the regex list,
      subsequently it reads all the regexs
 
+     it also merge scattered config in one node
+
   */
- BanjaxFilter(const std::string& banjax_dir, YAML::Node main_root, unsigned int child_id, std::string child_name)
-    : BANJAX_FILTER_ID(child_id),
-      BANJAX_FILTER_NAME(child_name),
+ BanjaxFilter(const std::string& banjax_dir, const FilterConfig& filter_config, unsigned int child_id, std::string child_name)
+   :BANJAX_FILTER_ID(child_id),
+    BANJAX_FILTER_NAME(child_name),
     queued_tasks()
   {
-    (void) banjax_dir; (void) main_root; ip_database = NULL;
+    (void) banjax_dir; ip_database = NULL;
+
+    for(std::list<YAML::const_iterator>::const_iterator cur_node = filter_config.config_node_list.begin(); cur_node != filter_config.config_node_list.end(); cur_node++)
+      {
+        cfg = cfg | (*cur_node)->second;
+        
+      }
   }
 
   /**

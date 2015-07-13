@@ -6,7 +6,7 @@
 
 #ifndef BANJAX_H
 #define BANJAX_H
-#include <libconfig.h++>
+//#include <libconfig.h++>
 #include <yaml-cpp/yaml.h>
 #include <string>
 #include <list>
@@ -37,6 +37,7 @@ class Banjax
   static const std::string CONFIG_FILENAME;
   //libconfig object
   YAML::Node cfg;
+  YAML::Node priorities;
 
   friend class ATSEventHandler;
 
@@ -50,6 +51,11 @@ class Banjax
   
   IPDatabase ip_database;
   SwabberInterface swabber_interface;
+
+  int current_sequential_priority;
+
+  std::map<std::string, FilterConfig> filter_config_map;
+  std::map<int, std::string> priority_map;
   
   std::list<BanjaxFilter*> filters;
   TaskQueue task_queues[BanjaxFilter::TOTAL_NO_OF_QUEUES];
@@ -58,6 +64,10 @@ class Banjax
      this include the regex and l2b models
   */
   void read_configuration();
+
+  //Recursively read the entire config structure
+  //including inside the included files
+  void process_config(const YAML::Node& cfg);
   
   /**
      Read the config file and create filters whose name is
@@ -69,7 +79,7 @@ class Banjax
      @param main_root is libconfig++ ref to the root of
                       config file
   */
-  void filter_factory(const std::string& banjax_dir, YAML::Node cfg);
+  void filter_factory();
 
  public:
   uint64_t which_parts_are_requested() { return all_filters_requested_part;}

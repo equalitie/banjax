@@ -60,7 +60,7 @@ std::string ChallengeManager::sub_zeros = "$zeros";
   and compile them
 */
 void
-ChallengeManager::load_config(YAML::Node cfg, const std::string& banjax_dir)
+ChallengeManager::load_config(const std::string& banjax_dir)
 {
   //TODO: we should read the auth password from config and store it somewhere
    TSDebug(BANJAX_PLUGIN_NAME, "Loading challenger manager conf");
@@ -71,6 +71,7 @@ ChallengeManager::load_config(YAML::Node cfg, const std::string& banjax_dir)
        HostChallengeSpec*  host_challenge_spec = new HostChallengeSpec;
        
        host_challenge_spec->name = (const char*)(*it)["name"].as<std::string>().c_str();
+       TSDebug(BANJAX_PLUGIN_NAME, "Loading conf for challenge %s", host_challenge_spec->name.c_str());
       
        //it is fundamental to establish what type of challenge we are dealing
        //with
@@ -132,17 +133,19 @@ ChallengeManager::load_config(YAML::Node cfg, const std::string& banjax_dir)
 
      //we use SHA256 to generate a key from the user passphrase
      //we will use half of the hash as we are using AES128
-     string challenger_key = cfg["challenger"]["key"].as<std::string>();
+     string challenger_key = cfg["key"].as<std::string>();
 
      SHA256((const unsigned char*)challenger_key.c_str(), challenger_key.length(), hashed_key);
  
-     number_of_trailing_zeros = cfg["challenger"]["difficulty"].as<unsigned int>();
+     number_of_trailing_zeros = cfg["difficulty"].as<unsigned int>();
      assert(!(number_of_trailing_zeros % 4));
      zeros_in_javascript = string(number_of_trailing_zeros / 4, '0');
  
    }
    catch(YAML::RepresentationException& e) {
      TSDebug(BANJAX_PLUGIN_NAME, "Bad config for filter %s: %s", BANJAX_FILTER_NAME.c_str(), e.what());
+     throw;
+     
    }
    TSDebug(BANJAX_PLUGIN_NAME, "Done loading challenger manager conf");
 

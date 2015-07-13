@@ -11,4 +11,9 @@
 #include <yaml-cpp/yaml.h>
 const char BANJAX_PLUGIN_NAME[]="banjax";
 
+/**
+ *  stop ats due to banjax config problem
+ */
+void abort_traffic_server();
+
 #endif

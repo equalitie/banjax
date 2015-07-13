@@ -49,3 +49,6 @@ gtest/lib/
 /test/unittests
 install-sh
 libtool
+
+#just for me
+config/config_cemetery/*

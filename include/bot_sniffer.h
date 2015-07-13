@@ -38,15 +38,15 @@ public:
      subsequently it reads all the ips
 
   */
- BotSniffer(const std::string& banjax_dir, YAML::Node& main_root)
-   :BanjaxFilter::BanjaxFilter(banjax_dir, main_root, BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME), 
+ BotSniffer(const std::string& banjax_dir, const FilterConfig& filter_config)
+   :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME), 
     context (1), zmqsock (context, ZMQ_PUB), 
     botbanger_server("*"), 
     bot_sniffer_mutex(TSMutexCreate()),
     BOTBANGER_LOG("botbanger_log")
   {
     queued_tasks[HTTP_CLOSE] = static_cast<FilterTaskFunction>(&BotSniffer::execute);
-    load_config(main_root);
+    load_config();
   }
 
   /**
@@ -54,7 +54,7 @@ public:
     reads all the regular expressions from the database.
     and compile them
   */
-  virtual void load_config(YAML::Node& cfg);
+  virtual void load_config();
 
   /**
      Overloaded to tell banjax that we need url, host, ua and ip

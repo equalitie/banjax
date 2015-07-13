@@ -26,7 +26,7 @@ using namespace std;
   and compile them
  */
 void
-RegexManager::load_config(YAML::Node cfg)
+RegexManager::load_config()
 {
    try
    {
@@ -53,7 +53,7 @@ RegexManager::load_config(YAML::Node cfg)
    catch(YAML::RepresentationException& e)
      {
        TSDebug(BANJAX_PLUGIN_NAME, "Error loading regex manager conf [%s].", e.what());
-	return;
+       throw;
      }
      TSDebug(BANJAX_PLUGIN_NAME, "Done loading regex manager conf");
 

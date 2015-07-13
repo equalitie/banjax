@@ -64,29 +64,44 @@ void TSErrorAlternative(const char* error_str)
    you need to add it inside this function
 */
 void
-Banjax::filter_factory(const string& banjax_dir, YAML::Node main_root)
+Banjax::filter_factory()
 {
-  
-    BanjaxFilter* cur_filter;
-    if (main_root["challenger"]["regex_banner"]) {
-      cur_filter = new RegexManager(banjax_dir, main_root["challenger"]["regex_banner"], &ip_database, &swabber_interface);
-    } else if (main_root["challenger"]["challenges"]){
-      cur_filter = new ChallengeManager(banjax_dir, main_root["challenger"], &ip_database, &swabber_interface);
-    } else if (main_root["white_listed_ips"]){
-      cur_filter = new WhiteLister(banjax_dir, main_root["white_listed_ips"]);
-    } else if (main_root["botbanger_port"]){
-      cur_filter = new BotSniffer(banjax_dir, main_root);
+  BanjaxFilter* cur_filter;
+  for (map<int,string>::iterator cur_filter_name_it = priority_map.begin(); cur_filter_name_it != priority_map.end();cur_filter_name_it++) {
+    FilterConfig& cur_config = filter_config_map[cur_filter_name_it->second];
+    try {
+        
+        if (cur_filter_name_it->second == REGEX_BANNER_FILTER_NAME) {
+          cur_filter = new RegexManager(banjax_config_dir, cur_config, &ip_database, &swabber_interface);
+        } else if (cur_filter_name_it->second == CHALLENGER_FILTER_NAME){
+          cur_filter = new ChallengeManager(banjax_config_dir, cur_config, &ip_database, &swabber_interface);
+        } else if (cur_filter_name_it->second == WHITE_LISTER_FILTER_NAME){
+          cur_filter = new WhiteLister(banjax_config_dir, cur_config);
+        } else if (cur_filter_name_it->second == BOT_SNIFFER_FILTER_NAME){
+          cur_filter = new BotSniffer(banjax_config_dir, cur_config);
+        } else {
+          TSError(("don't know how to construct requested filter " + cur_filter_name_it->second).c_str());
+          abort_traffic_server();
+        }
+        
+      }catch(YAML::Exception& e) {
+        TSError(("error in intializing filter " + cur_filter_name_it->second).c_str());
+        abort_traffic_server();
     }
-
+        
+      //at which que the filter need to be called
     for(unsigned int i = BanjaxFilter::HTTP_START; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++) {
       if (cur_filter->queued_tasks[i]) {
         TSDebug(BANJAX_PLUGIN_NAME, "active task %s %u", cur_filter->BANJAX_FILTER_NAME.c_str(), i);
         task_queues[i].push_back(FilterTask(cur_filter,cur_filter->queued_tasks[i]));
       }
     }
+    
     if(cur_filter){
-      filters.push_back(cur_filter);
+        filters.push_back(cur_filter);
     }
+  }
+    
 } 
 
 /**
@@ -98,7 +113,8 @@ Banjax::Banjax(const string& banjax_config_dir)
   :    all_filters_requested_part(0), 
        all_filters_response_part(0),
        banjax_config_dir(banjax_config_dir),
-       swabber_interface(&ip_database)
+       swabber_interface(&ip_database),
+       current_sequential_priority(0)
 {
  
   //Everything is static in ATSEventHandle so it is more like a namespace
@@ -144,48 +160,143 @@ void
 Banjax::read_configuration()
 {
   // Read the file. If there is an error, report it and exit.
-  string sep = "/";
-  string banjax_dir = TSPluginDirGet(); //+ sep + BANJAX_PLUGIN_NAME;
-  string absolute_config_file = /*TSInstallDirGet() + sep + */ banjax_dir + sep+ CONFIG_FILENAME;
+  static const  string sep = "/";
+  
+  //string banjax_dir = TSPluginDirGet(); //+ sep + BANJAX_PLUGIN_NAME;
+  string absolute_config_file = /*TSInstallDirGet() + sep + */ banjax_config_dir + sep+ CONFIG_FILENAME;
   TSDebug(BANJAX_PLUGIN_NAME, "Reading configuration from [%s]", absolute_config_file.c_str());
-
 
   try
   {
     cfg = YAML::LoadFile(absolute_config_file);
+    process_config(cfg);
   }
   catch(YAML::BadFile& e) {
     TSDebug(BANJAX_PLUGIN_NAME, "I/O error while reading config file [%s]: [%s]. Make sure that file exists.", absolute_config_file.c_str(), e.what());
-    TSReleaseAssert(false);
+    abort_traffic_server();
   }
   catch(YAML::ParserException& e)
   {
     TSDebug(BANJAX_PLUGIN_NAME, "parsing error while reading config file [%s]: [%s].", absolute_config_file.c_str(), e.what());
-    TSReleaseAssert(false);
+    abort_traffic_server();
   }
 
   TSDebug(BANJAX_PLUGIN_NAME, "Finished loading main conf");
 
-  for(YAML::const_iterator it=cfg["include"].begin();it!=cfg["include"].end();++it ) {
-    string inc_loc = banjax_dir + sep + (*it).as<std::string>();
-    TSDebug(BANJAX_PLUGIN_NAME, "Reading configuration from [%s]", inc_loc.c_str());
-    YAML::Node sub_cfg = YAML::LoadFile(inc_loc);
+  int min_priority = 0, max_priority = 0;
 
-    for(YAML::const_iterator subit = sub_cfg["challenges"].begin(); subit!=sub_cfg["challenges"].end();++subit) {
-      cfg["challenger"]["challenges"].push_back((*subit));
+  //setting up priorities
+  if (priorities.size()) {
+    //first find the max priorities
+    try {
+      min_priority = priorities.begin()->second.as<int>();
+      max_priority = priorities.begin()->second.as<int>();
+
+    } catch( YAML::RepresentationException &e ) {
+      TSError(("bad config format " +  (string)e.what()).c_str());
+      abort_traffic_server();
+        
     }
-    TSDebug(BANJAX_PLUGIN_NAME, "Finished loading include challenges");
-    for(YAML::const_iterator subit = sub_cfg["regex_banner"].begin(); subit!=sub_cfg["regex_banner"].end();++subit) {
-      cfg["challenger"]["regex_banner"].push_back((*subit)); 
+
+    for(YAML::const_iterator it=priorities.begin();it!=priorities.end();++it ) {
+      if ((*it).second.as<int>() > max_priority)
+        max_priority = (*it).second.as<int>();
+
+      if ((*it).second.as<int>() < min_priority)
+        min_priority = (*it).second.as<int>();
+
     }
-    TSDebug(BANJAX_PLUGIN_NAME, "Finished loading include regex rules");
-    TSDebug(BANJAX_PLUGIN_NAME, "Finished reading from [%s]", inc_loc.c_str());
   }
-  TSDebug(BANJAX_PLUGIN_NAME, "Finished loading include confs");
 
-  filter_factory(banjax_dir, cfg);
+  //now either replace priorities or add them up
+  for(std::map<std::string, FilterConfig>::iterator it = filter_config_map.begin(); it != filter_config_map.end(); it++) {
+    if (priorities[it->first]) {
+      it->second.priority = priorities[it->first].as<int>();
+    }
+    else {
+      it->second.priority += max_priority;
+    }
+    if (priority_map.find(it->second.priority) != priority_map.end())
+      {
+        TSError(("Priority " + to_string(it->second.priority) + " has been doubly assigned").c_str());
+        abort_traffic_server();
+      }
+    
+    priority_map[it->second.priority] = it->first;
+    
+  }
 
-}
+  //now we can make the filters
+  filter_factory();
+  
+}     
+  
+
+//Recursively read the entire config structure
+//including inside the included files
+void
+Banjax::process_config(const YAML::Node& cfg)
+{
+  static const  string sep = "/";
+
+  for (YAML::const_iterator it=cfg.begin();it!=cfg.end();++it) {
+    try {
+      std::string node_name = (*it).first.as<std::string>();
+      if (std::find(all_filters_names.begin(), all_filters_names.end(), node_name)!=all_filters_names.end()) {
+        //it is filter see if it is already in the list
+      if (filter_config_map.find(node_name) == filter_config_map.end()) {
+        filter_config_map[node_name].priority = current_sequential_priority;
+        current_sequential_priority++;
+        
+      }
+
+      filter_config_map[node_name].config_node_list.push_back(it);
+           
+       
+    } else if (node_name == "priority") {
+      //store it as priority config.
+      //for now we fire error if priority is double
+      //defined
+      if (priorities.size()) {
+        TSError("double definition of priorities. only one priority list is allowed.");
+
+        abort_traffic_server();
+      }
+
+      priorities = Clone(it->second);
+        
+    } else if (node_name == "include") {
+      for(YAML::const_iterator sub_it=it->second.begin();sub_it!=it->second.end();++sub_it ) {
+        string inc_loc = banjax_config_dir + sep + (*sub_it).as<std::string>();
+        TSDebug(BANJAX_PLUGIN_NAME, "Reading configuration from [%s]", inc_loc.c_str());
+        try {
+          YAML::Node sub_cfg = YAML::LoadFile(inc_loc);
+          process_config(sub_cfg);
+          
+        }
+        catch(YAML::BadFile& e) {
+          TSDebug(BANJAX_PLUGIN_NAME, "I/O error while reading config file [%s]: [%s]. Make sure that file exists.", inc_loc.c_str(), e.what());
+          abort_traffic_server();
+        }
+        catch(YAML::ParserException& e)  {
+          TSDebug(BANJAX_PLUGIN_NAME, "parsing error while reading config file [%s]: [%s].", inc_loc.c_str(), e.what());
+          abort_traffic_server();
+        }
+      }     
+    } else { //unknown node
+      TSError(("unknown config node " + node_name).c_str());
+      abort_traffic_server();
+    }
+    } catch( YAML::RepresentationException &e ) {
+      TSError(("bad config format " +  (string)e.what()).c_str());
+      abort_traffic_server();
+        
+    }
+
+  } //for all nodes
+
+};
+
 
 /* Global pointer that keep track of banjax global object */
 Banjax* p_banjax_plugin;
@@ -241,10 +352,20 @@ TSPluginInit(int argc, const char *argv[])
   }
 
   return; //reaching this point means successfully registered
-  
-fatal_err:
-  TSError("Unable to register banjax due to a fatal error.");
-  TSError("Preventing ATS to run cause quietly starting ats without banjax is worst possible combination");
+
+ fatal_err:
+    TSError("Unable to register banjax due to a fatal error.");
+    abort_traffic_server();
+
+}
+
+/**
+ *  stop ats due to banjax config problem
+ */
+void abort_traffic_server()
+{
+  TSError("Banjax was unable to start properly");
+  TSError("preventing ATS to run cause quietly starting ats without banjax is worst possible combination");
   TSReleaseAssert(false);
 
 }
