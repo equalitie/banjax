@@ -27,7 +27,7 @@ Requirements:
 
 Following standard Debian packages are required by banjax
 
-     apt-get install libzmq libconfig++ yaml-cpp
+     apt-get install libzmq libconfig++ libyaml-cpp-dev
 
 Google re2 regex engine:
 

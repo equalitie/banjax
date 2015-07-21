@@ -1,12 +1,13 @@
+AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = -I config-aux --install
 AM_CXXFLAGS = -Werror -Wall -Wextra -Wformat=2 -std=c++0x
 AM_CPPFLAGS = -I../include -I/usr/local/trafficserver/include $(lib_CPPFLAGS) -pthread
 
 check_PROGRAMS  = unittests
 
-GTEST_SOURCES = \
-	../gtest/src/gtest_main.cc \
-	../gtest/src/gtest-all.cc
+#GTEST_SOURCES = \
+#	../gtest/src/gtest_main.cc \
+#	../gtest/src/gtest-all.cc
 
 LIBLIST=-lre2 -lzmq -lconfig++ -lyaml-cpp
 
