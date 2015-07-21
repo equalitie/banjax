@@ -135,6 +135,20 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
 
 }
 
+/**
+   this is to reload banjax config when you get into the traffi_line -x
+   situation 
+*/
+int
+ATSEventHandler::banjax_management_handler(TSCont contp, TSEvent event, void *edata)
+{
+  (void) contp; (void) edata;
+  TSReleaseAssert(event == TS_EVENT_MGMT_UPDATE);
+  TSDebug(BANJAX_PLUGIN_NAME, "reload configuration signal received");
+  banjax->reload_config();
+  return 0;
+}
+
 void
 ATSEventHandler::handle_request(BanjaxContinuation* cd)
 {

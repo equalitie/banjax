@@ -39,6 +39,17 @@ class Banjax
   YAML::Node cfg;
   YAML::Node priorities;
 
+  //manage the priority for filter whose priority isn't
+  //specified in the config file
+  int current_sequential_priority;
+
+  //store all configs related to a filter in different
+  //yaml nodes (in different files maybe)
+  std::map<std::string, FilterConfig> filter_config_map;
+
+  //ordering and accessing filters by priority
+  std::map<int, std::string> priority_map;
+
   friend class ATSEventHandler;
 
  public:
@@ -51,16 +62,13 @@ class Banjax
   
   IPDatabase ip_database;
   SwabberInterface swabber_interface;
-
-  int current_sequential_priority;
-
-  std::map<std::string, FilterConfig> filter_config_map;
-  std::map<int, std::string> priority_map;
   
-  std::list<BanjaxFilter*> filters;
+  std::list<BanjaxFilter*> filters;    //this keeps the list of
+  //all created filter objects so we can delete them on re-load
   TaskQueue task_queues[BanjaxFilter::TOTAL_NO_OF_QUEUES];
 
-  /* open the mysql database and read the configs from the database
+  /**
+     open the mysql database and read the configs from the database
      this include the regex and l2b models
   */
   void read_configuration();
@@ -90,6 +98,13 @@ class Banjax
      @param banjax_config_dir path to the folder containing banjax.conf
    */
   Banjax(const std::string& banjax_config_dir);
+
+  /**
+     reload config and remake filters when traffic_line -x is executed
+     the ip databes will stay untouched so banning states should
+     be stay steady
+  */
+  void reload_config();
 
 };
 

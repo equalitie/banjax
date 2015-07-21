@@ -58,6 +58,13 @@ class ATSEventHandler
 
   static int  banjax_global_eventhandler(TSCont contp, TSEvent event, void *edata);
 
+
+  /**
+     this is to reload banjax config when you get into the traffi_line -x
+     situation 
+   */
+  static int  banjax_management_handler(TSCont contp, TSEvent event, void *edata);
+
   /**
     runs if a filter is registered to run a function during an event
    */

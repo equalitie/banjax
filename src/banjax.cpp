@@ -70,26 +70,24 @@ Banjax::filter_factory()
   for (map<int,string>::iterator cur_filter_name_it = priority_map.begin(); cur_filter_name_it != priority_map.end();cur_filter_name_it++) {
     FilterConfig& cur_config = filter_config_map[cur_filter_name_it->second];
     try {
-        
-        if (cur_filter_name_it->second == REGEX_BANNER_FILTER_NAME) {
-          cur_filter = new RegexManager(banjax_config_dir, cur_config, &ip_database, &swabber_interface);
-        } else if (cur_filter_name_it->second == CHALLENGER_FILTER_NAME){
-          cur_filter = new ChallengeManager(banjax_config_dir, cur_config, &ip_database, &swabber_interface);
-        } else if (cur_filter_name_it->second == WHITE_LISTER_FILTER_NAME){
-          cur_filter = new WhiteLister(banjax_config_dir, cur_config);
-        } else if (cur_filter_name_it->second == BOT_SNIFFER_FILTER_NAME){
-          cur_filter = new BotSniffer(banjax_config_dir, cur_config);
-        } else {
-          TSError(("don't know how to construct requested filter " + cur_filter_name_it->second).c_str());
-          abort_traffic_server();
-        }
-        
-      }catch(YAML::Exception& e) {
-        TSError(("error in intializing filter " + cur_filter_name_it->second).c_str());
+      if (cur_filter_name_it->second == REGEX_BANNER_FILTER_NAME) {
+        cur_filter = new RegexManager(banjax_config_dir, cur_config, &ip_database, &swabber_interface);
+      } else if (cur_filter_name_it->second == CHALLENGER_FILTER_NAME){
+        cur_filter = new ChallengeManager(banjax_config_dir, cur_config, &ip_database, &swabber_interface);
+      } else if (cur_filter_name_it->second == WHITE_LISTER_FILTER_NAME){
+        cur_filter = new WhiteLister(banjax_config_dir, cur_config);
+      } else if (cur_filter_name_it->second == BOT_SNIFFER_FILTER_NAME){
+        cur_filter = new BotSniffer(banjax_config_dir, cur_config);
+      } else {
+        TSError(("don't know how to construct requested filter " + cur_filter_name_it->second).c_str());
         abort_traffic_server();
+      }
+    }catch(YAML::Exception& e) {
+      TSError(("error in intializing filter " + cur_filter_name_it->second).c_str());
+      abort_traffic_server();
     }
         
-      //at which que the filter need to be called
+    //at which que the filter need to be called
     for(unsigned int i = BanjaxFilter::HTTP_START; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++) {
       if (cur_filter->queued_tasks[i]) {
         TSDebug(BANJAX_PLUGIN_NAME, "active task %s %u", cur_filter->BANJAX_FILTER_NAME.c_str(), i);
@@ -98,11 +96,61 @@ Banjax::filter_factory()
     }
     
     if(cur_filter){
-        filters.push_back(cur_filter);
+      filters.push_back(cur_filter);
     }
+  }
+
+  //now Get rid of inactives events
+  for(unsigned int cur_queue = BanjaxFilter::HTTP_START; cur_queue < BanjaxFilter::TOTAL_NO_OF_QUEUES; cur_queue++, ATSEventHandler::banjax_active_queues[cur_queue] = task_queues[cur_queue].empty() ? false : true);
+
+  //Ask each filter what part of http transaction they are interested in
+  for(list<BanjaxFilter*>::iterator cur_filter = filters.begin(); cur_filter != filters.end(); cur_filter++) {
+    all_filters_requested_part |= (*cur_filter)->requested_info();
+    all_filters_response_part |= (*cur_filter)->response_info();
   }
     
 } 
+
+/**
+   reload config and remake filters when traffic_line -x is executed
+   the ip databes will stay untouched so banning states should
+   be stay steady
+*/
+void Banjax::reload_config() {
+    //all we need is
+    // - to empty the queuse
+    // - delete the filters
+    // - re-read the config
+    // - call filter factory
+
+    //empty all queues
+  for(unsigned int i = BanjaxFilter::HTTP_START; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++)
+    task_queues[i].clear();      
+
+  //delete all filters
+  for(std::list<BanjaxFilter*>::iterator cur_filter = filters.begin();
+      cur_filter != filters.end();
+      delete *cur_filter,
+        cur_filter++);
+
+  filters.clear();
+
+  //re-load config
+  //reset config variables
+  filter_config_map.clear();
+  priority_map.clear();
+
+  priorities = YAML::Node();
+    
+  current_sequential_priority = 0;
+
+  all_filters_requested_part = 0;
+  all_filters_response_part = 0;
+
+  read_configuration();
+    
+}
+
 
 /**
    Constructor 
@@ -110,13 +158,13 @@ Banjax::filter_factory()
    @param banjax_config_dir path to the folder containing banjax.conf
 */
 Banjax::Banjax(const string& banjax_config_dir)
-  :    all_filters_requested_part(0), 
-       all_filters_response_part(0),
-       banjax_config_dir(banjax_config_dir),
-       swabber_interface(&ip_database),
-       current_sequential_priority(0)
+  : all_filters_requested_part(0), 
+    all_filters_response_part(0),
+    banjax_config_dir(banjax_config_dir),
+    current_sequential_priority(0),
+    swabber_interface(&ip_database)
 {
- 
+
   //Everything is static in ATSEventHandle so it is more like a namespace
   //than a class (we never instatiate from it). so the only reason
   //we have to create this object is to set the static reference to banjax into 
@@ -140,19 +188,16 @@ Banjax::Banjax(const string& banjax_config_dir)
 
   cd->contp = global_contp;
 
-  TSHttpHookAdd(TS_HTTP_TXN_START_HOOK, global_contp);
+
+  //For being able to be reload by traffic_line -x
+  TSCont management_contp = TSContCreate(ATSEventHandler::banjax_management_handler, NULL);
+  TSMgmtUpdateRegister(management_contp, BANJAX_PLUGIN_NAME);
 
   //creation of filters happen here
   read_configuration();
 
-  //now Get rid of inactives events
-  for(unsigned int cur_queue = BanjaxFilter::HTTP_START; cur_queue < BanjaxFilter::TOTAL_NO_OF_QUEUES; cur_queue++, ATSEventHandler::banjax_active_queues[cur_queue] = task_queues[cur_queue].empty() ? false : true);
-
-  //Ask each filter what part of http transaction they are interested in
-  for(list<BanjaxFilter*>::iterator cur_filter = filters.begin(); cur_filter != filters.end(); cur_filter++) {
-    all_filters_requested_part |= (*cur_filter)->requested_info();
-    all_filters_response_part |= (*cur_filter)->response_info();
-  }
+  //this probably should happen at the end due to multi-threading
+  TSHttpHookAdd(TS_HTTP_TXN_START_HOOK, global_contp);
 
 }
 
@@ -195,7 +240,6 @@ Banjax::read_configuration()
     } catch( YAML::RepresentationException &e ) {
       TSError(("bad config format " +  (string)e.what()).c_str());
       abort_traffic_server();
-        
     }
 
     for(YAML::const_iterator it=priorities.begin();it!=priorities.end();++it ) {
