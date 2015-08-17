@@ -69,6 +69,9 @@ You need the following dev deb package to compile banjax in addition to libre2 d
 
 invoke following sequences of command
 
+    wget https://googletest.googlecode.com/files/gtest-1.7.0.zip
+    unzip gtest-1.7.0.zip
+    mv gtest-1.7.0.zip gtest
     libtoolize
     ./autogen.sh
     aclocal
