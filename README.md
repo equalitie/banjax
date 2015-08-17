@@ -70,6 +70,7 @@ You need the following dev deb package to compile banjax in addition to libre2 d
 invoke following sequences of command
 
     libtoolize
+    ./autogen.sh
     aclocal
     automake --add-missing
     autoconf
