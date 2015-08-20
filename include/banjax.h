@@ -6,7 +6,6 @@
 
 #ifndef BANJAX_H
 #define BANJAX_H
-//#include <libconfig.h++>
 #include <yaml-cpp/yaml.h>
 #include <string>
 #include <list>

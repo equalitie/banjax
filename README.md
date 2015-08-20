@@ -27,7 +27,7 @@ Requirements:
 
 Following standard Debian packages are required by banjax
 
-     apt-get install libzmq libconfig++ libyaml-cpp-dev
+     apt-get install libzmq libyaml-cpp-dev
 
 Google re2 regex engine:
 
@@ -65,22 +65,46 @@ Banjax is using automake frame work, to make and install banjax, cd into banjax 
 
 You need the following dev deb package to compile banjax in addition to libre2 described above:
 
-    apt-get install build-essential git mercurial libzmq-dev libconfig++-dev unzip
+    apt-get install build-essential git mercurial libzmq-dev unzip automake libtool pkg-config libssl-dev
+
+If you do not have ATS installed, you need to install it as well:
+
+apt-get install trafficserver-dev
+
+notes that banjax require traffic server version 4 or higher and the build project might fails if you use earlier version provided by your distribution.
+
+Clone banjax repo
+
+    git clone https://github.com/equalitie/banjax
+
+Move to the banjax folder
+
+    cd banjax
 
 invoke following sequences of command
 
-    wget https://googletest.googlecode.com/files/gtest-1.7.0.zip
-    unzip gtest-1.7.0.zip
-    mv gtest-1.7.0.zip gtest
-    libtoolize
     ./autogen.sh
-    aclocal
-    automake --add-missing
-    autoconf
     ./configure --libdir=/usr/local/trafficserver/modules
     make
     make install
 
+If you get the following error:
+
+    configure: error: Package requirements (yaml-cpp >= 0.5.1) were not met
+
+it might be because the yaml-cpp package in your distribution is old. You need to downolad and make a newer version:
+
+   apt-get install libboost-dev cmake
+   cd ..
+   wget https://github.com/jbeder/yaml-cpp/archive/release-0.5.2.tar.gz
+   tar xvfz release-0.5.2.tar.gz
+   cd yaml-cpp-release-0.5.2
+   mkdir build
+   cd build
+   cmake ..
+   make
+   make install
+   
 HACK:
 if configure complains that libre2 isn't there but you are sure 
 you have already installed it, then

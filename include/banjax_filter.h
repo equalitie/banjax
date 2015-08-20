@@ -7,7 +7,6 @@
 #define BANJAX_FILTER_H
 
 #include <assert.h>
-#include <libconfig.h++>
 #include <yaml-cpp/yaml.h>
 
 #include "banjax_common.h"
