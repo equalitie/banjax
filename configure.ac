@@ -26,7 +26,6 @@ PKG_CHECK_MODULES([libcrypto], [libcrypto >= 1.0.1])
 # configuration reader
 #check for lib yaml-cpp
 PKG_CHECK_MODULES([libyaml], [yaml-cpp >= 0.5.1])
-#PKG_CHECK_MODULES([libconfig], [libconfig++ >= 1.4.8])
 PKG_CHECK_MODULES([libzmq], l[ibzmq >= 2.2.0])
 # 0mq pubsub
 PKG_CHECK_MODULES([libzmq], [libzmq >= 2.2.0])
@@ -35,7 +34,7 @@ PKG_CHECK_MODULES([libzmq], [libzmq >= 2.2.0])
 
 LIBS="$libcrypto_LIBS $libconfig_LIBS $libzmq_LIBS $libre2_LIBS $libyaml_LIBS"
 
-lib_CPPFLAGS="$libcrypto_CFLAGS $libconfig_CFLAGS"
+lib_CPPFLAGS="$libcrypto_CFLAGS"
 AC_SUBST(lib_CPPFLAGS)
 
 lib_LIBS="$LIBS"

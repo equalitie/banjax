@@ -32,3 +32,20 @@ lib_libgtest_la_SOURCES = src/gtest-all.cc
 
 lib_libgtest_main_la_SOURCES = src/gtest_main.cc
 lib_libgtest_main_la_LIBADD = lib/libgtest.la
+
+lib_LTLIBRARIES = samples/libsamples.la
+
+samples_libsamples_la_SOURCES = \
+  samples/sample1.cc \
+  samples/sample1.h \
+  samples/sample2.cc \
+  samples/sample2.h \
+  samples/sample3-inl.h \
+  samples/sample4.cc \
+  samples/sample4.h
+
+check_PROGRAMS += test/gtest_all_test
+test_gtest_all_test_SOURCES = test/gtest_all_test.cc
+test_gtest_all_test_LDADD = lib/libgtest_main.la \
+                            lib/libgtest.la
+

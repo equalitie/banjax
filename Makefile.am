@@ -3,5 +3,5 @@
 
 AUTOMAKE_OPTIONS = foreign subdir-objects
 
-SUBDIRS = src gtest test  #doc
+SUBDIRS = src test #gtest test  #doc
 

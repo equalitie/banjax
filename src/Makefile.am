@@ -4,7 +4,7 @@ AM_CXXFLAGS = -Werror -Wall -Wextra -Wformat=2 -std=c++0x
 
 AM_CPPFLAGS = -I../include -I$(srcdir)/src -I$(srcdir)/../re2 -I/usr/local/trafficserver/include $(lib_CPPFLAGS) 
 
-LIBLIST=-l re2 -l zmq -l config++ -l yaml-cpp
+LIBLIST=-l re2 -l zmq -l yaml-cpp
 
 lib_LTLIBRARIES = banjax.la
 
@@ -12,7 +12,7 @@ banjax_la_LDFLAGS = \
   -module \
   -shared \
   -avoid-version \
-  $(lib_LIBS) -lconfig++ -lre2 -lyaml-cpp
+  $(lib_LIBS) -lre2 -lyaml-cpp
 
 banjax_la_SOURCES = 	banjax.cpp \
 						ats_event_handler.cpp \
