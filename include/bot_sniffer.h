@@ -22,6 +22,7 @@ class BotSniffer : public BanjaxFilter
   zmq::socket_t zmqsock;
 
   unsigned int botbanger_port;
+  //static const unsigned int BOTBANGER_DEFAULT_PORT = 22621;
   std::string botbanger_server;
 
   //lock for writing into the socket
@@ -40,7 +41,8 @@ public:
   */
  BotSniffer(const std::string& banjax_dir, const FilterConfig& filter_config)
    :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME), 
-    context (1), zmqsock (context, ZMQ_PUB), 
+    context (1), zmqsock (context, ZMQ_PUB),
+    //botbanger_port(BOTBANGER_DEFAULT_PORT),
     botbanger_server("*"), 
     bot_sniffer_mutex(TSMutexCreate()),
     BOTBANGER_LOG("botbanger_log")

@@ -15,6 +15,7 @@
 #include <streambuf>
 #include <cmath>
 #include <algorithm>
+#include <utility>
 
 #include <cassert>
 #include <limits>
@@ -557,14 +558,22 @@ std::string ChallengeManager::generate_response(const TransactionParts& transact
 bool
 ChallengeManager::report_failure(std::string client_ip, HostChallengeSpec* failed_challenge, std::string failed_host)
 {
-  ChallengerStateUnion cur_ip_state;
+  std::pair<bool,FilterState> cur_ip_state;
   bool banned(false);
-  cur_ip_state.state_allocator =  ip_database->get_ip_state(client_ip, CHALLENGER_FILTER_ID);
-  cur_ip_state.detail.no_of_failures++; //incremet failure
+  cur_ip_state =  ip_database->get_ip_state(client_ip, CHALLENGER_FILTER_ID);
+  if (cur_ip_state.first == false) //we failed to read so we can't judge
+    return banned;
 
-  if (cur_ip_state.detail.no_of_failures >= failed_challenge->fail_tolerance_threshold) {
+  if (cur_ip_state.second.size() == 0) {
+    cur_ip_state.second.resize(1);
+    cur_ip_state.second[0] = 1;
+  } else {
+    cur_ip_state.second[0]++; //incremet failure
+  }
+  
+  if (cur_ip_state.second[0] >= failed_challenge->fail_tolerance_threshold) {
     banned = true;
-    string banning_reason = "failed challenge " + failed_challenge->name + "of type "+  challenge_specs[failed_challenge->challenge_type]->human_readable_name + " " + "for host " + failed_host  + " " + to_string(cur_ip_state.detail.no_of_failures) + " times";
+    string banning_reason = "failed challenge " + failed_challenge->name + "of type "+  challenge_specs[failed_challenge->challenge_type]->human_readable_name + " " + "for host " + failed_host  + " " + to_string(cur_ip_state.second[0]) + " times";
     swabber_interface->ban(client_ip.c_str(), banning_reason);
     //reset the number of failures for future
     //we are not clearing the state cause it is not for sure that
@@ -572,7 +581,7 @@ ChallengeManager::report_failure(std::string client_ip, HostChallengeSpec* faile
     //cur_ip_state.detail.no_of_failures = 0;
   }
   else { //only report if we haven't report to swabber cause otherwise it nulifies the work of swabber which has forgiven the ip and delete it from db
-    ip_database->set_ip_state(client_ip, CHALLENGER_FILTER_ID, cur_ip_state.state_allocator);
+    ip_database->set_ip_state(client_ip, CHALLENGER_FILTER_ID, cur_ip_state.second);
   }
 
   return banned;
@@ -588,7 +597,7 @@ ChallengeManager::report_failure(std::string client_ip, HostChallengeSpec* faile
 void 
 ChallengeManager::report_success(std::string client_ip)
 {
-  ChallengerStateUnion cur_ip_state;
-  ip_database->set_ip_state(client_ip, CHALLENGER_FILTER_ID, cur_ip_state.state_allocator);
+  FilterState cur_ip_state(1);
+  ip_database->set_ip_state(client_ip, CHALLENGER_FILTER_ID, cur_ip_state);
 
 }

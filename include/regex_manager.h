@@ -8,17 +8,21 @@
 
 #include <utility> //for pair
 #include <yaml-cpp/yaml.h>
+#include <vector>
+
 #include "banjax_filter.h"
 #include "swabber_interface.h"
 
 struct RatedRegex
 {
+  unsigned int id;
   std::string rule_name;
   RE2* re2_regex;
   unsigned int interval; //interval to look in mseconds
   float rate; //threshold /interval
 
-  RatedRegex(std::string new_rule_name, RE2* regex, unsigned int observation_interval, float excessive_rate):
+  RatedRegex(unsigned int new_id, std::string new_rule_name, RE2* regex, unsigned int observation_interval, float excessive_rate):
+    id(new_id),
     rule_name(new_rule_name),
     re2_regex(regex),
     interval(observation_interval),
@@ -26,24 +30,21 @@ struct RatedRegex
 
 };
 
-struct RegexBannerState {
+const size_t NO_OF_STATE_UNIT_PER_REGEX = 2;
+const uint8_t BEGIN_MSEC_OFFSET = 0;
+const uint8_t RATE_OFFSET = 0;
+
+struct RegexState {
   unsigned long begin_msec;
   float rate;
-  
+
+  RegexState():begin_msec(0), rate(0.0) {};
 };
-
-//typedef std::vector<RegexState>* RegexBannerState;
-
-union RegexBannerStateUnion
-{
-  FilterState state_allocator;
-  RegexBannerState detail;
-
-  RegexBannerStateUnion()
-    : state_allocator() { }
-
-  //~RegexBannerStateUnion() { delete detail;}
   
+union RegexStateUnion {
+  FilterStateUnit state_allocator[NO_OF_STATE_UNIT_PER_REGEX];
+  RegexState regex_state;
+RegexStateUnion(): state_allocator() {}  
 };
 
 class RegexManager : public BanjaxFilter
@@ -59,6 +60,7 @@ class RegexManager : public BanjaxFilter
   //the filter get a new connection
   //the idea is that the regex can add stuff at the end
   std::list<RatedRegex*> rated_banning_regexes;
+  unsigned int total_no_of_rules;
 
   //swabber object used for banning bots
   SwabberInterface* swabber_interface;
@@ -82,6 +84,7 @@ class RegexManager : public BanjaxFilter
      subsequently it reads all the regexs
 
   */
+
  RegexManager(const std::string& banjax_dir, const FilterConfig& filter_config, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
    :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME),
     forbidden_message("<html><header></header><body>Forbidden</body></html>"),

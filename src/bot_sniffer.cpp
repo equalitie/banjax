@@ -36,9 +36,10 @@ BotSniffer::load_config()
      botbanger_port = cfg["botbanger_port"].as<unsigned int>();
      
    }
-   catch(const libconfig::SettingNotFoundException &nfex)
+   catch(YAML::RepresentationException& e)
      {
-       // Ignore.
+       TSDebug(BANJAX_PLUGIN_NAME, "Error loading bot sniffer conf [%s].", e.what());
+       throw;
      }
 
    TSDebug(BANJAX_PLUGIN_NAME, "Connecting to botbanger server...");

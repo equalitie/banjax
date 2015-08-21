@@ -13,6 +13,7 @@
 #include "banjax.h"
 
 using namespace std;
+
 /**
   check if  the ip is in the db, if not store it and updates its states
   related to that filter
@@ -23,17 +24,19 @@ using namespace std;
 bool 
 IPDatabase::set_ip_state(std::string& ip, FilterIDType filter_id, FilterState state)
 {
-  IPHashTable::iterator cur_ip_it = _ip_db.find(ip);
+  //we need to lock at the begining because somebody can
+  //delete an ip while we are searching
   if (TSMutexLockTry(db_mutex) != TS_SUCCESS) {
     TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the ip db");
     return false;
   }
+  IPHashTable::iterator cur_ip_it = _ip_db.find(ip);
   if (cur_ip_it == _ip_db.end()) {
     _ip_db[ip] = IPState();
 
   }
 
-  _ip_db[ip].state_array[filter_to_column[filter_id]]  = state;
+  _ip_db[ip].state_array[filter_to_column[filter_id]] = state;
 
   TSMutexUnlock(db_mutex);
   TSDebug(BANJAX_PLUGIN_NAME, "db size %lu", _ip_db.size());
@@ -65,15 +68,45 @@ IPDatabase::drop_ip(std::string& ip)
 
 /**
   check if  the ip is in the db, if return 0
-  otherwise return the current state
+  otherwise return a pair of bool and the current state
+  if the boolean value is false means reading of the state
+  failed due to failure of locking the database
 */
-FilterState 
+std::pair<bool, FilterState>
 IPDatabase::get_ip_state(std::string& ip, FilterIDType filter_id)
 {
-    IPHashTable::iterator cur_ip_it = _ip_db.find(ip);
-    if (cur_ip_it == _ip_db.end())
-      return FilterState();
+  //We actually need to lock the database
+  //because the entry might get deleted while
+  //we are trying to read its data.
+  std::pair<bool, FilterState> result;
+  if (TSMutexLockTry(db_mutex) != TS_SUCCESS) {
+    TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the ip db");
+    result.first = false;
+    return result; //if we fail we return an empty state
+  }
+  result.first = true;
+  IPHashTable::iterator cur_ip_it = _ip_db.find(ip);
+  if (cur_ip_it != _ip_db.end()) {
+    result.second = cur_ip_it->second.state_array[filter_to_column[filter_id]];
+  }
 
-    return cur_ip_it->second.state_array[filter_to_column[filter_id]];
+  TSMutexUnlock(db_mutex);
+
+  return result;
 
 }
+
+/**
+   Drop all the ips due to reloading the config, its blocking on gaining  a lock
+*/
+void IPDatabase::drop_everything() {
+
+  TSMutexLock(db_mutex);
+  _ip_db.clear();
+  TSMutexUnlock(db_mutex);
+
+  TSDebug(BANJAX_PLUGIN_NAME, "ip db cleared");
+
+}
+
+

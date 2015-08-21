@@ -80,22 +80,6 @@ class HostChallengeSpec {
 
 };
 
-//Structure to keep state and keep track of challenge failure
-struct ChallengerState {
-  unsigned int no_of_failures;
-};
-
-union ChallengerStateUnion
-{
-  FilterState state_allocator;
-  ChallengerState detail;
-
-  ChallengerStateUnion()
-    : state_allocator() { }
-  
-};
-
-
 class ChallengerExtendedResponse : public FilterExtendedResponse
 {
  public:

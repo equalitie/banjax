@@ -101,6 +101,7 @@ class RegexManagerTest : public testing::Test {
       ASSERT_TRUE(false);
     }
     
+<<<<<<< variant A
     mock_config_sub << "regex_banner:" << endl;
     mock_config_sub << "  - rule: simple to ban" << endl;
     mock_config_sub << "    regex: \'.*simple_to_ban.*\'" << endl;
@@ -110,6 +111,47 @@ class RegexManagerTest : public testing::Test {
     mock_config_sub << "    regex: \'.*not%20so%20simple%20to%20ban[\\s\\S]*\'" << endl;
     mock_config_sub << "    interval: 1" << endl;
     mock_config_sub << "    hits_per_interval: 0" << endl;
+>>>>>>> variant B
+    mock_config << "regex_banner :" << endl;
+    mock_config << "{" << endl;
+    mock_config << "banned_regexes = ( {" << endl;
+    mock_config << "rule = \"simple to ban\"; " << endl;
+    mock_config << "regex = \".*simple_to_ban.*\";" << endl;
+    mock_config << "interval = 1; " << endl;
+    mock_config << "hits_per_interval = 0;" << endl;
+    mock_config << "}," << endl;
+    mock_config << "{ rule = \"hard to ban\"; " << endl;
+    mock_config << "regex = \".*not%20so%20simple%20to%20ban[\\s\\S]*\";" << endl;
+    mock_config << "interval = 1; " << endl;
+    mock_config << "hits_per_interval = 0;" << endl;
+    mock_config << "}," << endl;
+    mock_config << "{ rule = \"flooding ban\"; " << endl;
+    mock_config << "regex = \".*flooding_ban.*\";" << endl;
+    mock_config << "interval = 30; " << endl;
+    mock_config << "hits_per_interval = 10;" << endl;
+    mock_config << "}," << endl;
+    mock_config << "{ rule = \"flooding ban 2\"; " << endl;
+    mock_config << "regex = \".*flooding_diff_ban.*\";" << endl;
+    mock_config << "interval = 30; " << endl;
+    mock_config << "hits_per_interval = 10;" << endl;
+    mock_config << "});" << endl;
+    mock_config << "};" << endl;
+####### Ancestor
+    mock_config << "regex_banner :" << endl;
+    mock_config << "{" << endl;
+    mock_config << "banned_regexes = ( {" << endl;
+    mock_config << "rule = \"simple to ban\"; " << endl;
+    mock_config << "regex = \".*simple_to_ban.*\";" << endl;
+    mock_config << "interval = 1; " << endl;
+    mock_config << "hits_per_interval = 0;" << endl;
+    mock_config << "}," << endl;
+    mock_config << "{ rule = \"hard to ban\"; " << endl;
+    mock_config << "regex = \".*not%20so%20simple%20to%20ban[\\s\\S]*\";" << endl;
+    mock_config << "interval = 1; " << endl;
+    mock_config << "hits_per_interval = 0;" << endl;
+    mock_config << "});" << endl;
+    mock_config << "};" << endl;
+======= end
     
     mock_config_sub.close();
     mock_config << "white_listed_ips: " << endl;
@@ -187,6 +229,7 @@ TEST_F(RegexManagerTest, match)
 
   //first we make a mock up request
   TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::METHOD] = "GET";
   mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
   mock_transaction[TransactionMuncher::URL] = "http://simple_to_ban_me/";
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
@@ -208,6 +251,7 @@ TEST_F(RegexManagerTest, miss)
 
   //first we make a mock up request
   TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::METHOD] = "GET";
   mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
   mock_transaction[TransactionMuncher::URL] = "http://dont_ban_me/";
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
@@ -215,6 +259,36 @@ TEST_F(RegexManagerTest, miss)
 
   FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
 
+  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
+
+}
+
+
+/**
+   make up a fake GET request and check that the manager is not banning when
+   the request method changes to POST despite passing the allowed rate
+ */
+TEST_F(RegexManagerTest, post_get_counter)
+{
+
+  open_config();
+
+  //first we make a mock up request
+  TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::METHOD] = "GET";
+  mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
+  mock_transaction[TransactionMuncher::URL] = "http://flooding_ban/";
+  mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
+  mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
+  FilterResponse cur_filter_result = FilterResponse::GO_AHEAD_NO_COMMENT;
+
+  for ( int i=0; i<2; i++ ) {
+    cur_filter_result = test_regex_manager->execute(mock_transaction);
+  }
+
+  mock_transaction[TransactionMuncher::URL] = "http://flooding_diff_ban/";
+  cur_filter_result = test_regex_manager->execute(mock_transaction);
+  
   EXPECT_EQ(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
 
 }
@@ -230,6 +304,7 @@ TEST_F(RegexManagerTest, match_special_chars)
 
   //first we make a mock up request
   TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::METHOD] = "GET";
   mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
   mock_transaction[TransactionMuncher::URL] = "http://not%20so%20simple%20to%20ban//";
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
@@ -251,6 +326,7 @@ TEST_F(RegexManagerTest, forbidden_response)
 
   //first we make a mock up request
   TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::METHOD] = "GET";
   mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
   mock_transaction[TransactionMuncher::URL] = "http://simple_to_ban_me/";
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";

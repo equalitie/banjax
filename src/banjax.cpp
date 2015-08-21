@@ -135,6 +135,9 @@ void Banjax::reload_config() {
 
   filters.clear();
 
+  //reset the ip_database
+  ip_database.drop_everything();
+
   //re-load config
   //reset config variables
   filter_config_map.clear();
@@ -258,7 +261,7 @@ Banjax::read_configuration()
       it->second.priority = priorities[it->first].as<int>();
     }
     else {
-      it->second.priority += max_priority;
+      it->second.priority += max_priority+1;
     }
     if (priority_map.find(it->second.priority) != priority_map.end())
       {
