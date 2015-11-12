@@ -10,6 +10,7 @@
 
 #include <zmq.hpp>
 
+#include <openssl/sha.h>
 #include <yaml-cpp/yaml.h>
 #include "banjax_filter.h"
 
@@ -30,15 +31,16 @@ class BotSniffer : public BanjaxFilter
   //We should move to fifo queue or something
   TSMutex bot_sniffer_mutex;
 
+  //encryption key
+  uint8_t encryption_key[SHA256_DIGEST_LENGTH];
 
 public:
   const std::string BOTBANGER_LOG;
 
   /**
-     receives the config object need to read the ip list,
-     subsequently it reads all the ips
-
-  */
+   *  receives the config object need to read the ip list,
+   *  subsequently it reads all the ips
+   */
  BotSniffer(const std::string& banjax_dir, const FilterConfig& filter_config)
    :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME), 
     context (1), zmqsock (context, ZMQ_PUB),
@@ -59,10 +61,10 @@ public:
   virtual void load_config();
 
   /**
-     Overloaded to tell banjax that we need url, host, ua and ip
-     for banning
-     At this point we only asks for url, host and user agent
-     later we can ask more if it is needed
+   *  Overloaded to tell banjax that we need url, host, ua and ip
+   *  for banning
+   *  At this point we only asks for url, host and user agent
+   *  later we can ask more if it is needed
    */
   uint64_t requested_info() { return 
       TransactionMuncher::IP                 |

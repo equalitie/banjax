@@ -393,9 +393,14 @@ TSPluginInit(int argc, const char *argv[])
   p_banjax_plugin = new(p_banjax_plugin) Banjax(banjax_config_dir);
 
   //if everything went smoothly then register banjax
+#if(TS_VERSION_NUMBER < 6000000)
   if (TSPluginRegister(TS_SDK_VERSION_3_0, &info) != TS_SUCCESS) {
-    TSError("Plugin registration failed.\n");
-    goto fatal_err;
+#else
+  if (TSPluginRegister(&info) != TS_SUCCESS) {
+#endif
+      TSError("[version] Plugin registration failed. \n");
+     goto fatal_err;
+
   }
 
   return; //reaching this point means successfully registered

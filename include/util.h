@@ -15,14 +15,44 @@
 
 #include <zmq.hpp>
 #include <string>
+#include <climits>
+
+#include<openssl/aes.h>
 
 enum ZMQ_ERROR {
     CONNECT_ERROR,
     SEND_ERROR
 };
 
+unsigned int const c_cipher_block_size = AES_BLOCK_SIZE;
+unsigned int const c_cipher_key_size = 32;
+unsigned int const c_gcm_tag_size = 16;
+unsigned int const c_gcm_iv_size = 12;
+unsigned int const c_max_enc_length = INT_MAX;
+
 int check_ts_version();
 
 void send_zmq_mess(zmq::socket_t& zmqsock, const std::string mess, bool more = false);
+
+/**
+ * encrypt using AES-CGM-256 and send a message throw zmq socket.
+ *
+ * This is NOT thread safe you need to use mutex
+ * before calling
+ * throw exception if it gets into error
+ */
+void send_zmq_encrypted_message(zmq::socket_t& zmqsock, const string mess, uint8_t* encryption_key, bool more = false);
+
+/**
+ * Uses AES256 to encrypt the data 
+ *
+ * @param iv is a buffer of size 12 bytes contatining iv
+ * @param key is a buffer 32 bytes as we are using AES256
+ * @param ciphertext should be buffer of size planitext_len + 16 - 1 
+ * @param tag is a buffer 16 bytes. 
+ */
+size_t gcm_encrypt(const uint8_t *plaintext, size_t plaintext_len, 
+                   const uint8_t *key, const uint8_t *iv,
+                   uint8_t *ciphertext, uint8_t *tag);
 
 #endif

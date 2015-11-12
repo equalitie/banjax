@@ -31,10 +31,15 @@ using namespace std;
 void
 BotSniffer::load_config()
 {
-   try
+
+  try
    {
      botbanger_port = cfg["botbanger_port"].as<unsigned int>();
-     
+
+     string passphrase = cfg["key"].as<std::string>();
+
+     SHA256((const unsigned char*)passphrase.c_str(), passphrase.length(), encryption_key);
+
    }
    catch(YAML::RepresentationException& e)
      {
@@ -70,19 +75,39 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
 
   //TODO: This is a temp solution, we can't afford losing logs due 
   //to failing acquiring the lock
+  //really?
   TSDebug(BANJAX_PLUGIN_NAME, "locking the botsniffer socket...");
   if (TSMutexLockTry(bot_sniffer_mutex) == TS_SUCCESS) {
     
-    send_zmq_mess(zmqsock, BOTBANGER_LOG, true);
+    string plaintext_log(BOTBANGER_LOG);
+    //send_zmq_mess(zmqsock, BOTBANGER_LOG, true);
 
-    send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP), true);
-    send_zmq_mess(zmqsock, time_buffer, true);
-    send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::URL_WITH_HOST), true); 
-    send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::PROTOCOL), true);
-    send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::STATUS), true);
-    send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::CONTENT_LENGTH), true);
-    send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::UA), true);
-    send_zmq_mess(zmqsock, transaction_parts.count(TransactionMuncher::MISS) ? "MISS" : "HIT");
+    //send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP), true);
+    plaintext_log += "," + VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP);
+
+    //send_zmq_mess(zmqsock, time_buffer, true);
+    plaintext_log += "," + string(time_buffer);
+
+    //send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::URL_WITH_HOST), true);
+    plaintext_log += "," +  VALID_OR_EMPTY(*cur_validity, TransactionMuncher::URL_WITH_HOST);
+
+    //send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::PROTOCOL), true);
+    plaintext_log += "," + VALID_OR_EMPTY(*cur_validity, TransactionMuncher::PROTOCOL);
+      
+    //send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::STATUS), true);
+    plaintext_log += "," + VALID_OR_EMPTY(*cur_validity, TransactionMuncher::STATUS);
+
+    //send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::CONTENT_LENGTH), true);
+    plaintext_log += "," + VALID_OR_EMPTY(*cur_validity, TransactionMuncher::CONTENT_LENGTH);
+
+    //send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::UA), true);
+    plaintext_log += "," + VALID_OR_EMPTY(*cur_validity, TransactionMuncher::UA);
+
+    //send_zmq_mess(zmqsock, transaction_parts.count(TransactionMuncher::MISS) ? "MISS" : "HIT");
+    plaintext_log += "," + transaction_parts.count(TransactionMuncher::MISS) ? string("MISS") : string("HIT");
+
+    send_zmq_encrypted_message(zmqsock, plaintext_log, encryption_key);
+
     TSMutexUnlock(bot_sniffer_mutex);
   }
   //botbanger_interface.add_log(transaction_parts[IP], cd->url, cd->protocol, stat, (long) cd->request_len, cd->ua, cd->hit);
@@ -90,3 +115,5 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
                     
 }
+
+
