@@ -46,6 +46,15 @@ public:
     context (1), zmqsock (context, ZMQ_PUB),
     //botbanger_port(BOTBANGER_DEFAULT_PORT),
     botbanger_server("*"), 
+    /* When assigning a local address to a socket using zmq_bind() with the tcp
+       transport, the endpoint shall be interpreted as an interface followed by
+       a colon and the TCP port number to use.
+       An interface may be specified by either of the following:
+
+       The wild-card *, meaning all available interfaces.
+       The primary IPv4 address assigned to the interface, in its numeric representation.
+       The interface name as defined by the operating system. */
+
     bot_sniffer_mutex(TSMutexCreate()),
     BOTBANGER_LOG("botbanger_log")
   {

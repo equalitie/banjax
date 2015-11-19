@@ -40,6 +40,7 @@ void send_zmq_mess(zmq::socket_t& zmqsock, const std::string mess, bool more = f
  * This is NOT thread safe you need to use mutex
  * before calling
  * throw exception if it gets into error
+ * @param mess: string sent encrypted
  */
 void send_zmq_encrypted_message(zmq::socket_t& zmqsock, const string mess, uint8_t* encryption_key, bool more = false);
 

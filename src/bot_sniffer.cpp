@@ -79,11 +79,11 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
   TSDebug(BANJAX_PLUGIN_NAME, "locking the botsniffer socket...");
   if (TSMutexLockTry(bot_sniffer_mutex) == TS_SUCCESS) {
     
-    string plaintext_log(BOTBANGER_LOG);
-    //send_zmq_mess(zmqsock, BOTBANGER_LOG, true);
+    string plaintext_log;
+    send_zmq_mess(zmqsock, BOTBANGER_LOG, true);
 
     //send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP), true);
-    plaintext_log += "," + VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP);
+    plaintext_log += VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP);
 
     //send_zmq_mess(zmqsock, time_buffer, true);
     plaintext_log += "," + string(time_buffer);

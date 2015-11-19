@@ -22,6 +22,7 @@ missing
 */*/*/.dirstamp
 
 autom4te.cache
+ltmain.sh
 /aclocal.m4
 /autom4te.cache
 /config.guess
