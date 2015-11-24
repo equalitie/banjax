@@ -271,7 +271,11 @@ Sample Attacks:
 
 BotSniffer
 ==========
-Bot sniffer reports the detail of each transaction to BotBanger to test the requester against a pre-learned model to see if the behavior of the ip resembles a bot. The only config is the zmq socket port where BotSniffer should publish the log into:
+Bot sniffer reports the detail of each transaction to BotBanger to test the requester against a pre-learned model to see if the behavior of the ip resembles a bot. The data are encrypted using AES-GCM mode with subscription "botbanger_log" in clear text. The config is the zmq socket port where BotSniffer should publish the log into as well as the passphrase. The passphrase will be hashed by SHA256 to generate the encryption key for 32-byte AES-GCM. The encrypted token is organized as follows:
+
+    12BytesIV|ENCRYPTEDDATE|16BytesAuthtoken
+
+With | stand for concatination with no separator.
 
 Sample Attacks:
 ---------------
@@ -279,9 +283,8 @@ Sample Attacks:
 
 ---------------
     bot_sniffer :
-    {
-       botbanger_port = 22621;
-    };
+        botbanger_port: 22621
+        key: "somebodysbeenworkingindark!"
 
 How To Write A Filter
 =====================
