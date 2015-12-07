@@ -22,9 +22,11 @@ using namespace std;
 #include "banjax_common.h"
 #include "util.h"
 #include "bot_sniffer.h"
-#include "ip_database.h" 
+#include "ip_database.h"
 
-#define VALID_OR_EMPTY(validity, part) ((validity & part) ? transaction_parts.at(part) : "")
+#include "base64.h"
+
+#define VALID_OR_EMPTY(validity, part) ((validity & part) ? Base64::Encode(transaction_parts.at(part)) : "")
 /**
   Reads botbanger's port from the config
  */
@@ -70,7 +72,10 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
 
   char time_buffer[80];
   std::strftime(time_buffer,80,"%Y-%m-%dT%H:%M:%S",timeinfo);
-  
+
+  static const string b64_hit = Base64::Encode("HIT");
+  static const string b64_miss = Base64::Encode("MISS");
+
   uint64_t* cur_validity = (uint64_t*)transaction_parts.at(TransactionMuncher::VALIDITY_STAT).data();
 
   //TODO: This is a temp solution, we can't afford losing logs due 
@@ -86,7 +91,7 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
     plaintext_log += VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP);
 
     //send_zmq_mess(zmqsock, time_buffer, true);
-    plaintext_log += "," + string(time_buffer);
+    plaintext_log += "," + Base64::Encode(string(time_buffer));
 
     //send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::URL_WITH_HOST), true);
     plaintext_log += "," +  VALID_OR_EMPTY(*cur_validity, TransactionMuncher::URL_WITH_HOST);
@@ -104,7 +109,7 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
     plaintext_log += "," + VALID_OR_EMPTY(*cur_validity, TransactionMuncher::UA);
 
     //send_zmq_mess(zmqsock, transaction_parts.count(TransactionMuncher::MISS) ? "MISS" : "HIT");
-    std::string hit_mis_str = (transaction_parts.count(TransactionMuncher::MISS) ? string("MISS") : string("HIT"));
+    std::string hit_mis_str = (transaction_parts.count(TransactionMuncher::MISS) ? b64_hit : b64_miss);
     plaintext_log += "," + hit_mis_str;
 
     send_zmq_encrypted_message(zmqsock, plaintext_log, encryption_key);
