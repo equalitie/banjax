@@ -26,8 +26,8 @@ string Base64::Encode(const string &bindata)
 
   const size_t binlen = bindata.size();
   // Use = signs so the end is properly padded.
-  //string retval((((binlen + 2) / 3) * 4), '=');
-  string retval(ceil(((binlen) / 3.0) * 4.0), '=');
+  string retval((((binlen + 2) / 3) * 4), '=');
+  //string retval(ceil(((binlen) / 3.0) * 4.0), '=');
   size_t outpos = 0;
   int bits_collected = 0;
   unsigned int accumulator = 0;
