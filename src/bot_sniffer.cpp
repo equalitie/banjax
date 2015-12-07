@@ -104,7 +104,8 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
     plaintext_log += "," + VALID_OR_EMPTY(*cur_validity, TransactionMuncher::UA);
 
     //send_zmq_mess(zmqsock, transaction_parts.count(TransactionMuncher::MISS) ? "MISS" : "HIT");
-    plaintext_log += "," + transaction_parts.count(TransactionMuncher::MISS) ? string("MISS") : string("HIT");
+    std::string hit_mis_str = (transaction_parts.count(TransactionMuncher::MISS) ? string("MISS") : string("HIT"));
+    plaintext_log += "," + hit_mis_str;
 
     send_zmq_encrypted_message(zmqsock, plaintext_log, encryption_key);
 
