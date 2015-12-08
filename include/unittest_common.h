@@ -1,5 +1,7 @@
 #ifndef UNITTEST_COMMON_H
 #define UNITTEST_COMMON_H
+#include <ts/ts.h>
+
 /**
    mock TSDebug for the sake of compiling tests independence from ATS
  */

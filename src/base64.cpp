@@ -27,7 +27,9 @@ string Base64::Encode(const string &bindata)
   const size_t binlen = bindata.size();
   // Use = signs so the end is properly padded.
   string retval((((binlen + 2) / 3) * 4), '=');
-  //string retval(ceil(((binlen) / 3.0) * 4.0), '=');
+  //string retval(ceil(((binlen) / 3.0) * 4.0), '='); //this doesn't seem
+  //to be complian with the standard and it fails to decode with
+  //python decode function
   size_t outpos = 0;
   int bits_collected = 0;
   unsigned int accumulator = 0;
@@ -46,7 +48,7 @@ string Base64::Encode(const string &bindata)
     accumulator <<= 6 - bits_collected;
     retval[outpos++] = b64_table[accumulator & 0x3fu];
    }
-   assert(outpos >= (retval.size() - 2));
+   //assert(outpos >= (retval.size() - 2));
    assert(outpos <= retval.size());
    return retval;
 }

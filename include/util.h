@@ -42,7 +42,7 @@ void send_zmq_mess(zmq::socket_t& zmqsock, const std::string mess, bool more = f
  * throw exception if it gets into error
  * @param mess: string sent encrypted
  */
-void send_zmq_encrypted_message(zmq::socket_t& zmqsock, const string mess, uint8_t* encryption_key, bool more = false);
+void send_zmq_encrypted_message(zmq::socket_t& zmqsock, const std::string mess, uint8_t* encryption_key, bool more = false);
 
 /**
  * Uses AES256 to encrypt the data 

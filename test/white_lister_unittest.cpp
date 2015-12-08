@@ -89,18 +89,11 @@ class WhiteListerTest : public testing::Test {
       ASSERT_TRUE(false);
     }
     
-    mock_config << "white_listed_ips: " << endl;
-    mock_config << " - 127.0.0.1" << endl;
-    mock_config << " - x.y.z.w" << endl;
+    mock_config << "white_lister:" << endl;
+    mock_config << "  white_listed_ips: " << endl;
+    mock_config << "    - 127.0.0.1" << endl;
+    mock_config << "    - x.y.z.w" << endl;
     mock_config << "" << endl;
-    mock_config << "botbanger_port: 1234" << endl;
-    mock_config << "" << endl;
-    mock_config << "challenger:" << endl;
-    mock_config << "  key: testtest" << endl;
-    mock_config << "  difficulty: 8" << endl;
-    mock_config << "" << endl;
-    mock_config << "include:" << endl;
-    mock_config << " - banjax.d/general.conf" << endl;
     
     mock_config.close();
   }
@@ -124,15 +117,31 @@ class WhiteListerTest : public testing::Test {
     try  {
       cfg= YAML::LoadFile(TEST_CONF_FILE.c_str());
     }
-    catch(const libconfig::FileIOException &fioex)  {
+    catch(YAML::BadFile& e) {
       ASSERT_TRUE(false);
     }
-    catch(const libconfig::ParseException &pex)   {
+    catch(YAML::ParserException& e)
+      {
+        ASSERT_TRUE(false);
+      }
+
+    FilterConfig regex_filter_config;
+
+    try {
+      for(YAML::const_iterator subit = cfg.begin(); subit!=cfg.end();++subit) {
+        std::string node_name = (*subit).first.as<std::string>();
+        if (node_name == "white_lister")
+          regex_filter_config.config_node_list.push_back(subit);
+      }
+      
+    }
+    catch(YAML::RepresentationException& e)
+    {
       ASSERT_TRUE(false);
     }
 
-    test_white_lister = new WhiteLister(TEMP_DIR, cfg["white_listed_ips"]);
-
+    test_white_lister = new WhiteLister(TEMP_DIR, regex_filter_config);
+    
   }
 
 };

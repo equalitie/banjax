@@ -32,6 +32,12 @@ tsapi TSReturnCode TSMutexLockTry(TSMutex mutexp)
   return TS_SUCCESS;
 }
 
+tsapi void TSMutexLock(TSMutex mutexp)
+{
+  //each test has its own database, no multi-thread threat
+  (void) mutexp;
+}
+
 tsapi void TSMutexUnlock(TSMutex mutexp)
 {
   (void) mutexp;

@@ -28,7 +28,7 @@ public:
   std::list<YAML::const_iterator> config_node_list;
   int priority;
 
-   FilterConfig() : priority(0) {}
+ FilterConfig() : priority(0) {}
     
 
 };

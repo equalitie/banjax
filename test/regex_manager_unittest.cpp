@@ -92,81 +92,71 @@ class RegexManagerTest : public testing::Test {
     char random_suffix[7]; 
     sprintf(random_suffix,"%i", rand()%100000);
     TEST_CONF_FILE = TEMP_DIR + "/test"+random_suffix+".conf";
-    TEST_CONF_FILE_SUB = TEMP_DIR + "/test"+random_suffix+"_sub.conf";
     try {
       mock_config.open(TEST_CONF_FILE,ios::out);
-      mock_config_sub.open(TEST_CONF_FILE_SUB,ios::out);
     }  catch (std::ifstream::failure e) {
   
       ASSERT_TRUE(false);
     }
     
-<<<<<<< variant A
-    mock_config_sub << "regex_banner:" << endl;
-    mock_config_sub << "  - rule: simple to ban" << endl;
-    mock_config_sub << "    regex: \'.*simple_to_ban.*\'" << endl;
-    mock_config_sub << "    interval: 1" << endl;
-    mock_config_sub << "    hits_per_interval: 0" << endl;
-    mock_config_sub << "  - rule: hard to ban" << endl;
-    mock_config_sub << "    regex: \'.*not%20so%20simple%20to%20ban[\\s\\S]*\'" << endl;
-    mock_config_sub << "    interval: 1" << endl;
-    mock_config_sub << "    hits_per_interval: 0" << endl;
->>>>>>> variant B
-    mock_config << "regex_banner :" << endl;
-    mock_config << "{" << endl;
-    mock_config << "banned_regexes = ( {" << endl;
-    mock_config << "rule = \"simple to ban\"; " << endl;
-    mock_config << "regex = \".*simple_to_ban.*\";" << endl;
-    mock_config << "interval = 1; " << endl;
-    mock_config << "hits_per_interval = 0;" << endl;
-    mock_config << "}," << endl;
-    mock_config << "{ rule = \"hard to ban\"; " << endl;
-    mock_config << "regex = \".*not%20so%20simple%20to%20ban[\\s\\S]*\";" << endl;
-    mock_config << "interval = 1; " << endl;
-    mock_config << "hits_per_interval = 0;" << endl;
-    mock_config << "}," << endl;
-    mock_config << "{ rule = \"flooding ban\"; " << endl;
-    mock_config << "regex = \".*flooding_ban.*\";" << endl;
-    mock_config << "interval = 30; " << endl;
-    mock_config << "hits_per_interval = 10;" << endl;
-    mock_config << "}," << endl;
-    mock_config << "{ rule = \"flooding ban 2\"; " << endl;
-    mock_config << "regex = \".*flooding_diff_ban.*\";" << endl;
-    mock_config << "interval = 30; " << endl;
-    mock_config << "hits_per_interval = 10;" << endl;
-    mock_config << "});" << endl;
-    mock_config << "};" << endl;
-####### Ancestor
-    mock_config << "regex_banner :" << endl;
-    mock_config << "{" << endl;
-    mock_config << "banned_regexes = ( {" << endl;
-    mock_config << "rule = \"simple to ban\"; " << endl;
-    mock_config << "regex = \".*simple_to_ban.*\";" << endl;
-    mock_config << "interval = 1; " << endl;
-    mock_config << "hits_per_interval = 0;" << endl;
-    mock_config << "}," << endl;
-    mock_config << "{ rule = \"hard to ban\"; " << endl;
-    mock_config << "regex = \".*not%20so%20simple%20to%20ban[\\s\\S]*\";" << endl;
-    mock_config << "interval = 1; " << endl;
-    mock_config << "hits_per_interval = 0;" << endl;
-    mock_config << "});" << endl;
-    mock_config << "};" << endl;
-======= end
+    mock_config << "regex_banner:" << endl;
+    mock_config << "  - rule: simple to ban" << endl;
+    mock_config << "    regex: \'.*simple_to_ban.*\'" << endl;
+    mock_config << "    interval: 1" << endl;
+    mock_config << "    hits_per_interval: 0" << endl;
+    mock_config << "  - rule: hard to ban" << endl;
+    mock_config << "    regex: \'.*not%20so%20simple%20to%20ban[\\s\\S]*\'" << endl;
+    mock_config << "    interval: 1" << endl;
+    mock_config << "    hits_per_interval: 0" << endl;
+    mock_config << "  - rule: \'flooding ban\' " << endl;
+    mock_config << "    regex: \'.*flooding_ban.*\'" << endl;
+    mock_config << "    interval: 30 " << endl;
+    mock_config << "    hits_per_interval: 10" << endl;
+    mock_config << "  - rule: \'flooding ban 2\' " << endl;
+    mock_config << "    regex: \'.*flooding_diff_ban.*\'" << endl;
+    mock_config << "    interval: 30 " << endl;
+    mock_config << "    hits_per_interval: 10" << endl;
+
     
-    mock_config_sub.close();
-    mock_config << "white_listed_ips: " << endl;
-    mock_config << " - 127.0.0.1" << endl;
-    mock_config << " - x.y.z.w" << endl;
-    mock_config << "" << endl;
-    mock_config << "botbanger_port: 1234" << endl;
-    mock_config << "" << endl;
-    mock_config << "challenger:" << endl;
-    mock_config << "  key: testtest" << endl;
-    mock_config << "  difficulty: 8" << endl;
-    mock_config << "" << endl;
-    mock_config << "include:" << endl;
-    mock_config << " - " + TEST_CONF_FILE_SUB << endl;
+    // mock_config_sub << "regex_banner :" << endl;
+    // mock_config_sub << "{" << endl;
+    // mock_config_sub << "banned_regexes = ( {" << endl;
+    // mock_config_sub << "rule = \"simple to ban\"; " << endl;
+    // mock_config_sub << "regex = \".*simple_to_ban.*\";" << endl;
+    // mock_config_sub << "interval = 1; " << endl;
+    // mock_config_sub << "hits_per_interval = 0;" << endl;
+    // mock_config_sub << "}," << endl;
+    // mock_config_sub << "{ rule = \"hard to ban\"; " << endl;
+    // mock_config_sub << "regex = \".*not%20so%20simple%20to%20ban[\\s\\S]*\";" << endl;
+    // mock_config_sub << "interval = 1; " << endl;
+    // mock_config_sub << "hits_per_interval = 0;" << endl;
+    // mock_config_sub << "}," << endl;
+    // mock_config_sub << "{ rule = \"flooding ban\"; " << endl;
+    // mock_config_sub << "regex = \".*flooding_ban.*\";" << endl;
+    // mock_config_sub << "interval = 30; " << endl;
+    // mock_config_sub << "hits_per_interval = 10;" << endl;
+    // mock_config_sub << "}," << endl;
+    // mock_config_sub << "{ rule = \"flooding ban 2\"; " << endl;
+    // mock_config_sub << "regex = \".*flooding_diff_ban.*\";" << endl;
+    // mock_config_sub << "interval = 30; " << endl;
+    // mock_config_sub << "hits_per_interval = 10;" << endl;
+    // mock_config_sub << "});" << endl;
+    // mock_config_sub << "};" << endl;
     mock_config.close();
+
+    // mock_config << "white_listed_ips: " << endl;
+    // mock_config << " - 127.0.0.1" << endl;
+    // mock_config << " - x.y.z.w" << endl;
+    // mock_config << "" << endl;
+    // mock_config << "botbanger_port: 1234" << endl;
+    // mock_config << "" << endl;
+    // mock_config << "challenger:" << endl;
+    // mock_config << "  key: testtest" << endl;
+    // mock_config << "  difficulty: 8" << endl;
+    // mock_config << "" << endl;
+    // mock_config << "include:" << endl;
+    // mock_config << " - " + TEST_CONF_FILE_SUB << endl;
+    // mock_config.close();
   }
 
   //if there is no way to feed an sstream to
@@ -188,25 +178,31 @@ class RegexManagerTest : public testing::Test {
     try  {
       cfg= YAML::LoadFile(TEST_CONF_FILE.c_str());
     }
-    catch(const libconfig::FileIOException &fioex)  {
+    catch(YAML::BadFile& e) {
       ASSERT_TRUE(false);
     }
-    catch(const libconfig::ParseException &pex)   {
-      ASSERT_TRUE(false);
-    }
-    for(YAML::const_iterator it=cfg["include"].begin();it!=cfg["include"].end();++it ) {
-      string inc_loc = (*it).as<std::string>();
-      YAML::Node sub_cfg = YAML::LoadFile(inc_loc);
+    catch(YAML::ParserException& e)
+      {
+        ASSERT_TRUE(false);
+      }
+
+    FilterConfig regex_filter_config;
+
+    try {
+      for(YAML::const_iterator subit = cfg.begin(); subit!=cfg.end();++subit) {
+        std::string node_name = (*subit).first.as<std::string>();
+        if (node_name == "regex_banner")
+          regex_filter_config.config_node_list.push_back(subit);
+      }
       
-      for(YAML::const_iterator subit = sub_cfg["challenges"].begin(); subit!=sub_cfg["challenges"].end();++subit) {
-        cfg["challenger"]["challenges"].push_back((*subit));
-      }
-      for(YAML::const_iterator subit = sub_cfg["regex_banner"].begin(); subit!=sub_cfg["regex_banner"].end();++subit) {
-        cfg["challenger"]["regex_banner"].push_back((*subit)); 
-      }
+    }
+    catch(YAML::RepresentationException& e)
+    {
+      ASSERT_TRUE(false);
     }
 
-    test_regex_manager = new RegexManager(TEMP_DIR, cfg["challenger"]["regex_banner"], &test_ip_database, &test_swabber_interface);
+    test_regex_manager = new RegexManager(TEMP_DIR, regex_filter_config, &test_ip_database, &test_swabber_interface);
+    
   }
 
 };
