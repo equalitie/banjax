@@ -218,8 +218,8 @@ bool ChallengeManager::check_sha(const char* cookiestr){
  */
 bool ChallengeManager::check_auth_validity(const char* cookiestr, const std::string password_hash)
 {
-  static const unsigned int b64token_length = (int)((COOKIE_LENGTH*4+3)/3);
-  static const unsigned int b64_sha256_length = (int)((SHA256_DIGEST_LENGTH*4+3)/3)+1;
+  static const unsigned int b64token_length = COOKIE_B64_LENGTH;
+  static const unsigned int b64_sha256_length = (int)(((SHA256_DIGEST_LENGTH + 2)/3)*4);
   static const unsigned int to_be_hashed_length = b64token_length+b64_sha256_length;
 
   unsigned long cookie_len = strlen((char*)cookiestr);
@@ -232,7 +232,7 @@ bool ChallengeManager::check_auth_validity(const char* cookiestr, const std::str
   SHA256_Init(&sha256);
   char to_be_hashed[to_be_hashed_length];
   memcpy(to_be_hashed, cookiestr, b64token_length);
-  memcpy(to_be_hashed+b64token_length, password_hash.c_str(), password_hash.size());
+  memcpy(to_be_hashed+b64token_length, password_hash.c_str(), b64_sha256_length);
   
   SHA256_Update(&sha256, to_be_hashed, to_be_hashed_length);
   SHA256_Final(hash, &sha256);
@@ -242,7 +242,7 @@ bool ChallengeManager::check_auth_validity(const char* cookiestr, const std::str
   std::string cookiedata=Base64::Decode((const char *)cookiestr+b64token_length, (const char *)(cookiestr+cookie_len));
 
   memcpy(hashed_solution,cookiedata.c_str(),SHA256_DIGEST_LENGTH);
-
+  
   //now compare
   if (memcmp(hashed_solution, hash, SHA256_DIGEST_LENGTH))
     return false;
@@ -279,7 +279,7 @@ bool ChallengeManager::check_cookie(string answer, string cookie_jar, string ip,
       //here we check the general validity of the cookie
       int result = 100 /*something not equal to 1, which means OK*/;
       // see GenerateCookie for the length calculation
-      int expected_length = (int)(COOKIE_LENGTH*4+3)/3;
+      int expected_length = COOKIE_B64_LENGTH;
       if (captcha_cookie.size() > (size_t)expected_length) {
         captcha_cookie = captcha_cookie.substr(0, expected_length);
       }

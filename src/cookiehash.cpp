@@ -74,7 +74,7 @@ int ValidateCookie(uchar *captcha,uchar *secret,time_t current_timestamp,uchar *
 {
   char cookie[COOKIE_LENGTH];
   char hash[HASH_LENGTH];
-  if (strlen((char*)cookiestring)!=(int)((COOKIE_LENGTH*4+3)/3))
+  if (strlen((char*)cookiestring)!=COOKIE_B64_LENGTH)
     return -3;
   std::string cookiedata=Base64::Decode((const char *)cookiestring,(const char *)(cookiestring+strlen((char *) cookiestring)));
   memcpy(cookie,cookiedata.c_str(),COOKIE_LENGTH);

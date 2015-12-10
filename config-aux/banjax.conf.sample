@@ -1,0 +1,27 @@
+priority:
+  white_lister: 1
+  auth: 2
+  challenger: 3
+  regex_banner: 4
+
+white_lister:
+    white_listed_ips:   
+      - 127.0.0.1
+
+challenger:
+    key: "allwearesayingisgivewarachance" 
+    difficulty: 8
+    
+include:
+  - banjax.d/equalit.ie.conf
+  - banjax.d/deflect.ca.conf
+
+regex_banner:
+    - rule: deflectsecret
+      regex: '[\s\S]*secretpage[\s\S]*'
+      interval: 60
+      hits_per_interval: 0
+
+bot_sniffer :
+  botbanger_port: 22621
+  key: "72fromMemphistoChattanooga"
