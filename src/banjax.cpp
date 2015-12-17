@@ -35,6 +35,7 @@ using namespace std;
 #include "challenge_manager.h"
 #include "white_lister.h"
 #include "bot_sniffer.h"
+#include "denialator.h"
 
 #include "banjax.h"
 #include "swabber_interface.h"
@@ -78,6 +79,8 @@ Banjax::filter_factory()
         cur_filter = new WhiteLister(banjax_config_dir, cur_config);
       } else if (cur_filter_name_it->second == BOT_SNIFFER_FILTER_NAME){
         cur_filter = new BotSniffer(banjax_config_dir, cur_config);
+      } else if (cur_filter_name_it->second == DENIALATOR_FILTER_NAME){
+        cur_filter = new Denialator(banjax_config_dir, cur_config, &ip_database);
       } else {
         TSError(("don't know how to construct requested filter " + cur_filter_name_it->second).c_str());
         abort_traffic_server();

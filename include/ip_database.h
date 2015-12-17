@@ -78,7 +78,7 @@ public:
      failed due to failure of locking the database
 
   */
-  std::pair<bool,FilterState> get_ip_state(std::string& ip, FilterIDType filter_id);
+  std::pair<bool,FilterState> get_ip_state(const std::string& ip, FilterIDType filter_id);
   
   /**
      Clean the ip state record mostly when it is reported to 

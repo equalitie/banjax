@@ -10,9 +10,11 @@
 #include <yaml-cpp/yaml.h>
 #include "banjax_filter.h"
 
-class Denialtor : public BanjaxFilter
+class Denialator : public BanjaxFilter
 {
  protected:
+  const std::string forbidden_message;
+  const size_t forbidden_message_length;
 
  public:
   /**
@@ -20,10 +22,13 @@ class Denialtor : public BanjaxFilter
      subsequently it reads all the ips
 
   */
- Denialtor(const std::string& banjax_dir, const FilterConfig& filter_config)
-   :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME)
+ Denialator(const std::string& banjax_dir, const FilterConfig& filter_config, IPDatabase* global_ip_database)
+   :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, DENIALATOR_FILTER_ID, DENIALATOR_FILTER_NAME),
+    forbidden_message("<html><header></header><body>500 Internal Server Error</body></html>"),
+    forbidden_message_length(forbidden_message.length())
   {
-    queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&WhiteLister::execute);
+    queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&Denialator::execute);
+    ip_database = global_ip_database;
     load_config();
   }
 
@@ -50,8 +55,9 @@ class Denialtor : public BanjaxFilter
   FilterResponse execute(const TransactionParts& transaction_parts);
 
   /**
-     we do not overload generate_respons cause we have no response to generate
+     we  overload generate_respons cause we have to say denied access
   */
+  virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
 
 };
   

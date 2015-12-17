@@ -73,7 +73,7 @@ IPDatabase::drop_ip(std::string& ip)
   failed due to failure of locking the database
 */
 std::pair<bool, FilterState>
-IPDatabase::get_ip_state(std::string& ip, FilterIDType filter_id)
+IPDatabase::get_ip_state(const std::string& ip, FilterIDType filter_id)
 {
   //We actually need to lock the database
   //because the entry might get deleted while
