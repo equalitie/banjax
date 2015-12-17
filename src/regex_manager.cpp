@@ -183,7 +183,7 @@ FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
     TSDebug(BANJAX_PLUGIN_NAME, "asking swabber to ban client ip: %s", ats_record_parts[TransactionMuncher::IP].c_str());
 
     //here instead we are calling nosmos's banning client
-    string banning_reason = "matched regex rule " + result.second->rule_name;
+    string banning_reason = ats_record + " matched regex rule " + result.second->rule_name;
     
     swabber_interface->ban(ats_record_parts[TransactionMuncher::IP], banning_reason);
     return FilterResponse(static_cast<ResponseGenerator>(&RegexManager::generate_response));

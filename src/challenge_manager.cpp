@@ -455,7 +455,7 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
           //record challenge failure
           FilterResponse failure_response(FilterResponse::I_RESPOND, (void*) new ChallengerExtendedResponse(challenger_resopnder, cur_challenge));
           if (cur_challenge->fail_tolerance_threshold)
-            ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), cur_challenge, transaction_parts.at(TransactionMuncher::HOST));
+            ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), cur_challenge, transaction_parts.at(TransactionMuncher::HOST), transaction_parts);
             
           return failure_response;
         }
@@ -469,7 +469,8 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
             //record challenge failure
             FilterResponse failure_response(FilterResponse::I_RESPOND, (void*) new ChallengerExtendedResponse(challenger_resopnder, cur_challenge));
             if (cur_challenge->fail_tolerance_threshold)
-              ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), cur_challenge, transaction_parts.at(TransactionMuncher::HOST));
+
+              ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), cur_challenge, transaction_parts.at(TransactionMuncher::HOST), transaction_parts);
           // We need to clear out the cookie here, to make sure switching from
           // challenge type (captcha->computational) doesn't end up in an infinite reload
             ((FilterExtendedResponse*)(failure_response.response_data))->set_cookie_header.append("deflect=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly");
@@ -491,7 +492,7 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
             if (ChallengeManager::url_contains_magic_word(transaction_parts.at(TransactionMuncher::URL_WITH_HOST), cur_challenge->magic_word)) {
               FilterResponse failure_response(FilterResponse::I_RESPOND, (void*) new ChallengerExtendedResponse(challenger_resopnder, cur_challenge));
               if (cur_challenge->fail_tolerance_threshold)
-                ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), cur_challenge, transaction_parts.at(TransactionMuncher::HOST));
+                ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), cur_challenge, transaction_parts.at(TransactionMuncher::HOST), transaction_parts);
             // We need to clear out the cookie here, to make sure switching from
             // challenge type (captcha->computational) doesn't end up in an infinite reload
               ((FilterExtendedResponse*)(failure_response.response_data))->set_cookie_header.append("deflect=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly");
@@ -556,7 +557,7 @@ std::string ChallengeManager::generate_response(const TransactionParts& transact
  * @return true if no_of_failures exceeded the threshold
  */
 bool
-ChallengeManager::report_failure(std::string client_ip, HostChallengeSpec* failed_challenge, std::string failed_host)
+ChallengeManager::report_failure(std::string client_ip, HostChallengeSpec* failed_challenge, std::string failed_host, const TransactionParts& transaction_parts)
 {
   std::pair<bool,FilterState> cur_ip_state;
   bool banned(false);
@@ -573,7 +574,9 @@ ChallengeManager::report_failure(std::string client_ip, HostChallengeSpec* faile
   
   if (cur_ip_state.second[0] >= failed_challenge->fail_tolerance_threshold) {
     banned = true;
-    string banning_reason = "failed challenge " + failed_challenge->name + "of type "+  challenge_specs[failed_challenge->challenge_type]->human_readable_name + " " + "for host " + failed_host  + " " + to_string(cur_ip_state.second[0]) + " times";
+    TransactionParts ats_record_parts = (TransactionParts) transaction_parts;
+
+    string banning_reason = ats_record_parts[TransactionMuncher::UA] + " asking for " + ats_record_parts[TransactionMuncher::URL] + " failed challenge " + failed_challenge->name + " of type "+  challenge_specs[failed_challenge->challenge_type]->human_readable_name + " " + "for host " + failed_host  + " " + to_string(cur_ip_state.second[0]) + " times";
     swabber_interface->ban(client_ip.c_str(), banning_reason);
     //reset the number of failures for future
     //we are not clearing the state cause it is not for sure that

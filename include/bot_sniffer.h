@@ -26,6 +26,8 @@ class BotSniffer : public BanjaxFilter
   //static const unsigned int BOTBANGER_DEFAULT_PORT = 22621;
   std::string botbanger_server;
 
+  std::string _binding_string;
+
   //lock for writing into the socket
   //TODO:: this is a temp measure probably
   //We should move to fifo queue or something

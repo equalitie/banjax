@@ -26,6 +26,7 @@ const std::vector<std::string> all_filters_names = {
   REGEX_BANNER_FILTER_NAME,
   CHALLENGER_FILTER_NAME,
   BOT_SNIFFER_FILTER_NAME,
-  WHITE_LISTER_FILTER_NAME};
+  WHITE_LISTER_FILTER_NAME
+};
 
 #endif

@@ -49,8 +49,18 @@ BotSniffer::load_config()
        throw;
      }
 
-   TSDebug(BANJAX_PLUGIN_NAME, "Connecting to botbanger server...");
-   zmqsock.bind(("tcp://"+botbanger_server +":"+to_string(botbanger_port)).c_str());
+  string new_binding_string  = "tcp://"+botbanger_server +":"+to_string(botbanger_port);
+  if (_binding_string.empty()) { //we haven't got connected to anywhere before
+    zmqsock.bind(new_binding_string.c_str());
+    //just get connected
+  } else if (new_binding_string != _binding_string) { //we are getting connected to a new end point just drop the last point and connect to new point
+    TSDebug(BANJAX_PLUGIN_NAME, "unbinding from %s",  _binding_string.c_str());
+    zmqsock.unbind(_binding_string);
+    _binding_string = new_binding_string;
+    TSDebug(BANJAX_PLUGIN_NAME,"connecting to %s...",  new_binding_string.c_str());
+    zmqsock.bind(new_binding_string.c_str());
+  }; //else  {re-connecting to the same point do nothing} //unbind bind doesn't work
+   TSDebug(BANJAX_PLUGIN_NAME, "Done connecting to botbanger server...");
  
 }
 

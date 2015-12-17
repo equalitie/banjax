@@ -29,7 +29,6 @@ public:
   int priority;
 
  FilterConfig() : priority(0) {}
-    
 
 };
 

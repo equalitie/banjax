@@ -32,6 +32,8 @@ class Banjax
   uint64_t all_filters_response_part;
 
   //configuration
+  TSMutex config_mutex; //prevent too many traffic_line -x at the time
+
   std::string banjax_config_dir; //this keeps the folder contains banjax.conf and banjax.d folder
   static const std::string CONFIG_FILENAME;
   //libconfig object
@@ -45,6 +47,9 @@ class Banjax
   //store all configs related to a filter in different
   //yaml nodes (in different files maybe)
   std::map<std::string, FilterConfig> filter_config_map;
+
+  //keep swabber configuration
+  FilterConfig swabber_conf;
 
   //ordering and accessing filters by priority
   std::map<int, std::string> priority_map;

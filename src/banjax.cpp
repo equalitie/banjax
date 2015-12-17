@@ -123,6 +123,8 @@ void Banjax::reload_config() {
     // - re-read the config
     // - call filter factory
 
+  //we need to lock this other wise somebody is deleting filter and somebody making them
+  TSMutexLock(config_mutex);
     //empty all queues
   for(unsigned int i = BanjaxFilter::HTTP_START; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++)
     task_queues[i].clear();      
@@ -151,7 +153,8 @@ void Banjax::reload_config() {
   all_filters_response_part = 0;
 
   read_configuration();
-    
+  TSMutexUnlock(config_mutex); //we will lock it in read_configuration again
+  
 }
 
 
@@ -163,6 +166,7 @@ void Banjax::reload_config() {
 Banjax::Banjax(const string& banjax_config_dir)
   : all_filters_requested_part(0), 
     all_filters_response_part(0),
+    config_mutex(TSMutexCreate()),
     banjax_config_dir(banjax_config_dir),
     current_sequential_priority(0),
     swabber_interface(&ip_database)
@@ -191,13 +195,14 @@ Banjax::Banjax(const string& banjax_config_dir)
 
   cd->contp = global_contp;
 
-
   //For being able to be reload by traffic_line -x
   TSCont management_contp = TSContCreate(ATSEventHandler::banjax_management_handler, NULL);
   TSMgmtUpdateRegister(management_contp, BANJAX_PLUGIN_NAME);
 
   //creation of filters happen here
+  TSMutexLock(config_mutex);
   read_configuration();
+  TSMutexUnlock(config_mutex);
 
   //this probably should happen at the end due to multi-threading
   TSHttpHookAdd(TS_HTTP_TXN_START_HOOK, global_contp);
@@ -273,6 +278,9 @@ Banjax::read_configuration()
     
   }
 
+  //(re)set swabber configuration if there is no swabber node
+  //in the configuration we reset the configuration
+  swabber_interface.load_config(swabber_conf);
   //now we can make the filters
   filter_factory();
   
@@ -300,7 +308,13 @@ Banjax::process_config(const YAML::Node& cfg)
       filter_config_map[node_name].config_node_list.push_back(it);
            
        
-    } else if (node_name == "priority") {
+      } else if (node_name == "swabber") {
+        //we simply send swabber configuration to swabber
+        //if it doesn't exists it fails to default
+        swabber_conf.config_node_list.push_back(it);
+        
+      }
+      else if (node_name == "priority") {
       //store it as priority config.
       //for now we fire error if priority is double
       //defined

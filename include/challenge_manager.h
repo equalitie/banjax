@@ -170,7 +170,7 @@ protected:
    *
    * @return true if no_of_failures exceeded the threshold
    */
-  bool report_failure(std::string client_ip, HostChallengeSpec* failed_challenge, std::string failed_host);
+  bool report_failure(std::string client_ip, HostChallengeSpec* failed_challenge, std::string failed_host, const TransactionParts& transaction_parts);
 
   /**
    * Should be called upon successful solution of a challenge to wipe up the
@@ -246,11 +246,14 @@ public:
      to rebuild the redirect address and the host also for selective 
      challenging, we need the ip to prevent clients using each other's
      challenges.
+
+     TransactionMuncher::UA is for reporting only
    */
   uint64_t requested_info() { return 
       TransactionMuncher::IP            |
       TransactionMuncher::URL           |
       TransactionMuncher::HOST          |
+      TransactionMuncher::UA            | 
       TransactionMuncher::URL_WITH_HOST |
       TransactionMuncher::COOKIE;}    
 

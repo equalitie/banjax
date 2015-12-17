@@ -13,11 +13,13 @@
 #include <fstream>
 
 #include "ip_database.h"
+#include "banjax_filter.h"
 class SwabberInterface
 {
  protected:
-  static const std::string SWABBER_SERVER;
-  static const std::string SWABBER_PORT;
+  static const std::string SWABBER_SERVER; //default server
+  static const std::string SWABBER_PORT; //default port
+  static const long SWABBER_GRACE_PERIOD; //default grace period
   static const std::string SWABBER_BAN;
 
   static const std::string BAN_IP_LOG;
@@ -28,6 +30,9 @@ class SwabberInterface
   zmq::context_t context;
   zmq::socket_t socket;
 
+  std::string _binding_string; //store the last binded address to unbind on reload
+  //"" indicate that we haven't bind anywhere yet
+
   std::ofstream ban_ip_list;
 
   //lock for writing into the socket
@@ -36,6 +41,19 @@ class SwabberInterface
   //to forgive ips after being banned
   IPDatabase* ip_database;
 
+  //server and the port that swabber is going to connect to
+  //if they are not specified in the config, they be set to
+  //the default value
+  std::string swabber_server;
+  std::string swabber_port;
+  //the grace period where swabber will wait after it receives the
+  //first ban request from the filter. It only bans if it gets another
+  //ban request (from any filter) after grace period ends this is
+  // to get a log that is representative of the bot behavoir to
+  //train ML for bot detection. Default value is zero means
+  //ban immediately after receiving the first request
+  long grace_period;
+  
  public:
   //Error list
   enum SWABBER_ERROR {
@@ -53,6 +71,12 @@ class SwabberInterface
    */
   ~SwabberInterface();
 
+  /**
+     reads the grace period and swabber listening port and bind to it
+     @param swabber_config list of YAML nodes containing swabber configs
+  */ 
+  void load_config(FilterConfig& swabber_config);
+  
   /**
      Asks Swabber to ban the bot ip
 

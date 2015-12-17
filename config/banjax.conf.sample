@@ -4,6 +4,11 @@ priority:
   challenger: 3
   regex_banner: 4
 
+swabber:
+  server: 127.0.0.1
+  port: 22620
+  grace_period: 600
+
 white_lister:
     white_listed_ips:   
       - 127.0.0.1

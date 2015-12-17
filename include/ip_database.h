@@ -20,11 +20,15 @@
 
 #include "filter_list.h"
 
+const int NO_OF_NON_FILTER_STATE_KEEPER = 1; //swabber interface
+const FilterIDType SWABBER_INTERFACE_ID = TOTAL_NO_OF_FILTERS; //swabber interface isn't a filter but it needs use IP database.
+
+
 //list of filter with db storage requirement (state keepers
 const FilterIDType column_to_filter[] = {
   REGEX_BANNER_FILTER_ID,
-  CHALLENGER_FILTER_ID
-
+  CHALLENGER_FILTER_ID,
+  SWABBER_INTERFACE_ID
 };
 
 /* const unsigned  filters_to_column[] = { */
@@ -57,7 +61,7 @@ protected:
   TSMutex db_mutex;
 
   size_t ip_state_array_size;
-  size_t filter_to_column[NUMBER_OF_STATE_KEEPER_FILTERS];
+  size_t filter_to_column[TOTAL_NO_OF_FILTERS + NO_OF_NON_FILTER_STATE_KEEPER]; //+1 because swabber_interface
   
 public:
   /**
