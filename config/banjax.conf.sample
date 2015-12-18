@@ -31,6 +31,6 @@ regex_banner:
       hits_per_interval: 0
 
 bot_sniffer :
-  botbanger_port: 22621
+  botbanger_port: 22620
   key: "72fromMemphistoChattanooga"
  

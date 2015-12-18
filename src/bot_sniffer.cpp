@@ -50,17 +50,19 @@ BotSniffer::load_config()
      }
 
   string new_binding_string  = "tcp://"+botbanger_server +":"+to_string(botbanger_port);
-  if (_binding_string.empty()) { //we haven't got connected to anywhere before
-    zmqsock.bind(new_binding_string.c_str());
+  if (!p_zmqsock) { //we haven't got connected to anywhere before
+    p_zmqsock = new zmq::socket_t(context, ZMQ_PUB),
+    p_zmqsock->bind(new_binding_string.c_str());
     //just get connected
   } else if (new_binding_string != _binding_string) { //we are getting connected to a new end point just drop the last point and connect to new point
     TSDebug(BANJAX_PLUGIN_NAME, "unbinding from %s",  _binding_string.c_str());
-    zmqsock.unbind(_binding_string);
-    _binding_string = new_binding_string;
+    delete p_zmqsock;
     TSDebug(BANJAX_PLUGIN_NAME,"connecting to %s...",  new_binding_string.c_str());
-    zmqsock.bind(new_binding_string.c_str());
+    p_zmqsock = new zmq::socket_t(context, ZMQ_PUB),
+    p_zmqsock->bind(new_binding_string.c_str());
+    _binding_string = new_binding_string;
   }; //else  {re-connecting to the same point do nothing} //unbind bind doesn't work
-   TSDebug(BANJAX_PLUGIN_NAME, "Done connecting to botbanger server...");
+  TSDebug(BANJAX_PLUGIN_NAME, "Done connecting to botbanger server...");
  
 }
 
@@ -95,7 +97,7 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
   if (TSMutexLockTry(bot_sniffer_mutex) == TS_SUCCESS) {
     
     string plaintext_log;
-    send_zmq_mess(zmqsock, BOTBANGER_LOG, true);
+    send_zmq_mess(*p_zmqsock, BOTBANGER_LOG, true);
 
     //send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP), true);
     plaintext_log += VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP);
@@ -122,7 +124,7 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
     std::string hit_mis_str = (transaction_parts.count(TransactionMuncher::MISS) ? b64_hit : b64_miss);
     plaintext_log += "," + hit_mis_str;
 
-    send_zmq_encrypted_message(zmqsock, plaintext_log, encryption_key);
+    send_zmq_encrypted_message(*p_zmqsock, plaintext_log, encryption_key);
 
     TSMutexUnlock(bot_sniffer_mutex);
   }

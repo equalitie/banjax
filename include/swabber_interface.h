@@ -28,7 +28,7 @@ class SwabberInterface
 
   //socket stuff
   zmq::context_t context;
-  zmq::socket_t socket;
+  zmq::socket_t* p_socket = nullptr; //so we can delete it everytime we reload banjax config
 
   std::string _binding_string; //store the last binded address to unbind on reload
   //"" indicate that we haven't bind anywhere yet

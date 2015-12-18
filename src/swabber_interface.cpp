@@ -33,7 +33,7 @@ const string SwabberInterface::BAN_IP_LOG("/usr/local/trafficserver/logs/ban_ip_
 
 /* initiating the interface */ 
 SwabberInterface::SwabberInterface(IPDatabase* global_ip_db)
-  :context (1), socket (context, ZMQ_PUB), 
+  :context (1), 
    ban_ip_list(BAN_IP_LOG.c_str(), ios::out | ios::app), //openning banned ip log file
    swabber_mutex(TSMutexCreate()),
    ip_database(global_ip_db),
@@ -83,24 +83,30 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
     }
   
   string new_binding_string  = "tcp://"+swabber_server+":"+swabber_port;
-  if (_binding_string.empty()) { //we haven't got connected to anywhere before
+  if (!p_socket) { //we haven't got connected to anywhere before
     TSDebug(BANJAX_PLUGIN_NAME,"connecting to %s",  new_binding_string.c_str());
-    socket.bind(new_binding_string.c_str());
+    p_socket = new zmq::socket_t(context, ZMQ_PUB);
+    p_socket->bind(new_binding_string.c_str());
     //just get connected
   } else if (new_binding_string != _binding_string) { //we are getting connected to a new end point just drop the last point and connect to new point
     TSDebug(BANJAX_PLUGIN_NAME, "unbinding from %s",  _binding_string.c_str());
     try {
-      socket.unbind(_binding_string);
+      delete p_socket;
+      //socket.unbind(_binding_string); //no unbind in old zmq :(
+
+      p_socket = new zmq::socket_t(context, ZMQ_PUB);
+
+      TSDebug(BANJAX_PLUGIN_NAME,"connecting to %s",  new_binding_string.c_str());
+      p_socket->bind(new_binding_string.c_str());
     } catch (zmq::error_t e)
-        {
-          //TODO:this is a know bug. the solution is probobably to delete the
-          //socket completely and make a new socket completely
-          TSDebug(BANJAX_PLUGIN_NAME, "failed to unbind: %s",  e.what());
-          TSDebug(BANJAX_PLUGIN_NAME, "ignoring the failure..");
-        }
-          
-    socket.bind(new_binding_string.c_str());
-    TSDebug(BANJAX_PLUGIN_NAME,"connecting to %s",  new_binding_string.c_str());
+      {
+        //this shouldn't happen this is a bug but * doesn't get free even
+        //if you delete it
+        TSDebug(BANJAX_PLUGIN_NAME, "failed to bind: %s this is probably zmq bug not being able to unbind properly",  e.what());
+        throw;
+      }
+
+      
   }; //else  {re-connecting to the same point do nothing} //unbind bind doesn't work
     
   _binding_string = new_binding_string;
@@ -113,7 +119,7 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
  */
 SwabberInterface::~SwabberInterface()
 {
-  socket.close();
+  delete p_socket;
 }
 
 /**
@@ -186,8 +192,8 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
  
   TSDebug(BANJAX_PLUGIN_NAME, "locking the swabber socket...");
   if (TSMutexLockTry(swabber_mutex) == TS_SUCCESS) {
-    socket.send(ban_request, ZMQ_SNDMORE);
-    socket.send(ip_to_ban);
+    p_socket->send(ban_request, ZMQ_SNDMORE);
+    p_socket->send(ip_to_ban);
 
     //also asking fail2ban to ban
     //char fail2ban_cmd[1024] = "fail2ban-client set ats-filter banip ";

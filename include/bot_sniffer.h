@@ -20,7 +20,7 @@ class BotSniffer : public BanjaxFilter
 
   //socket stuff
   zmq::context_t context;
-  zmq::socket_t zmqsock;
+  zmq::socket_t* p_zmqsock = nullptr;
 
   unsigned int botbanger_port;
   //static const unsigned int BOTBANGER_DEFAULT_PORT = 22621;
@@ -45,7 +45,7 @@ public:
    */
  BotSniffer(const std::string& banjax_dir, const FilterConfig& filter_config)
    :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME), 
-    context (1), zmqsock (context, ZMQ_PUB),
+    context (1),
     //botbanger_port(BOTBANGER_DEFAULT_PORT),
     botbanger_server("*"), 
     /* When assigning a local address to a socket using zmq_bind() with the tcp
@@ -105,6 +105,12 @@ public:
      we do not overload generate_respons cause we have no response to generate
   */
 
+  /**
+   * destructor to delete the zmq socket
+   */
+  ~BotSniffer() {
+    delete p_zmqsock;
+  }
 };
 
 #endif /* bot_sniffer.h */

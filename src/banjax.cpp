@@ -128,6 +128,7 @@ void Banjax::reload_config() {
 
   //we need to lock this other wise somebody is deleting filter and somebody making them
   TSMutexLock(config_mutex);
+  TSDebug(BANJAX_PLUGIN_NAME, "locked config lock");
     //empty all queues
   for(unsigned int i = BanjaxFilter::HTTP_START; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++)
     task_queues[i].clear();      
@@ -156,6 +157,7 @@ void Banjax::reload_config() {
   all_filters_response_part = 0;
 
   read_configuration();
+  TSDebug(BANJAX_PLUGIN_NAME, "unlock config lock");
   TSMutexUnlock(config_mutex); //we will lock it in read_configuration again
   
 }
