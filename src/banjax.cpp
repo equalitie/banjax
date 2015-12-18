@@ -80,7 +80,7 @@ Banjax::filter_factory()
       } else if (cur_filter_name_it->second == BOT_SNIFFER_FILTER_NAME){
         cur_filter = new BotSniffer(banjax_config_dir, cur_config);
       } else if (cur_filter_name_it->second == DENIALATOR_FILTER_NAME){
-        cur_filter = new Denialator(banjax_config_dir, cur_config, &ip_database);
+        cur_filter = new Denialator(banjax_config_dir, cur_config, &ip_database, &swabber_interface);
       } else {
         TSError(("don't know how to construct requested filter " + cur_filter_name_it->second).c_str());
         abort_traffic_server();

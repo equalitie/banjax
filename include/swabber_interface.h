@@ -72,6 +72,13 @@ class SwabberInterface
   ~SwabberInterface();
 
   /**
+   * access function for grace period used by denialator
+   */
+  long get_grace_period()
+  {
+    return grace_period;
+  }
+  /**
      reads the grace period and swabber listening port and bind to it
      @param swabber_config list of YAML nodes containing swabber configs
   */ 

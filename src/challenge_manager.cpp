@@ -344,11 +344,11 @@ void ChallengeManager::generate_html(string ip, long t, string url,
     std::string cookie = transaction_parts.at(TransactionMuncher::COOKIE);
     std::string answer = url.substr(found + strlen("__validate/"));
     response_info->response_code = 403;
+    page = "X";
 
     if (ChallengeManager::check_cookie(answer.c_str(), cookie, transaction_parts.at(TransactionMuncher::IP), *(response_info->responding_challenge))) {      
       response_info->response_code = 200;
       uchar cookie[COOKIE_SIZE];
-      // TODO(oschaaf): 2 hour validity. configuration!
       GenerateCookie((uchar*)"", (uchar*)hashed_key, t, (uchar*)ip.c_str(), cookie);
       TSDebug(BANJAX_PLUGIN_NAME, "Set cookie: [%.*s] based on ip[%s]", (int)strlen((char*)cookie), (char*)cookie, ip.c_str());
       std::string header;
@@ -358,10 +358,17 @@ void ChallengeManager::generate_html(string ip, long t, string url,
       response_info->set_cookie_header.append(header.c_str());      
       page = "OK";
       return;
+    } else {
+      //count it as a failure
+      if (response_info->responding_challenge->fail_tolerance_threshold)
+        response_info->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), response_info->responding_challenge, transaction_parts.at(TransactionMuncher::HOST), transaction_parts);
+
+      if (response_info->banned_ip)
+        page = "Too many failures";
     }
-    
-    page = "X";
+
     return;
+    
   }
   
   //if the challenge is solvig SHA inverse image or auth
@@ -440,6 +447,7 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
       {
       case ChallengeDefinition::CHALLENGE_CAPTCHA:
         {
+          TSDebug(BANJAX_PLUGIN_NAME, "captch url is %s", transaction_parts.at(TransactionMuncher::URL_WITH_HOST).c_str());
           if (ChallengeManager::is_captcha_url(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
           //FIXME: This opens the door to attack edge using the captcha url, we probably need to 
           //count captcha urls as failures as well.
@@ -447,15 +455,16 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
           } else if (is_captcha_answer(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
             return FilterResponse(FilterResponse(FilterResponse::I_RESPOND, (void*) new ChallengerExtendedResponse(challenger_resopnder, cur_challenge)));
           }
+          
           if (ChallengeManager::check_cookie("", transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP), *(cur_challenge))) {
             report_success(transaction_parts.at(TransactionMuncher::IP));
             //rather go to next challenge
             continue;
-        } else {
-          //record challenge failure
-          FilterResponse failure_response(FilterResponse::I_RESPOND, (void*) new ChallengerExtendedResponse(challenger_resopnder, cur_challenge));
-          if (cur_challenge->fail_tolerance_threshold)
-            ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), cur_challenge, transaction_parts.at(TransactionMuncher::HOST), transaction_parts);
+          } else {
+            //record challenge failure
+            FilterResponse failure_response(FilterResponse::I_RESPOND, (void*) new ChallengerExtendedResponse(challenger_resopnder, cur_challenge));
+            if (cur_challenge->fail_tolerance_threshold)
+              ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), cur_challenge, transaction_parts.at(TransactionMuncher::HOST), transaction_parts);
             
           return failure_response;
         }
@@ -521,6 +530,7 @@ std::string ChallengeManager::generate_response(const TransactionParts& transact
 {
 
   ChallengerExtendedResponse* extended_response =  (ChallengerExtendedResponse*)(response_info.response_data);
+
   if ((extended_response)->banned_ip) {
     char* too_many_failures_response = new char[too_many_failures_message_length+1];
     memcpy((void*)too_many_failures_response, (const void*)too_many_failures_message.c_str(), (too_many_failures_message_length+1)*sizeof(char));
@@ -541,6 +551,7 @@ std::string ChallengeManager::generate_response(const TransactionParts& transact
                 transaction_parts,
                 //NULL, buf_str);//, 
                 extended_response, buf_str);
+
   return buf_str;
 
 }

@@ -161,6 +161,9 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
   }
   
   timeval cur_time; gettimeofday(&cur_time, NULL);
+  time_t rawtime;
+  char time_buffer[80];
+
   if (cur_ip_state.second.size() == 0) {
     //recording the first request for banning
     cur_ip_state.second.resize(1);
@@ -168,20 +171,24 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
 
     ip_database->set_ip_state(bot_ip, SWABBER_INTERFACE_ID, cur_ip_state.second);
 
+    /* Format the time for log */
+    time(&rawtime);
+    tm* timeinfo = std::gmtime(&rawtime);
+    strftime(time_buffer,80,"%Y-%m-%dT%H:%M:%S",timeinfo);
+
+    ban_ip_list << bot_ip << ", " << "[" << time_buffer << "], " << banning_reason << ", flagged" <<endl;
+
   }
 
   /* only ban if the grace period is passed */
   if ((cur_time.tv_sec - cur_ip_state.second[0]) < grace_period) {
     TSDebug(BANJAX_PLUGIN_NAME, "not reporting to swabber cause grace period has not passed yet");
     return;
-  }
+  } 
 
   /* Format the time for log */
-  time_t rawtime;
   time(&rawtime);
   tm* timeinfo = std::gmtime(&rawtime);
-
-  char time_buffer[80];
   strftime(time_buffer,80,"%Y-%m-%dT%H:%M:%S",timeinfo);
 
   zmq::message_t ban_request(SWABBER_BAN.size());
@@ -202,7 +209,7 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
 
     //TSDebug(BANJAX_PLUGIN_NAME, "banning client ip: %s", iptable_ban_cmd);
     //system(iptable_ban_cmd);
-    ban_ip_list << bot_ip << ", " << "[" << time_buffer << "], " << banning_reason << endl;
+    ban_ip_list << bot_ip << ", " << "[" << time_buffer << "], " << banning_reason << ", banned" << endl;
     TSMutexUnlock(swabber_mutex);
     //now we can drop the ip from the database
     ip_database->drop_ip(bot_ip);

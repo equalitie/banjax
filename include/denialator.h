@@ -8,6 +8,7 @@
 #define DENIALATOR_H
 
 #include <yaml-cpp/yaml.h>
+#include "swabber_interface.h"
 #include "banjax_filter.h"
 
 class Denialator : public BanjaxFilter
@@ -16,19 +17,26 @@ class Denialator : public BanjaxFilter
   const std::string forbidden_message;
   const size_t forbidden_message_length;
 
+  //swabber object used for banning bots after grace period is finished
+  SwabberInterface* swabber_interface;
+
+  long banning_grace_period = 0;
+
  public:
   /**
      receives the config object need to read the ip list,
      subsequently it reads all the ips
 
   */
- Denialator(const std::string& banjax_dir, const FilterConfig& filter_config, IPDatabase* global_ip_database)
+ Denialator(const std::string& banjax_dir, const FilterConfig& filter_config, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
    :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, DENIALATOR_FILTER_ID, DENIALATOR_FILTER_NAME),
-    forbidden_message("<html><header></header><body>500 Internal Server Error</body></html>"),
-    forbidden_message_length(forbidden_message.length())
+    forbidden_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
+    forbidden_message_length(forbidden_message.length()),
+    swabber_interface(global_swabber_interface)
   {
     queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&Denialator::execute);
     ip_database = global_ip_database;
+    banning_grace_period = swabber_interface->get_grace_period();
     load_config();
   }
 

@@ -309,7 +309,7 @@ To activate Denialator following line need to put in the config.
 
 denialator:
 
-Upon activation denialator checks if the ip previously has been reported for banning and if such it denies access to the ip. To disengage all filters from dealing with reported ip, denialator priority need to be set to 1 or 2.
+Upon activation denialator checks if the ip previously has been reported for banning and if such it denies access to the ip. The denialator will report the ip to swabber again once it the ip visits after that the grace period is finished. To disengage all filters from dealing with reported ip, denialator priority need to be set to 1 or 2. 
 
 How To Write A Filter
 =====================
