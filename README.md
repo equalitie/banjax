@@ -286,6 +286,31 @@ Sample Attacks:
         botbanger_port: 22621
         key: "somebodysbeenworkingindark!"
 
+
+
+Swabber
+=======
+This is a configuration entry for the swabber interface. all fields are optional
+
+swabber:
+  server: 127.0.0.1
+  port: 22620
+  grace_period: 600
+
+server: is the ip of the interface which swabber is listening on. default is "*".
+port: is the port that swabber is listening on, default is "22620"
+grace_period: swabber interface only report an ip to swabber only if: 1) ip is reported for banning by a filter and  "grace_period" seconds has passed since the first request for banning. if grace_period is set to 0 (whe edges are too stressed) the ip is reported upon first banning request. default is 0.
+
+Not that all other filters are still in effect next time the reported ip send a new request and so it means that the request does not reach the origin. However, challenger and auth still provide challenges. If it is desired that no filter get engaged with the reported ip Denialator filter should be activated.
+
+Denialator
+==========
+To activate Denialator following line need to put in the config.
+
+denialator:
+
+Upon activation denialator checks if the ip previously has been reported for banning and if such it denies access to the ip. To disengage all filters from dealing with reported ip, denialator priority need to be set to 1 or 2.
+
 How To Write A Filter
 =====================
 

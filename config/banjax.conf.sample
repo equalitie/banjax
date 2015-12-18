@@ -1,8 +1,9 @@
 priority:
   white_lister: 1
-  auth: 2
-  challenger: 3
-  regex_banner: 4
+  denialator: 2
+  auth: 3
+  challenger: 4
+  regex_banner: 5
 
 swabber:
   server: 127.0.0.1
@@ -12,6 +13,8 @@ swabber:
 white_lister:
     white_listed_ips:   
       - 127.0.0.1
+
+denialator:
 
 challenger:
     key: "allwearesayingisgivewarachance" 
