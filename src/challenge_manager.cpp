@@ -403,7 +403,7 @@ ChallengeManager::format_validity_time_for_cookie(long validity_time)
   struct tm *timeinfo;
   char buffer [30];
   timeinfo = gmtime(&rawtime);
-  const char *format = "%a, %d %b %G %T GMT";
+  const char *format = "%a, %d %b %Y %T GMT";
   strftime(buffer, 30, format, timeinfo);
   return string(buffer);
 }
