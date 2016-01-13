@@ -290,24 +290,60 @@ Sample Attacks:
 
 Swabber
 =======
-This is a configuration entry for the swabber interface. all fields are optional
+This is a configuration entry for the Swabber interface. all fields are optional
 
-swabber:
-  server: 127.0.0.1
-  port: 22620
-  grace_period: 600
+    swabber:
+      server: 127.0.0.1
+      port: 22620
+      grace_period: 600
 
-server: is the ip of the interface which swabber is listening on. default is "*".
+server: is the ip of the interface which Swabber is listening on. default is "*".
 port: is the port that swabber is listening on, default is "22620"
-grace_period: swabber interface only report an ip to swabber only if: 1) ip is reported for banning by a filter and  "grace_period" seconds has passed since the first request for banning. if grace_period is set to 0 (whe edges are too stressed) the ip is reported upon first banning request. default is 0.
+grace_period: swabber interface only report an ip to swabber only if: 1) ip is reported for banning by a filter and  "grace_period" seconds has passed since the first request for banning. if grace_period is set to 0 (when edges are too stressed) the ip is reported upon first banning request. default is 0.
 
-Not that all other filters are still in effect next time the reported ip send a new request and so it means that the request does not reach the origin. However, challenger and auth still provide challenges. If it is desired that no filter get engaged with the reported ip Denialator filter should be activated.
+Note that all other filters are still in effect next time the reported ip send a new request and so it means that the request does not reach the origin. However, challenger and auth still provide challenges. If it is desired that no filter get engaged with the reported ip Denialator filter should be activated.
+
+Swabber interface records its log activities in
+
+    trafficserver/logs/ban_ip_list.log
+
+The general format of swabber interface log is as follows:
+
+    [bot_ip], [time], [banning_reason], [flagged/banned]
+
+Example:
+
+    127.0.0.1, [2015-12-18T20:27:15], Mozilla/5.0 (X11; Linux x86_64; rv:42.0) Gecko/20100101 conkeror/1.0pre1 asking for http:///__validate/ failed challenge deflect-captcha of type captcha for host localhost:8080 10 times, flagged
+    127.0.0.1, [2015-12-18T20:27:25], flagged on 1450470435,  grace period passed. reported by denialator, banned
+
+flagged/banned: 
+  flagged: The IP is reported to swabber interface by a filter for the first time. it is not reported to swabber for banning.  until grace_period of the swabber is passed.
+  banned: The grace_period of the swabber for this IP is passed since it was flagged first and as such it is reported to the swabber.
+
+Note that the flagged line in the banjax log only appears once, the first time the ip is flagged. The all subsequent requests for banning does not appear in the log till it gets banned.
+
+  banning_reason
+
+Each filter send the reason by itself and not all filters have access to the same data, the banning filters log formats are as follows:
+
+regex_manager:
+
+    [METHOD] [URL] [HOST] [UA] matched regex rule [rule_name]
+
+challenger:
+
+    [UA] asking for [URL] failed challenge [challenge name] of type [type] for host [HOST] [number of failures] times
+
+denialator:
+
+    flagged on [flagged time in epoch],  grace period passed. reported by denialator
+
 
 Denialator
 ==========
 To activate Denialator following line need to put in the config.
 
-denialator:
+    denialator:
 
 Upon activation denialator checks if the ip previously has been reported for banning and if such it denies access to the ip. The denialator will report the ip to swabber again once it the ip visits after that the grace period is finished. To disengage all filters from dealing with reported ip, denialator priority need to be set to 1 or 2. 
 

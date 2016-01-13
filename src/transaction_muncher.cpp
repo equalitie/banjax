@@ -87,18 +87,18 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
       const char* url = TSUrlStringGet(request_header, url_loc, &url_length);
     
       if (!url){
-	TSError("couldn't retrieve request url string\n");
-	TSHandleMLocRelease(request_header, header_location, url_loc);
-	cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL, ""));
-	cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::PROTOCOL, ""));
+        TSError("couldn't retrieve request url string\n");
+        TSHandleMLocRelease(request_header, header_location, url_loc);
+        cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL, ""));
+        cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::PROTOCOL, ""));
 
-	//throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
+        //throw TransactionMuncher::HEADER_RETRIEVAL_ERROR;
       }
       else {
 
-	//I'm not sure if we need to release URL explicitly
-	//my guess is not
-	cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL, string(url,url_length)));
+        //I'm not sure if we need to release URL explicitly
+        //my guess is not
+        cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::URL, string(url,url_length)));
 
 	int protocol_length;
 	const char* protocol = TSUrlSchemeGet(request_header, url_loc , &protocol_length);
