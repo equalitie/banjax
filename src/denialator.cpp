@@ -54,7 +54,7 @@ FilterResponse Denialator::execute(const TransactionParts& transaction_parts)
     timeval cur_time; gettimeofday(&cur_time, NULL);
     if ((cur_time.tv_sec - cur_ip_state.second[0]) >= banning_grace_period) { 
         TSDebug(BANJAX_PLUGIN_NAME, "grace period passed, re-reporting to swabber");
-        swabber_interface->ban(cur_ip, "flagged on " + to_string(cur_ip_state.second[0]) + ",  grace period passed. reported by denialator");
+        swabber_interface->ban(cur_ip, "flagged on " + to_string(cur_ip_state.second[0]) + ", grace period passed. reported by denialator");
     }
 
     TSDebug(BANJAX_PLUGIN_NAME, "denialotr denying access to tagged ip: %s ",cur_ip.c_str());

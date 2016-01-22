@@ -313,8 +313,9 @@ The general format of swabber interface log is as follows:
 
 Example:
 
-    127.0.0.1, [2015-12-18T20:27:15], Mozilla/5.0 (X11; Linux x86_64; rv:42.0) Gecko/20100101 conkeror/1.0pre1 asking for http:///__validate/ failed challenge deflect-captcha of type captcha for host localhost:8080 10 times, flagged
-    127.0.0.1, [2015-12-18T20:27:25], flagged on 1450470435,  grace period passed. reported by denialator, banned
+    127.0.0.1, [2016-01-22T22:18:56], matched regex rule deflectsecret, GET, http:///secretpage, deflect.ca:8080, "Mozilla/5.0 (X11; Linux x86_64; rv:42.0) Gecko/20100101 conkeror/1.0pre1", flagged
+    127.0.0.1, [2016-01-22T22:28:22], failed challenge deflectc-captcha for host deflect.ca:8080 10 times, "Mozilla/5.0 (X11; Linux x86_64; rv:42.0) Gecko/20100101 conkeror/1.0pre1" asking for http   :///__validate/, flagged
+    127.0.0.1, [2016-01-22T22:28:46], flagged on 1453501702, grace period passed. reported by denialator, banned
 
 flagged/banned: 
   flagged: The IP is reported to swabber interface by a filter for the first time. it is not reported to swabber for banning.  until grace_period of the swabber is passed.
@@ -328,16 +329,17 @@ Each filter send the reason by itself and not all filters have access to the sam
 
 regex_manager:
 
-    [METHOD] [URL] [HOST] [UA] matched regex rule [rule_name]
+    matched regex rule [rule_name], [METHOD], "[URL]", [HOST], "[UA]"
 
 challenger:
 
-    [UA] asking for [URL] failed challenge [challenge name] of type [type] for host [HOST] [number of failures] times
+    failed challenge [challenge name]  [number of failures] times, "[URL]", [HOST], "[UA]"
 
 denialator:
 
-    flagged on [flagged time in epoch],  grace period passed. reported by denialator
+    flagged on [flagged time in epoch], grace period passed. reported by denialator
 
+notes that all internal double quotes (") for the "[URL]" and "[UA]" is escaped (replace by \")
 
 Denialator
 ==========

@@ -157,3 +157,24 @@ size_t gcm_encrypt(const uint8_t *plaintext, size_t plaintext_len,
     return ciphertext_len;
 
 }
+
+/**
+ * Escape all quotes this is for the reason of logging. then
+ * add a quote to the beginnig and the end of the string 
+ *
+ * @param unprocessed_log_string for which quote being replaced
+ * 
+ * @return the string enclosed in quotes with all middle quotes escaped
+ *
+ */
+string encapsulate_in_quotes(std::string& unprocessed_log_string) {
+  size_t start_pos = 0;
+  string encapsulated_log_string(unprocessed_log_string);
+  while((start_pos = encapsulated_log_string.find("\"", start_pos)) != std::string::npos) {
+    encapsulated_log_string.replace(start_pos, 1, "\\\"");
+    start_pos += 2;
+  }
+  encapsulated_log_string =  "\"" + encapsulated_log_string + "\"";
+  return encapsulated_log_string;
+
+}

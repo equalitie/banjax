@@ -210,7 +210,7 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
   cd->transaction_muncher.retrieve_response_parts(banjax->which_response_parts_are_requested());
 
   if (cd->response_info.response_type == FilterResponse::I_RESPOND) {
-    cd->transaction_muncher.set_status(TS_HTTP_STATUS_FORBIDDEN);
+    cd->transaction_muncher.set_status(TS_HTTP_STATUS_GATEWAY_TIMEOUT);
     std::string buf = (((cd->responding_filter)->*(((FilterExtendedResponse*)cd->response_info.response_data)->response_generator)))(cd->transaction_muncher.retrieve_parts(banjax->all_filters_requested_part), cd->response_info);
 
     cd->transaction_muncher.set_status(

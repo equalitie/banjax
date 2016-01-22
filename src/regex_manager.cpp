@@ -21,6 +21,7 @@
 
 using namespace std;
 
+#include "util.h"
 #include "regex_manager.h"
 #include "ip_database.h"
 
@@ -183,8 +184,14 @@ FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
     TSDebug(BANJAX_PLUGIN_NAME, "asking swabber to ban client ip: %s", ats_record_parts[TransactionMuncher::IP].c_str());
 
     //here instead we are calling nosmos's banning client
-    string banning_reason = ats_record + " matched regex rule " + result.second->rule_name;
-    
+    string ats_rec_comma_sep =
+      ats_record_parts[TransactionMuncher::METHOD] + ", " +
+      encapsulate_in_quotes(ats_record_parts[TransactionMuncher::URL]) + ", " +
+      ats_record_parts[TransactionMuncher::HOST] + ", " + 
+      encapsulate_in_quotes(ats_record_parts[TransactionMuncher::UA]);
+
+    string banning_reason = "matched regex rule " + result.second->rule_name + ", " + ats_rec_comma_sep;
+
     swabber_interface->ban(ats_record_parts[TransactionMuncher::IP], banning_reason);
     return FilterResponse(static_cast<ResponseGenerator>(&RegexManager::generate_response));
 

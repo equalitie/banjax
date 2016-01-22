@@ -31,6 +31,7 @@
 #include "libcaptcha.c"
 using namespace std;
 
+#include "util.h"
 #include "base64.h"
 #include "cookie_parser.h"
 #include "challenge_manager.h"
@@ -587,7 +588,11 @@ ChallengeManager::report_failure(std::string client_ip, HostChallengeSpec* faile
     banned = true;
     TransactionParts ats_record_parts = (TransactionParts) transaction_parts;
 
-    string banning_reason = ats_record_parts[TransactionMuncher::UA] + " asking for " + ats_record_parts[TransactionMuncher::URL] + " failed challenge " + failed_challenge->name + " of type "+  challenge_specs[failed_challenge->challenge_type]->human_readable_name + " " + "for host " + failed_host  + " " + to_string(cur_ip_state.second[0]) + " times";
+    string banning_reason = "failed challenge " + failed_challenge->name + " for host " + failed_host  + " " + to_string(cur_ip_state.second[0]) + " times, " +
+      encapsulate_in_quotes(ats_record_parts[TransactionMuncher::URL]) + ", " +
+      ats_record_parts[TransactionMuncher::HOST] + ", " + 
+      encapsulate_in_quotes(ats_record_parts[TransactionMuncher::UA]);
+
     swabber_interface->ban(client_ip.c_str(), banning_reason);
     //reset the number of failures for future
     //we are not clearing the state cause it is not for sure that

@@ -56,4 +56,15 @@ size_t gcm_encrypt(const uint8_t *plaintext, size_t plaintext_len,
                    const uint8_t *key, const uint8_t *iv,
                    uint8_t *ciphertext, uint8_t *tag);
 
+/**
+ * Escape all quotes this is for the reason of logging. then
+ * add a quote to the beginnig and the end of the string 
+ *
+ * @param unprocessed_log_string for which quote being replaced
+ * 
+ * @return the string enclosed in quotes with all middle quotes escaped
+ *
+ */
+string encapsulate_in_quotes(std::string& unprocessed_log_string);
+
 #endif
