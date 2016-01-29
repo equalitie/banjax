@@ -149,43 +149,47 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
 
   zmq_msg_close(&msg_to_send);*/
 
-  /* we are waiting for grace period before banning for inteligent gathering purpose */
-  
-  std::pair<bool,FilterState> cur_ip_state(ip_database->get_ip_state(bot_ip, SWABBER_INTERFACE_ID));
-
-  /* If we failed to query the database then just don't report to swabber */
-  if (cur_ip_state.first == false) {
-  /* If it is zero size we set it to the current time */
-    TSDebug(BANJAX_PLUGIN_NAME, "not reporting to swabber due to failure of aquiring ip db lock ");
-    return;
-  }
-  
   timeval cur_time; gettimeofday(&cur_time, NULL);
-  time_t rawtime;
   char time_buffer[80];
+  time_t rawtime;
+  
+  /* we are waiting for grace period before banning for inteligent gathering purpose */
+  if (grace_period > 0) { //if there is no grace then ignore these steps
+  
+    std::pair<bool,FilterState> cur_ip_state(ip_database->get_ip_state(bot_ip, SWABBER_INTERFACE_ID));
 
-  if (cur_ip_state.second.size() == 0) {
-    //recording the first request for banning
-    cur_ip_state.second.resize(1);
-    cur_ip_state.second[0] = cur_time.tv_sec;
+    /* If we failed to query the database then just don't report to swabber */
+    if (cur_ip_state.first == false) {
+      /* If it is zero size we set it to the current time */
+      TSDebug(BANJAX_PLUGIN_NAME, "not reporting to swabber due to failure of aquiring ip db lock ");
+      return;
+    }
 
-    ip_database->set_ip_state(bot_ip, SWABBER_INTERFACE_ID, cur_ip_state.second);
 
-    /* Format the time for log */
-    time(&rawtime);
-    tm* timeinfo = std::gmtime(&rawtime);
-    strftime(time_buffer,80,"%Y-%m-%dT%H:%M:%S",timeinfo);
+    if (cur_ip_state.second.size() == 0) {
+      //recording the first request for banning
+      cur_ip_state.second.resize(1);
+      cur_ip_state.second[0] = cur_time.tv_sec;
 
-    ban_ip_list << bot_ip << ", " << "[" << time_buffer << "], " << banning_reason << ", flagged" <<endl;
+      ip_database->set_ip_state(bot_ip, SWABBER_INTERFACE_ID, cur_ip_state.second);
 
+      /* Format the time for log */
+      time(&rawtime);
+      tm* timeinfo = std::gmtime(&rawtime);
+      strftime(time_buffer,80,"%Y-%m-%dT%H:%M:%S",timeinfo);
+
+      ban_ip_list << bot_ip << ", " << "[" << time_buffer << "], " << banning_reason << ", flagged" <<endl;
+
+    }
+
+    /* only ban if the grace period is passed */
+    if ((cur_time.tv_sec - cur_ip_state.second[0]) < grace_period) {
+      TSDebug(BANJAX_PLUGIN_NAME, "not reporting to swabber cause grace period has not passed yet");
+      return;
+    }
   }
-
-  /* only ban if the grace period is passed */
-  if ((cur_time.tv_sec - cur_ip_state.second[0]) < grace_period) {
-    TSDebug(BANJAX_PLUGIN_NAME, "not reporting to swabber cause grace period has not passed yet");
-    return;
-  } 
-
+    
+  //grace period pass or no grace period
   /* Format the time for log */
   time(&rawtime);
   tm* timeinfo = std::gmtime(&rawtime);
