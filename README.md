@@ -41,7 +41,7 @@ Copy banjax.so file in:
 
      /usr/local/trafficserver/modules
 
-Copy banjax.conf file to the folder of your choice. The default directroy that banjax is going to look for banjax.conf is ATS default plugin dircetory, for example:
+Copy banjax.conf file to the folder of your choice. The default directroy that banjax is going to look for banjax.conf is ATS default plugin directory, for example:
 
      /usr/local/trafficserver/modules/banjax/
 
@@ -49,7 +49,7 @@ Add a line
 
     banjax.so [/path/to/the/folder/where/banjax.conf/resides]
 
-to 
+to
 
     /usr/local/trafficserver/conf/plugins.conf
 
@@ -104,9 +104,9 @@ it might be because the yaml-cpp package in your distribution is old. You need t
    cmake ..
    make
    make install
-   
+
 HACK:
-if configure complains that libre2 isn't there but you are sure 
+if configure complains that libre2 isn't there but you are sure
 you have already installed it, then
 
     cp libre2.pc /usr/lib/pkgconfig/
@@ -121,7 +121,7 @@ regex_map   http://^(www\.)?127.0.0.1$/ ORIGIN_URL
 
 For example, if the http server is running on the same machine, listening on port 8080, you should add:
 
-regex_map   http://^(www\.)?127.0.0.1$/ http://127.0.0.1:8080/ 
+regex_map   http://^(www\.)?127.0.0.1$/ http://127.0.0.1:8080/
 
 You should also need to have write access to the folder where http origin server websites from.
 
@@ -145,7 +145,7 @@ If you would like to debug banjax in gdb you need to configure it as follow:
 
 Available Filters
 =================
-Currently 4 filters are implemented in Banjax. One can configure each filter behavior in banjax.conf. The configuration of each filter should start with the name of the filter followed by colon, then the configuration will stays between {} followed by semi-colon. 
+Currently 4 filters are implemented in Banjax. One can configure each filter behavior in banjax.conf. The configuration of each filter is accomplished via yaml, with a "challenger" and a "regex_banner" dictionary existing in the configuration. The "challenges" list under "challenger" contains the challenges to be proffered to users".
 
 The order that each filter configuration appears in banjax.conf matters and  determine the order that banjax.conf run the filter. For example, there is no point to put white_lister filter at the end.
 
@@ -153,14 +153,12 @@ white_lister
 ------------
 White listed IPs do not go through any other filter configured passed white_lister. For example the ip address of  monitoring programs such as nagios needs to be white listed, so bot stoppers such as challenger does not prevent them from their duty.
 
-White listed ips need to be entered separately in double quotation in white_listed_ips array, separated by comma.
-
+White listed ips need to be added to the white_listed_ips array.
 ---------------
-    white_lister :
-    {
-      white_listed_ips = ( "127.0.0.1", 
-                           "5.135.71.96" );
-    };
+    white_lister:
+      white_listed_ips:
+        - 192.168.1.1
+        - 10.0.0.2
 
 regex_banner:
 -------------
@@ -183,7 +181,7 @@ regex: a regex to match the whole request. Pay attention that you need to put \\
 
 interval: The span of time in seconds when you want banjax keep record of the hit.
 
-hits_per_interval: the number of hit per interval that results in banning 
+hits_per_interval: the number of hit per interval that results in banning
 
 Banjax bans based on 1/1000*hit_per_interval per millisecond rate. Hence it does not wait for number of hits to reach hits_per_interval, as soon as an ip reach the rate of 1/1000*hit_per_interval per millisecond it will get banned.
 
@@ -222,7 +220,7 @@ For each host then the user needs to specifies the following parameters:
 
 name: the host name as it appears in the url, "www.host.com" and "host.com" are treated as two different hosts and needs two separate config records.
 
-validity_period: determine how often the challenger should re-challenge a client in seconds. When under cache-busting attack, it is advisable to decrease this number. Also because the solution is cookie based each client will be challenged once for each website. 
+validity_period: determine how often the challenger should re-challenge a client in seconds. When under cache-busting attack, it is advisable to decrease this number. Also because the solution is cookie based each client will be challenged once for each website.
 
 challenge_type: can be "captcha", "sha_inverse" or "auth" at the moment.
 
@@ -238,35 +236,32 @@ Sample Attacks:
 ---------------
 * If www.equalit.ie is under cache busting attack and you want to prevent the bots from reaching the origin you can use the first set of host rules, so challenger serves captcha before reaching to the origin. Note that you need a new set of host rule for equalit.ie if both www.equalit.ie and equalit.ie are resolving to your website.
 
-* If wiki.deflect.ca is being attacked by a botnet that is not able to run Java Script or you would like to slow down each bot request by making them solve a problem before being served, at the same time you want to ban anybody who failed to solve 10 problems, you can use the second rule. 
+* If wiki.deflect.ca is being attacked by a botnet that is not able to run Java Script or you would like to slow down each bot request by making them solve a problem before being served, at the same time you want to ban anybody who failed to solve 10 problems, you can use the second rule.
 
 ---------------
-    challenger :
-    {
-      key = "thisisakey";
-      difficulty = 4; #only multiple of 4 is allowed                                                                                                                                                        
-      hosts = (
-             { name = "www.equalit.ie";
-               challenge_type = "captcha";
-               challenge = "captcha.html";
-               validity_period = 120;
-             },
-             { name = "wiki.deflect.ca";
-               challenge_type = "sha_inverse";
-               challenge = "solver.html";
-               no_of_fails_to_ban = 10;
-               validity_period = 120;},
-             { name = "127.0.0.1";
-               challenge_type = "auth";
-               challenge = "auth.html";
-               password_hash = "BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM="
-               magic_word = "iec1OoghAogh0ionieJaot4p"
-	           validity_period = 1200;
-               no_of_fails_to_ban = 10;
-           });
-
-            )
-    };
+    challenger:
+      key : "thisisakey"
+      difficulty : 4 #only multiple of 4 is allowed
+      challenges:
+        - name : "www.equalit.ie_captcha"
+          challenge_type : "captcha"
+          challenge : "captcha.html"
+          validity_period : 120
+        - name : "wiki.deflect.ca_sha"
+          challenge_type : "sha_inverse"
+          challenge : "solver.html"
+          no_of_fails_to_ban : 10
+          validity_period : 120
+         - name : "example.com_auth"
+           domains:
+             - "example.com"
+             - "www.example.com"
+           challenge_type : "auth"
+           challenge : "auth.html"
+           password_hash : "BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM="
+           magic_word : "iec1OoghAogh0ionieJaot4p"
+	   validity_period : 1200
+           no_of_fails_to_ban : 10
 
 
 BotSniffer
@@ -317,7 +312,7 @@ Example:
     127.0.0.1, [2016-01-22T22:28:22], failed challenge deflectc-captcha for host deflect.ca:8080 10 times, "Mozilla/5.0 (X11; Linux x86_64; rv:42.0) Gecko/20100101 conkeror/1.0pre1" asking for http   :///__validate/, flagged
     127.0.0.1, [2016-01-22T22:28:46], flagged on 1453501702, grace period passed. reported by denialator, banned
 
-flagged/banned: 
+flagged/banned:
   flagged: The IP is reported to swabber interface by a filter for the first time. it is not reported to swabber for banning.  until grace_period of the swabber is passed.
   banned: The grace_period of the swabber for this IP is passed since it was flagged first and as such it is reported to the swabber.
 
@@ -347,7 +342,7 @@ To activate Denialator following line need to put in the config.
 
     denialator:
 
-Upon activation denialator checks if the ip previously has been reported for banning and if such it denies access to the ip. The denialator will report the ip to swabber again once it the ip visits after that the grace period is finished. To disengage all filters from dealing with reported ip, denialator priority need to be set to 1 or 2. 
+Upon activation denialator checks if the ip previously has been reported for banning and if such it denies access to the ip. The denialator will report the ip to swabber again once it the ip visits after that the grace period is finished. To disengage all filters from dealing with reported ip, denialator priority need to be set to 1 or 2.
 
 How To Write A Filter
 =====================
@@ -355,7 +350,7 @@ How To Write A Filter
 To add your own new filter to banjax you need to follow these steps:
 
 1) Inherit from BanjaxFilter.
-2) Add the constant representing your filter to the FilterIDType enum in filter_list.h e.g. 
+2) Add the constant representing your filter to the FilterIDType enum in filter_list.h e.g.
    WHITE_LISTER_FILTER_ID
 
 3) Add the constant filter name in filter_list.h, e.g.:
@@ -363,15 +358,15 @@ To add your own new filter to banjax you need to follow these steps:
 
 4) Write the constructor to set the filter name and id.
 
-5) Override the load_config and execute to load the config of your filter and execute the operation your filter suppose to do. Override 
+5) Override the load_config and execute to load the config of your filter and execute the operation your filter suppose to do. Override
 
 6) Override requested_info to return the flags of all parts your filter need to analysis the request. for example:
-  uint64_t requested_info() { return 
+  uint64_t requested_info() { return
       TransactionMuncher::IP     |
       TransactionMuncher::METHOD |
       TransactionMuncher::URL    |
       TransactionMuncher::HOST   |
-      TransactionMuncher::UA;}    
+      TransactionMuncher::UA;}
 
 6) If it is needed override generate_response to generate your response instead of serving the request.
 
@@ -394,16 +389,16 @@ You'll get 16 bytes of memory for each ip, if you need more memory to keep the s
 You need to edit the constructor of the filter to receive a pointer to the ip_database:
 
     RegexManager(const std::string& banjax_dir, const libconfig::Setting& main_root, IPDatabase* global_ip_database)
-    
-And you need to store it in ip_database member variable of BanjaxFilter (the parent of your filter) for further use. Finally you need edit 
+
+And you need to store it in ip_database member variable of BanjaxFilter (the parent of your filter) for further use. Finally you need edit
 
     Banjax::filter_factory
-    
+
 and tell banjax to send the pointer to your filter upon creation.
 
 How does regex_banner works
 ---------------------------
-Regex Banner uses the following method to keep the approximate rate of hit of each IP without storing every instance of hit. 
+Regex Banner uses the following method to keep the approximate rate of hit of each IP without storing every instance of hit.
 
 Regex banner stores the hit rate in hit/millisecond and keep the rate for the given interval and the time stamp for the beginning of the interval. Once a new hit comes in:
 
