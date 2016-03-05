@@ -222,7 +222,7 @@ name: the host name as it appears in the url, "www.host.com" and "host.com" are 
 
 validity_period: determine how often the challenger should re-challenge a client in seconds. When under cache-busting attack, it is advisable to decrease this number. Also because the solution is cookie based each client will be challenged once for each website.
 
-challenge_type: can be "captcha", "sha_inverse" or "auth" at the moment.
+challenge_type: can be "captcha", "sha_inverse" or "auth" at the moment. Note that currently banjax can only challenge each client using one challenge. Practically, this means that you should always define "auth" challenge before sha_inv or captcha challenge for a particular host.   
 
 challenge: the name of the html file that contains the challenge. by default it is "captcha.html", "solver.html" and "auth.html", however user can copy these files (residing in modules/banjax/) to customize the appearance for example for localization.
 
