@@ -23,7 +23,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "banjax_common.h" 
+#include "banjax_common.h"
+#include "util.h"
 #include "transaction_muncher.h"
 
 using namespace std;
@@ -184,7 +185,7 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
         TSError("couldn't retrieve request host string\n");
 	cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::HOST, ""));
       } else {
-        cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::HOST, string(host,host_length)));
+        cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::HOST, to_lower(host, host_length))); //preventing mixed case host name from bypassing filters
 
         TSHandleMLocRelease(request_header, header_location, host_loc);
         //TSfree(host);

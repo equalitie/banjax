@@ -16,6 +16,7 @@
 #include <zmq.hpp>
 #include <string>
 #include <climits>
+#include <algorithm>
 
 #include<openssl/aes.h>
 
@@ -31,6 +32,24 @@ unsigned int const c_gcm_iv_size = 12;
 unsigned int const c_max_enc_length = INT_MAX;
 
 int check_ts_version();
+
+/**
+ * gets an ascii (not unicode) string and return std::string representing its lower case
+ *
+ * @param char_str pointer to char indicating the start of char string
+ * @param length   the length of the char_str
+ * 
+ * @return         an std::string which have the same characters as char_str, except
+ *                 for all uppercase turned into lower cases.
+ */ 
+inline std::string to_lower(const char* char_str, const int length) {
+  
+  std::string lower_string(char_str, length);
+  std::transform(lower_string.begin(), lower_string.end(), lower_string.begin(), ::tolower);
+
+  return lower_string;
+
+}
 
 void send_zmq_mess(zmq::socket_t& zmqsock, const std::string mess, bool more = false);
 
@@ -65,6 +84,6 @@ size_t gcm_encrypt(const uint8_t *plaintext, size_t plaintext_len,
  * @return the string enclosed in quotes with all middle quotes escaped
  *
  */
-string encapsulate_in_quotes(std::string& unprocessed_log_string);
+std::string encapsulate_in_quotes(std::string& unprocessed_log_string);
 
 #endif

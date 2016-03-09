@@ -13,6 +13,7 @@
 #include <ts/ts.h>
 #include <zmq.hpp>
 #include <string>
+#include<algorithm>
 
 #include<openssl/rand.h>
 #include<openssl/evp.h>
