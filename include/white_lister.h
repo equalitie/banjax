@@ -9,13 +9,14 @@
 
 #include <yaml-cpp/yaml.h>
 #include "banjax_filter.h"
+#include "util.h"
 
 class WhiteLister : public BanjaxFilter
 {
  protected:
   //list of previlaged ips that don't need to go through
   //the banjax filtering process
-  std::list<std::string> white_list;
+  std::list<SubnetRange> white_list;
 
  public:
   /**

@@ -8,7 +8,6 @@
  */
 
 #include <stdio.h>
-//#include <cstdint>
 
 #include <ts/ts.h>
 #include <zmq.hpp>
@@ -17,10 +16,13 @@
 #include<openssl/rand.h>
 #include<openssl/evp.h>
 
-using namespace std;
+#include <netinet/in.h>
 
 #include "util.h"
 #include "exception.h"
+
+using namespace std;
+
 /* Check if the ATS version is the right version for this plugin
    that is version 2.0 or higher for now
    */
@@ -176,5 +178,37 @@ string encapsulate_in_quotes(std::string& unprocessed_log_string) {
   }
   encapsulated_log_string =  "\"" + encapsulated_log_string + "\"";
   return encapsulated_log_string;
+
+}
+
+/* dealing with ip ranges, these probably should go somewhere so 
+   all filters can benefit from them */
+
+/**
+   Check an ip against a CDR mask
+   
+ */
+inline bool is_match(const std::string &needle_ip, const SubnetRange& ip_range_pair) {
+
+  in_addr_t _IP = inet_addr(needle_ip.c_str());
+  _IP = ntohl(_IP);
+  return ( (ip_range_pair.first & ip_range_pair.second) == (_IP & ip_range_pair.second) );
+}
+
+/**
+   Get an ip range and return a CIDR bitmask
+   
+   @param hey_ip ip/range
+   
+   @return pair of (subnet ip, CIDR bitmask)
+*/
+SubnetRange  make_mask_for_range(const std::string& hay_ip)
+{
+  in_addr_t _ip = inet_addr(hay_ip.c_str());
+  _ip = ntohl(_ip);
+  uint32_t mask=((_ip & 0x0000ffff) == 0) ? 0xffff0000 : 
+    ((_ip & 0x000000ff) == 0 ? 0xffffff00 : 0xffffffff);
+
+  return SubnetRange(_ip, mask);
 
 }

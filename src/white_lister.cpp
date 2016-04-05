@@ -11,7 +11,7 @@
 #include <ts/ts.h>
 
 using namespace std;
-
+#include "util.h"
 #include "white_lister.h"
 
 /**
@@ -32,7 +32,13 @@ WhiteLister::load_config()
 
      //now we compile all of them and store them for later use
      for(unsigned int i = 0; i < count; i++)
+<<<<<<< variant A
        white_list.push_back((const char*)(white_listed_ips[i].as<std::string>().c_str()));
+>>>>>>> variant B
+       white_list.push_back(make_mask_for_range((const char*)(ip_white_list[i])));
+####### Ancestor
+       white_list.push_back((const char*)(ip_white_list[i]));
+======= end
 
    }
    catch(YAML::RepresentationException& e)
@@ -47,11 +53,11 @@ WhiteLister::load_config()
 FilterResponse WhiteLister::execute(const TransactionParts& transaction_parts)
 {
 
-  for(list<string>::iterator it= white_list.begin(); it != white_list.end(); it++)
+  for(list<SubnetRange>::iterator it= white_list.begin(); it != white_list.end(); it++)
     {
-      if (*it == transaction_parts.at(TransactionMuncher::IP))
+      if (is_match(transaction_parts.at(TransactionMuncher::IP), *it))
         {
-          TSDebug(BANJAX_PLUGIN_NAME, "white listed ip: %s", (*it).c_str());
+          TSDebug(BANJAX_PLUGIN_NAME, "white listed ip: %s in range %X", transaction_parts.at(TransactionMuncher::IP).c_str(), (*it).first);
           return FilterResponse(FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
         }
     }
@@ -59,4 +65,5 @@ FilterResponse WhiteLister::execute(const TransactionParts& transaction_parts)
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
                     
 }
+
 
