@@ -150,18 +150,20 @@ Currently 4 filters are implemented in Banjax. One can configure each filter beh
 The order that each filter configuration appears in banjax.conf matters and  determine the order that banjax.conf run the filter. For example, there is no point to put white_lister filter at the end.
 
 white_lister
-------------
-White listed IPs do not go through any other filter configured passed white_lister. For example the ip address of  monitoring programs such as nagios needs to be white listed, so bot stoppers such as challenger does not prevent them from their duty.
+============
+
+White listed IPs do not go through any other filter configured with lower priority than white_lister. For example the ip address of  monitoring programs such as nagios needs to be white listed, so bot stoppers such as challenger does not prevent them from their duty. To white list an ip range, such as Google bots or a subnet use CIDR (IP/number of matching bits) notation.
 
 White listed ips need to be added to the white_listed_ips array.
 ---------------
     white_lister:
       white_listed_ips:
         - 192.168.1.1
-        - 10.0.0.2
+        - 10.0.0.1/24
 
-regex_banner:
--------------
+regex_banner
+============
+
 regex_banner bans each request based on the specific rate they are matching regexes.
 
 Each request consists of the following parts
@@ -172,12 +174,12 @@ such as
 
 GET http://wiki/ equalit.ie "Firefox 1.0.1"
 
-Currently the hit rate computed globally in the sense that it is  number of time that a request matches each regexes, hence for example if a request matches two different regexes, it counts as two hits.
+Currently the hit rate computed for each regex in the sense that it is the  number of time that a request matches each regexes, hence for example if a request matches two different regexes, it counts once as hit for each regexes.
 
-To configure a new regex, you need to add a new rule in {} to the banned_regexes array. All parts of the rule is separated by semi-colon from each-other.
+To configure a new regex, you need to add a new rule in to the banned_regexes array. fields of the rule should be specified in yaml format (using colon)
 
 rule: human readable explanation of what rule is about. It is *not* optional.
-regex: a regex to match the whole request. Pay attention that you need to put \\ when you are intending to have one \ in the regex. Also there are characters which do not get matched to "." so you need to use "[\\s\\S]" instead.
+regex: a regex to match the whole request. Pay attention that you need to put \ when you are intending to have one \ in the regex. Also there are characters which do not get matched to "." so you need to use "[\s\S]" instead.
 
 interval: The span of time in seconds when you want banjax keep record of the hit.
 
@@ -194,22 +196,27 @@ Sample Attacks:
 
 ---------------
     regex_banner :
-    {
-      banned_regexes = ( { rule = "too much veggie monster";
-                           regex = ".*vmon[\\s\\S]*";
-                           interval = 1;
-                           hits_per_interval = 0;
-                         },
-                         { rule = "dos";
-                           regex = "[\\s\\S]*";
-                           interval = 60;
-                           hits_per_interval = 100;
-                         }
-                       );
-    };
+      - rule: 'too much veggie monster'
+        regex: '.*vmon[\\s\\S]*'
+        interval: 1;
+        hits_per_interval: 0
+      - rule: dos
+        regex: '[\\s\\S]*'
+        interval: 60
+        hits_per_interval: 100;
 
-Challenger:
------------
+How does regex_banner works
+---------------------------
+Regex Banner uses the following method to keep the approximate rate of hit of each IP without storing every instance of hit.
+
+Regex banner stores the hit rate in hit/millisecond and keep the rate for the given interval and the time stamp for the beginning of the interval. Once a new hit comes in:
+
+If the beginning time stamp till the hit time stamps is larger than the interval then it will subtracts (time stamp - now)/interval* rate from the rate.
+
+Independently it sums the current rate with 1/(interval*1000) (rate computed in times per millisecond).
+
+Challenger
+==========
 Challenger serves different challenges to confirm the legitimacy of the client for the requested access (read, edit, etc). Currently partial inverse SHA256 , Captcha puzzles or password authentication are supported. The hash solution of the puzzle is also sent along side with the ip of the requester. It is mainly meant to be a cache busting prevention mechanism as well as cache-less access to the website.
 
 key: is the string from which MAC key that is used to authenticate the cookie is being used. MAC prevents the attacker from tampering with the challenge or reuse its solution for different bots.
@@ -396,12 +403,3 @@ And you need to store it in ip_database member variable of BanjaxFilter (the par
 
 and tell banjax to send the pointer to your filter upon creation.
 
-How does regex_banner works
----------------------------
-Regex Banner uses the following method to keep the approximate rate of hit of each IP without storing every instance of hit.
-
-Regex banner stores the hit rate in hit/millisecond and keep the rate for the given interval and the time stamp for the beginning of the interval. Once a new hit comes in:
-
-If the beginning time stamp till the hit time stamps is larger than the interval then it will subtracts (time stamp - now)/interval* rate from the rate.
-
-Independently it sums the current rate with 1/(interval*1000) (rate computed in times per millisecond).

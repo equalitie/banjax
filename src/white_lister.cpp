@@ -31,17 +31,15 @@ WhiteLister::load_config()
      unsigned int count = white_listed_ips.size();
 
      //now we compile all of them and store them for later use
-     for(unsigned int i = 0; i < count; i++)
-<<<<<<< variant A
-       white_list.push_back((const char*)(white_listed_ips[i].as<std::string>().c_str()));
->>>>>>> variant B
-       white_list.push_back(make_mask_for_range((const char*)(ip_white_list[i])));
-####### Ancestor
-       white_list.push_back((const char*)(ip_white_list[i]));
-======= end
+     for(unsigned int i = 0; i < count; i++) {
+       SubnetRange cur_range = make_mask_for_range(white_listed_ips[i].as<std::string>().c_str());
+       white_list.push_back(cur_range);
 
+       TSDebug(BANJAX_PLUGIN_NAME, "White listing ip range: %s as %x, %x", white_listed_ips[i].as<std::string>().c_str(), cur_range.first, cur_range.second);
+     }
+     
    }
-   catch(YAML::RepresentationException& e)
+   catch(std::exception& e )
      {       
        TSDebug(BANJAX_PLUGIN_NAME, "Error loading white lister config: %s", e.what());
        throw;

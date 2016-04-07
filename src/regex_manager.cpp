@@ -127,6 +127,7 @@ RegexManager::parse_request(string ip, string ats_record)
             //we are still in the same interval so just increase the hit by 1
             cur_ip_and_regex_state.regex_state.rate += 1/(double) (*it)->interval;
           }
+          
           TSDebug(BANJAX_PLUGIN_NAME, "with rate %f /msec", cur_ip_and_regex_state.regex_state.rate);
 
           cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 0] = cur_ip_and_regex_state.state_allocator[0];

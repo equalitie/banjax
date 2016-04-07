@@ -25,5 +25,10 @@ class EncryptionException : public std::exception
     virtual const char* what() const throw() { return "Errorr occured during encryption operation"; }
 };
 
+class InvalidConfException : public std::exception
+{
+    virtual const char* what() const throw() { return "Bad configuration errror"; }
+};
+
 
 #endif // SRC_EXCEPTIONS_H_

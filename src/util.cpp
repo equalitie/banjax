@@ -188,7 +188,7 @@ string encapsulate_in_quotes(std::string& unprocessed_log_string) {
    Check an ip against a CDR mask
    
  */
-inline bool is_match(const std::string &needle_ip, const SubnetRange& ip_range_pair) {
+bool is_match(const std::string &needle_ip, const SubnetRange& ip_range_pair) {
 
   in_addr_t _IP = inet_addr(needle_ip.c_str());
   _IP = ntohl(_IP);
@@ -204,10 +204,29 @@ inline bool is_match(const std::string &needle_ip, const SubnetRange& ip_range_p
 */
 SubnetRange  make_mask_for_range(const std::string& hay_ip)
 {
-  in_addr_t _ip = inet_addr(hay_ip.c_str());
+
+  //first we detect if there is / or not.
+  //if not then keepbits is equal to 32
+  /* actually get it from somewhere else? */
+  uint32_t mask(0xffffffff);
+  string rep_ip(hay_ip);
+
+  std::size_t slash_pos = hay_ip.find('/');
+  if (slash_pos != std::string::npos) {
+    unsigned int keep_bits = std::stoi(hay_ip.substr(slash_pos+1));
+    if (keep_bits > 32)
+      throw InvalidConfException();
+    
+    mask = (mask >> (32 - keep_bits )) << (32 - keep_bits);
+
+    rep_ip = hay_ip.substr(0, slash_pos);
+
+  }
+  
+  in_addr_t _ip = inet_addr(rep_ip.c_str());
   _ip = ntohl(_ip);
-  uint32_t mask=((_ip & 0x0000ffff) == 0) ? 0xffff0000 : 
-    ((_ip & 0x000000ff) == 0 ? 0xffffff00 : 0xffffffff);
+  // uint32_t mask=((_ip & 0x0000ffff) == 0) ? 0xffff0000 : 
+  //   ((_ip & 0x000000ff) == 0 ? 0xffffff00 : 0xffffffff);
 
   return SubnetRange(_ip, mask);
 
