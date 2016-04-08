@@ -79,7 +79,7 @@ RegexManager::parse_request(string ip, string ats_record)
   std::pair<bool, FilterState> cur_ip_state;
   
   for(list<RatedRegex*>::iterator it=rated_banning_regexes.begin(); it != rated_banning_regexes.end(); it++) {
-      if (RE2::FullMatch(ats_record, *((*it)->re2_regex))) {
+    if (RE2::FullMatch(ats_record, *((*it)->re2_regex))) {
         TSDebug(BANJAX_PLUGIN_NAME, "requests matched %s", (char*)((*it)->re2_regex->pattern()).c_str());
         //if it is a simple regex i.e. with rate 0 we bans immidiately without
         //wasting time and mem
@@ -101,59 +101,65 @@ RegexManager::parse_request(string ip, string ats_record)
             continue;
         }
 
-        //if we succeeded in retreiving but the size is zero then it means we don't have a record
+        //if we succeeded in retreiving but the size is zero then it meaens we don't have a record of this ip at all
         if (cur_ip_state.second.size() == 0) {
           cur_ip_state.second.resize(total_no_of_rules * NO_OF_STATE_UNIT_PER_REGEX);
-          RegexStateUnion cur_ip_and_regex_state;
+
+        }
+
+        //now we check the begining of the hit for this regex (if the vector is just created everything is 0, in case
+        //this is the first regex this ip hits)
+        RegexStateUnion cur_ip_and_regex_state;
+        cur_ip_and_regex_state.state_allocator[0] = cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 0];
+        cur_ip_and_regex_state.state_allocator[1] = cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 1];
+
+        //if it is 0, then we don't have a record for
+        //the current regex 
+        if (cur_ip_and_regex_state.regex_state.begin_msec == 0) {
           cur_ip_and_regex_state.regex_state.begin_msec = cur_time_msec;
 
-          //set it in storable format
-          cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 0] = cur_ip_and_regex_state.state_allocator[0];
-          cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 1] = cur_ip_and_regex_state.state_allocator[1];
-
-        } else { //we have a record, update the rate and ban if necessary.
-          //we move the interval by the differences of the "begin_in_ms - cur_time_msec - interval*1000"
-          //if it is less than zero we don't do anything
-          RegexStateUnion cur_ip_and_regex_state;
-          cur_ip_and_regex_state.state_allocator[0] = cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 0];
-          cur_ip_and_regex_state.state_allocator[1] = cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 1];
-          long time_window_movement = cur_time_msec - cur_ip_and_regex_state.regex_state.begin_msec - (*it)->interval;
-          if (time_window_movement > 0) { //we need to move
-            cur_ip_and_regex_state.regex_state.begin_msec += time_window_movement;
-            cur_ip_and_regex_state.regex_state.rate= cur_ip_and_regex_state.regex_state.rate - (cur_ip_and_regex_state.regex_state.rate * time_window_movement - 1)/(double) (*it)->interval;
-            cur_ip_and_regex_state.regex_state.rate =  cur_ip_and_regex_state.regex_state.rate < 0 ? 0 : cur_ip_and_regex_state.regex_state.rate; //just to make sure
-          }
-          else {
-            //we are still in the same interval so just increase the hit by 1
-            cur_ip_and_regex_state.regex_state.rate += 1/(double) (*it)->interval;
-          }
-          
-          TSDebug(BANJAX_PLUGIN_NAME, "with rate %f /msec", cur_ip_and_regex_state.regex_state.rate);
-
-          cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 0] = cur_ip_and_regex_state.state_allocator[0];
-          cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 1] = cur_ip_and_regex_state.state_allocator[1];
-        
-          if (cur_ip_and_regex_state.regex_state.rate >= (*it)->rate) {
-            TSDebug(BANJAX_PLUGIN_NAME, "exceeding excessive rate %f /msec", (*it)->rate);
-            //clear the record to avoid multiple reporting to swabber
-            //we are not clearing the state cause it is not for sure that
-            //swabber ban the ip due to possible failure of acquiring lock
-            // cur_ip_state.detail.begin_msec = 0;
-            // cur_ip_state.detail.rate = 0;
-            // ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.state_allocator);
-
-            //before calling swabber we need to delete the memory as swabber will
-            //delete the ip database entery and the memory will be lost.
-            //However, if swabber fails to acquire a lock this means
-            //the ip can escape the banning, this however is a miner
-            //concern compared to the fact that we might ran out of
-            //memory.
-   
-            ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.second);
-            return make_pair(REGEX_MATCHED, (*it));
-          }
         }
-      }
+
+        //now we have a record, update the rate and ban if necessary.
+        //we move the interval by the differences of the "begin_in_ms - cur_time_msec - interval*1000"
+        //if it is less than zero we don't do anything just augument the rate
+        long time_window_movement = cur_time_msec - cur_ip_and_regex_state.regex_state.begin_msec - (*it)->interval;
+        if (time_window_movement > 0) { //we need to move
+           cur_ip_and_regex_state.regex_state.begin_msec += time_window_movement;
+           cur_ip_and_regex_state.regex_state.rate= cur_ip_and_regex_state.regex_state.rate - (cur_ip_and_regex_state.regex_state.rate * time_window_movement - 1)/(double) (*it)->interval;
+           cur_ip_and_regex_state.regex_state.rate =  cur_ip_and_regex_state.regex_state.rate < 0 ? 1/(double) (*it)->interval : cur_ip_and_regex_state.regex_state.rate; //if time_window_movement > time_window_movement(*it)->interval, then we just wipe history and start as a new interval
+         }
+         else {
+           //we are still in the same interval so just increase the hit by 1
+           cur_ip_and_regex_state.regex_state.rate += 1/(double) (*it)->interval;
+         }
+          
+        TSDebug(BANJAX_PLUGIN_NAME, "with rate %f /msec", cur_ip_and_regex_state.regex_state.rate);
+
+        cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 0] = cur_ip_and_regex_state.state_allocator[0];
+        cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 1] = cur_ip_and_regex_state.state_allocator[1];
+        
+        if (cur_ip_and_regex_state.regex_state.rate >= (*it)->rate) {
+          TSDebug(BANJAX_PLUGIN_NAME, "exceeding excessive rate %f /msec", (*it)->rate);
+          //clear the record to avoid multiple reporting to swabber
+          //we are not clearing the state cause it is not for sure that
+          //swabber ban the ip due to possible failure of acquiring lock
+          // cur_ip_state.detail.begin_msec = 0;
+          // cur_ip_state.detail.rate = 0;
+          // ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.state_allocator);
+
+          //before calling swabber we need to delete the memory as swabber will
+          //delete the ip database entery and the memory will be lost.
+          //However, if swabber fails to acquire a lock this means
+          //the ip can escape the banning, this however is a miner
+          //concern compared to the fact that we might ran out of
+          //memory.
+   
+          ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.second);
+          return make_pair(REGEX_MATCHED, (*it));
+        }
+    }
+  
   }
 
   //if we managed to get/make a valid state we are going to store it
