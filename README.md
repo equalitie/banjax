@@ -251,14 +251,20 @@ Sample Attacks:
       difficulty : 4 #only multiple of 4 is allowed
       challenges:
         - name : "www.equalit.ie_captcha"
+          domains:
+           - "equalit.ie"
+           - "www.equalit.ie
           challenge_type : "captcha"
           challenge : "captcha.html"
-          validity_period : 120
+          no_of_fails_to_ban: 20
+          validity_period : 86400
+          
         - name : "wiki.deflect.ca_sha"
           challenge_type : "sha_inverse"
           challenge : "solver.html"
           no_of_fails_to_ban : 10
           validity_period : 120
+          
          - name : "example.com_auth"
            domains:
              - "example.com"
