@@ -109,8 +109,10 @@ class FilterResponse
 public:
    enum ResponseType {
         GO_AHEAD_NO_COMMENT,
+        GO_AHEAD_DONT_CACHE, //For dangerous materials
         I_RESPOND,
         NO_WORRIES_SERVE_IMMIDIATELY,
+        SERVE_IMMIDIATELY_DONT_CACHE,
         SERVE_FRESH,
         CALL_OTHER_FILTERS,
         CALL_ME_ON_RESPONSE

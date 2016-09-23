@@ -197,14 +197,14 @@ TransactionMuncher::retrieve_parts(uint64_t requested_log_parts)
   if (parts_to_retreive & TransactionMuncher::UA) {
     TSMLoc ua_loc = TSMimeHdrFieldFind(request_header, header_location, TS_MIME_FIELD_USER_AGENT, TS_MIME_LEN_USER_AGENT);
     if (ua_loc == TS_NULL_MLOC)  {
-      TSError("couldn't retrieve request user-agent\n");
+      TSDebug(BANJAX_PLUGIN_NAME, "couldn't retrieve request user-agent\n");
       cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::UA, ""));
     } else {
       int ua_length;
       const char* ua = TSMimeHdrFieldValueStringGet(request_header, header_location,ua_loc,0,&ua_length);	
       if (!ua) {                                                                                 TSHandleMLocRelease(request_header, header_location, ua_loc);
-        TSError("couldn't retrieve request user-agent string\n");
-	cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::UA, ""));
+        TSDebug(BANJAX_PLUGIN_NAME, "couldn't retrieve request user-agent\n");
+        cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::UA, ""));
       } else {
         cur_trans_parts.insert(pair<uint64_t, string> (TransactionMuncher::UA, string(ua,ua_length)));
         TSHandleMLocRelease(request_header, header_location, ua_loc);
