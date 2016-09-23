@@ -162,9 +162,24 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
       {
       case FilterResponse::GO_AHEAD_NO_COMMENT:
         continue;
-        
+
+      case FilterResponse::GO_AHEAD_DONT_CACHE:
+        //Tell ATS not to cache this request
+        if (TSHttpTxnServerRespNoStoreSet(cd->txnp, true) != TS_SUCCESS)
+          TSDebug(BANJAX_PLUGIN_NAME, "Unable to make the response uncachable" );
+
+        break;
+
       case FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY: 
         //This is when the requester is white listed
+        continue_filtering = false;
+        break;
+
+      case FilterResponse::SERVE_IMMIDIATELY_DONT_CACHE:
+        //Tell ATS not to cache this request
+        if (TSHttpTxnServerRespNoStoreSet(cd->txnp, true) != TS_SUCCESS)
+          TSDebug(BANJAX_PLUGIN_NAME, "Unable to make the response uncachable" );
+
         continue_filtering = false;
         break;
 

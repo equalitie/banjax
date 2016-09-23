@@ -120,6 +120,20 @@ ChallengeManager::load_config(const std::string& banjax_dir)
 
        //add it to the host map
        challenge_settings[host_challenge_spec->name] = host_challenge_spec;
+
+
+       //we check if there is any ip that we should bypass the challenge for
+       //and add it to the list if exsits
+       if ((*it)["bypass_ips"]) {
+         unsigned int ip_count = (*it)["bypass_ips"].size();
+
+         for(unsigned int i = 0; i < ip_count; i++) {
+           string cur_ip = (const char*)(*it)["bypass_ips"][i].as<std::string>().c_str();
+           host_challenge_spec->bypass_ip_list.push_back(cur_ip);
+         }
+
+       }
+
        //here we are updating the dictionary that relate each
        //domain to many challenges
        unsigned int domain_count = (*it)["domains"].size();
@@ -130,7 +144,8 @@ ChallengeManager::load_config(const std::string& banjax_dir)
          host_challenges[cur_domain].push_back(host_challenge_spec);
 
        }
-     
+
+
      }
 
      //we use SHA256 to generate a key from the user passphrase
@@ -444,6 +459,19 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
 
   for(list<HostChallengeSpec*>::iterator it=challenges_it->second.begin(); it != challenges_it->second.end(); it++) {
     HostChallengeSpec* cur_challenge = *it;
+
+    //check if the ip is white listed for this challenge
+    for(list<string>::iterator it_bpass_ips= cur_challenge->bypass_ip_list.begin(); it_bpass_ips != cur_challenge->bypass_ip_list.end(); it_bpass_ips++)
+    {
+      if (transaction_parts.at(TransactionMuncher::IP) == *it_bpass_ips)
+        {
+          TSDebug(BANJAX_PLUGIN_NAME, "challenge %s bypass for ip: %s", cur_challenge->name.c_str() ,transaction_parts.at(TransactionMuncher::IP).c_str());
+          return FilterResponse(FilterResponse::GO_AHEAD_DONT_CACHE);
+          
+        }
+    }
+
+    //not white listed apply the challenge
     switch((unsigned int)(cur_challenge->challenge_type)) 
       {
       case ChallengeDefinition::CHALLENGE_CAPTCHA:

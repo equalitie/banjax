@@ -78,6 +78,8 @@ class HostChallengeSpec {
   std::string password_hash;
   std::string magic_word;
 
+  std::list<string> bypass_ip_list;
+
 };
 
 class ChallengerExtendedResponse : public FilterExtendedResponse
