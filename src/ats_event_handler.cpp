@@ -60,7 +60,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
   case TS_EVENT_HTTP_READ_REQUEST_HDR:
     if(contp != Banjax::global_contp)
       handle_request((BanjaxContinuation *) TSContDataGet(contp));
-      return 0;
+    return 0;
 
   case TS_EVENT_HTTP_READ_CACHE_HDR:
     /* on hit we don't do anything for now
