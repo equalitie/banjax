@@ -76,7 +76,7 @@ class HostChallengeSpec {
     : fail_tolerance_threshold() {};
   //needed by auth challeng
   std::string password_hash;
-  std::string magic_word;
+  std::set<std::string> magic_words;
   std::vector<std::string> magic_word_exceptions;
 };
 
@@ -141,7 +141,7 @@ protected:
   bool is_captcha_answer(const std::string& url);
 
   //for auth challenge
-  bool url_contains_word(const std::string& url, const std::string& magic_word) const;
+  bool url_contains_word(const std::string& url, const std::string& word) const;
   bool needs_authentication(const std::string& url, const HostChallengeSpec&) const;
 
   std::map<std::string, ChallengeDefinition::ChallengeType> challenge_type;

@@ -56,6 +56,13 @@ std::string ChallengeManager::sub_time = "$time";
 std::string ChallengeManager::sub_url = "$url";
 std::string ChallengeManager::sub_zeros = "$zeros";
 
+template<class T>
+static set<T> vector2set(const vector<T>& source) {
+    set<T> target;
+    for (auto& item : source) target.insert(item);
+    return target;
+}
+
 /**
   Overload of the load config
   reads all the regular expressions from the database.
@@ -113,13 +120,23 @@ ChallengeManager::load_config(const std::string& banjax_dir)
 
        //Auth challenege specific data
        if ((*it)["password_hash"])
-         host_challenge_spec->password_hash = (*it)["password_hash"].as<std::string>();
+         host_challenge_spec->password_hash = (*it)["password_hash"].as<string>();
 
-       if ((*it)["magic_word"])
-         host_challenge_spec->magic_word = (*it)["magic_word"].as<std::string>();
+       if ((*it)["magic_words"]) {
+         host_challenge_spec->magic_words = vector2set((*it)["magic_words"].as<vector<string>>());
+       }
+
+       // The 'magic_word' entry has the same meaning as 'magic_words' but only
+       // one word can be set with it. This entry preceded the 'megic_words'
+       // one and so I'm keeping it not to break compatibility with existing
+       // configs.
+       // TODO: Remove it once banjax's major version changes?
+       if ((*it)["magic_word"]) {
+         host_challenge_spec->magic_words.insert((*it)["magic_word"].as<string>());
+       }
 
        if ((*it)["magic_word_exceptions"]) {
-         host_challenge_spec->magic_word_exceptions = (*it)["magic_word_exceptions"].as<std::vector<std::string>>();
+         host_challenge_spec->magic_word_exceptions = (*it)["magic_word_exceptions"].as<vector<string>>();
        }
 
        //add it to the host map
@@ -422,8 +439,8 @@ bool ChallengeManager::is_captcha_answer(const std::string& url) {
   return found != std::string::npos;
 }
 
-bool ChallengeManager::url_contains_word(const std::string& url, const std::string& magic_word) const {
-  size_t found = url.rfind(magic_word);
+bool ChallengeManager::url_contains_word(const std::string& url, const std::string& word) const {
+  size_t found = url.rfind(word);
   return found != std::string::npos;
 }
 
@@ -543,10 +560,18 @@ done_with_challenges:
 }
 
 bool ChallengeManager::needs_authentication(const std::string& url, const HostChallengeSpec& challenge) const {
-    // If the url of the content does not contains 'magic_word', then the content is not protected.
-    if (!url_contains_word(url, challenge.magic_word)) {
-        return false;
+    // If the url of the content contains 'magic_word', then the content is protected
+    // unless the url also contains a word from 'magic_word_exceptions'.
+    bool is_protected = false;
+
+    for (auto& word : challenge.magic_words) {
+        if (url_contains_word(url, word)) {
+            is_protected = true;
+            break;
+        }
     }
+
+    if (!is_protected) return false;
 
     for (auto& unprotected : challenge.magic_word_exceptions) {
         if (url_contains_word(url, unprotected)) {
