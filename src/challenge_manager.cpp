@@ -113,10 +113,14 @@ ChallengeManager::load_config(const std::string& banjax_dir)
 
        //Auth challenege specific data
        if ((*it)["password_hash"])
-         host_challenge_spec->password_hash = (const char*)(*it)["password_hash"].as<std::string>().c_str();
+         host_challenge_spec->password_hash = (*it)["password_hash"].as<std::string>();
 
        if ((*it)["magic_word"])
-         host_challenge_spec->magic_word = (const char*)(*it)["magic_word"].as<std::string>().c_str();
+         host_challenge_spec->magic_word = (*it)["magic_word"].as<std::string>();
+
+       if ((*it)["magic_word_exceptions"]) {
+         host_challenge_spec->magic_word_exceptions = (*it)["magic_word_exceptions"].as<std::vector<std::string>>();
+       }
 
        //add it to the host map
        challenge_settings[host_challenge_spec->name] = host_challenge_spec;
@@ -126,7 +130,7 @@ ChallengeManager::load_config(const std::string& banjax_dir)
 
        //now we compile all of them and store them for later use
        for(unsigned int i = 0; i < domain_count; i++) {
-         string cur_domain = (const char*)(*it)["domains"][i].as<std::string>().c_str();
+         string cur_domain = (*it)["domains"][i].as<std::string>();
          host_challenges[cur_domain].push_back(host_challenge_spec);
 
        }
@@ -418,7 +422,7 @@ bool ChallengeManager::is_captcha_answer(const std::string& url) {
   return found != std::string::npos;
 }
 
-bool ChallengeManager::url_contains_magic_word(const std::string& url, const std::string& magic_word) {
+bool ChallengeManager::url_contains_word(const std::string& url, const std::string& magic_word) const {
   size_t found = url.rfind(magic_word);
   return found != std::string::npos;
 }
@@ -494,22 +498,33 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
             TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, looking for magic word");
             //from cache
             //If the url has the magic word to activate the auth challenge
-          //    Check if the auth cookie is valid
-          //      return FilterResponse(FilterResponse::SERVE_FRESH);
-          //    eles
-          //      do all failure/banning ritual?
-          //record challenge failure
-            if (ChallengeManager::url_contains_magic_word(transaction_parts.at(TransactionMuncher::URL_WITH_HOST), cur_challenge->magic_word)) {
+            //    Check if the auth cookie is valid
+            //      return FilterResponse(FilterResponse::SERVE_FRESH);
+            //    eles
+            //      do all failure/banning ritual?
+            //record challenge failure
+
+            if (needs_authentication(transaction_parts.at(TransactionMuncher::URL_WITH_HOST), *cur_challenge)) {
               FilterResponse failure_response(FilterResponse::I_RESPOND, (void*) new ChallengerExtendedResponse(challenger_resopnder, cur_challenge));
-              if (cur_challenge->fail_tolerance_threshold)
-                ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), cur_challenge, transaction_parts.at(TransactionMuncher::HOST), transaction_parts);
-            // We need to clear out the cookie here, to make sure switching from
-            // challenge type (captcha->computational) doesn't end up in an infinite reload
-              ((FilterExtendedResponse*)(failure_response.response_data))->set_cookie_header.append("deflect=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly");
+
+              FilterExtendedResponse* ext_response = ((FilterExtendedResponse*)(failure_response.response_data));
+
+              if (cur_challenge->fail_tolerance_threshold) {
+                ext_response->banned_ip
+                    = report_failure(transaction_parts.at(TransactionMuncher::IP),
+                                     cur_challenge,
+                                     transaction_parts.at(TransactionMuncher::HOST),
+                                     transaction_parts);
+              }
+
+              // We need to clear out the cookie here, to make sure switching from
+              // challenge type (captcha->computational) doesn't end up in an infinite reload
+              ext_response->set_cookie_header.append("deflect=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly");
               return failure_response;
             }
-            else { //This is a normal client reading website not participating in
-            //auth challenge, so just go ahead without comment
+            else {
+              // This is a normal client reading website not participating in
+              // auth challenge, so just go ahead without comment
               break;
             }
           }
@@ -525,6 +540,21 @@ done_with_challenges:
   report_success(transaction_parts.at(TransactionMuncher::IP));
   return FilterResponse(success_response);
 
+}
+
+bool ChallengeManager::needs_authentication(const std::string& url, const HostChallengeSpec& challenge) const {
+    // If the url of the content does not contains 'magic_word', then the content is not protected.
+    if (!url_contains_word(url, challenge.magic_word)) {
+        return false;
+    }
+
+    for (auto& unprotected : challenge.magic_word_exceptions) {
+        if (url_contains_word(url, unprotected)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 std::string ChallengeManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)

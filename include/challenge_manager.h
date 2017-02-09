@@ -77,7 +77,7 @@ class HostChallengeSpec {
   //needed by auth challeng
   std::string password_hash;
   std::string magic_word;
-
+  std::vector<std::string> magic_word_exceptions;
 };
 
 class ChallengerExtendedResponse : public FilterExtendedResponse
@@ -141,7 +141,8 @@ protected:
   bool is_captcha_answer(const std::string& url);
 
   //for auth challenge
-  bool url_contains_magic_word(const std::string& url, const std::string& magic_word);
+  bool url_contains_word(const std::string& url, const std::string& magic_word) const;
+  bool needs_authentication(const std::string& url, const HostChallengeSpec&) const;
 
   std::map<std::string, ChallengeDefinition::ChallengeType> challenge_type;
   ChallengeSpec* challenge_specs[ChallengeDefinition::CHALLENGE_COUNT];
