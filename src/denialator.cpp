@@ -31,7 +31,7 @@ Denialator::load_config()
 }
 
 /**
-  checks if the ip has been reported to swabber and denial 
+  checks if the ip has been reported to swabber and denial
 
 
 */
@@ -47,12 +47,12 @@ FilterResponse Denialator::execute(const TransactionParts& transaction_parts)
     TSDebug(BANJAX_PLUGIN_NAME, "denialotr not doing anything to failure of aquiring ip db lock ");
     return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
   }
-  
+
   if (cur_ip_state.second.size() != 0) { //oh oh you have been reported
     //if grace period is passed report to swabber
     //check if we need to report to swabber
     timeval cur_time; gettimeofday(&cur_time, NULL);
-    if ((cur_time.tv_sec - cur_ip_state.second[0]) >= banning_grace_period) { 
+    if ((cur_time.tv_sec - cur_ip_state.second[0]) >= banning_grace_period) {
         TSDebug(BANJAX_PLUGIN_NAME, "grace period passed, re-reporting to swabber");
         swabber_interface->ban(cur_ip, "flagged on " + to_string(cur_ip_state.second[0]) + ", grace period passed. reported by denialator");
     }

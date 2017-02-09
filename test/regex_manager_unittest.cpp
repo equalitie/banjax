@@ -1,6 +1,6 @@
 /*
  * RegexManager unit test set
- * 
+ *
  * Copyright (c) eQualit.ie 2013 under GNU AGPL v3.0 or later
  *
  *  Vmon: Sept 2013, Initial version
@@ -74,7 +74,7 @@ class RegexManagerTest : public testing::Test {
 
   fstream  mock_config, mock_config_sub;
   BanjaxFilter* test_regex_manager;
-  
+
   IPDatabase test_ip_database;
   SwabberInterface test_swabber_interface;
 
@@ -89,16 +89,16 @@ class RegexManagerTest : public testing::Test {
 
     //gtest is multip thread so we can't use the same file
     //for them
-    char random_suffix[7]; 
+    char random_suffix[7];
     sprintf(random_suffix,"%i", rand()%100000);
     TEST_CONF_FILE = TEMP_DIR + "/test"+random_suffix+".conf";
     try {
       mock_config.open(TEST_CONF_FILE,ios::out);
     }  catch (std::ifstream::failure e) {
-  
+
       ASSERT_TRUE(false);
     }
-    
+
     mock_config << "regex_banner:" << endl;
     mock_config << "  - rule: simple to ban" << endl;
     mock_config << "    regex: \'.*simple_to_ban.*\'" << endl;
@@ -117,7 +117,7 @@ class RegexManagerTest : public testing::Test {
     mock_config << "    interval: 30 " << endl;
     mock_config << "    hits_per_interval: 10" << endl;
 
-    
+
     // mock_config_sub << "regex_banner :" << endl;
     // mock_config_sub << "{" << endl;
     // mock_config_sub << "banned_regexes = ( {" << endl;
@@ -194,7 +194,7 @@ class RegexManagerTest : public testing::Test {
         if (node_name == "regex_banner")
           regex_filter_config.config_node_list.push_back(subit);
       }
-      
+
     }
     catch(YAML::RepresentationException& e)
     {
@@ -202,11 +202,11 @@ class RegexManagerTest : public testing::Test {
     }
 
     test_regex_manager = new RegexManager(TEMP_DIR, regex_filter_config, &test_ip_database, &test_swabber_interface);
-    
+
   }
 
 };
-  
+
 /**
    read a pre determined config file and check if the values are
    as expected for the regex manager
@@ -220,7 +220,6 @@ TEST_F(RegexManagerTest, load_config) {
  */
 TEST_F(RegexManagerTest, match)
 {
-
   open_config();
 
   //first we make a mock up request
@@ -284,7 +283,7 @@ TEST_F(RegexManagerTest, post_get_counter)
 
   mock_transaction[TransactionMuncher::URL] = "http://flooding_diff_ban/";
   cur_filter_result = test_regex_manager->execute(mock_transaction);
-  
+
   EXPECT_EQ(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
 
 }

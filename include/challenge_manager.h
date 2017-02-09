@@ -20,10 +20,10 @@ const size_t AES_KEY_LENGTH = 16;
 //const size_t AES_BLOCK_SIZE;
 
 //Challenges should be declared here
-//the name of challenges should appear in same order they 
+//the name of challenges should appear in same order they
 //appears in ChallengType enum
 /**
-   This would have been a namespace instead of class if it was 
+   This would have been a namespace instead of class if it was
    allowed to postpone the declaration of const members of namespace
  */
 class ChallengeDefinition
@@ -50,7 +50,7 @@ public:
   ChallengeDefinition::ChallengeType type;
 
   ChallengeSpec(std::string challenge_name, std::string challenge_default_file, ChallengeDefinition::ChallengeType challenge_type)
-    :human_readable_name(challenge_name), 
+    :human_readable_name(challenge_name),
      default_page_filename(challenge_default_file),
      type(challenge_type) {};
 };
@@ -61,11 +61,11 @@ public:
  */
 class HostChallengeSpec {
  public:
-  //Challenge Types    
+  //Challenge Types
 
   std::string name; //this is actually redundant as we are indexing by hostname
   ChallengeDefinition::ChallengeType challenge_type;
-  
+
   std::string challenge_stream;
   unsigned int fail_tolerance_threshold; //if an ip fails to show a solution after no of attemps
   //greater than this threshold, it will be reported to swabber for bannig, threshold
@@ -83,26 +83,26 @@ class HostChallengeSpec {
 class ChallengerExtendedResponse : public FilterExtendedResponse
 {
  public:
-  HostChallengeSpec* responding_challenge; 
+  HostChallengeSpec* responding_challenge;
   std::string alternative_url;
 
  ChallengerExtendedResponse(ResponseGenerator requested_response_generator = NULL, HostChallengeSpec* cookied_challenge = NULL)
    :  FilterExtendedResponse(requested_response_generator),
-    responding_challenge(cookied_challenge) 
+    responding_challenge(cookied_challenge)
     {};
-  
+
 };
 class ChallengeManager : public BanjaxFilter {
-protected:	
-  // MAC key. 
+protected:
+  // MAC key.
   unsigned char hashed_key[SHA256_DIGEST_LENGTH];
-  // Number of zeros needed at the end of the SHA hash 
+  // Number of zeros needed at the end of the SHA hash
   unsigned int number_of_trailing_zeros;
   // string to replace the number of trailing zeros in the javascript
   unsigned int cookie_life_time;
-    
+
   static std::string zeros_in_javascript;
-	
+
   std::vector<std::string> split(const std::string &, char);
 
   //Challenge specific validity checks
@@ -115,7 +115,7 @@ protected:
 
   /**
    * Checks if the second part of the cookie indeed SHA256 of the
-   *  challenge token +  SHA256(password) 
+   *  challenge token +  SHA256(password)
    * @param  cookie the value of the cookie
    * @return  true if the cookie verifies the challenge
    */
@@ -132,11 +132,11 @@ protected:
   static std::string sub_time;	// time until which the cookie is valid
   static std::string sub_url;		// url that should be queried
   static std::string sub_zeros;	// number of trailing zeros
-    
+
   // base64 encoding functions
   static const char b64_table[65];
   static const char reverse_table[128];
-  
+
   bool is_captcha_url(const std::string& url);
   bool is_captcha_answer(const std::string& url);
 
@@ -145,13 +145,13 @@ protected:
 
   std::map<std::string, ChallengeDefinition::ChallengeType> challenge_type;
   ChallengeSpec* challenge_specs[ChallengeDefinition::CHALLENGE_COUNT];
-  
+
   typedef std::map<std::string, HostChallengeSpec*> ChallengeSettingsMap;
   typedef std::map<std::string, std::list<HostChallengeSpec*>> HostChallengeMap;
   ChallengeSettingsMap challenge_settings;
   HostChallengeMap host_challenges;
 
-  //We store the forbidden message at the begining so we can copy it fast 
+  //We store the forbidden message at the begining so we can copy it fast
   //everytime. It is being stored here for being used again
   //ATS barf if you give it the message in const memory
   const std::string too_many_failures_message;
@@ -165,7 +165,7 @@ protected:
    * report to swabber in case of excessive failure
    *
    * @param client_ip: string representing the failed requester ip
-   * @param failed_host_spec: the specification of the challenge for the host 
+   * @param failed_host_spec: the specification of the challenge for the host
    *        that client failed to solve
    *
    * @return true if no_of_failures exceeded the threshold
@@ -191,7 +191,7 @@ protected:
    */
 
   bool check_cookie(std::string answer, std::string cookie_value, std::string client_ip, const HostChallengeSpec& cookied_challenge);
-  
+
   //TODO: This needs to be changed to adopt Otto's approach in placing
   //the variable info in cookie header and make the jscript to read them
   //nonetheless it is more efficient to have the html generated in a
@@ -206,7 +206,7 @@ protected:
   std::string format_validity_time_for_cookie(long validity_time);
 public:
   /**
-     construtor which receives the config object, set the filter 
+     construtor which receives the config object, set the filter
      name and calls the config reader function.
 
      @param main_root the root of the configuration structure
@@ -226,10 +226,10 @@ public:
       challenge_specs[i] = new ChallengeSpec(ChallengeDefinition::CHALLENGE_LIST[i], ChallengeDefinition::CHALLENGE_FILE_LIST[i],(ChallengeDefinition::ChallengeType)i);
       challenge_type[ChallengeDefinition::CHALLENGE_LIST[i]] = (ChallengeDefinition::ChallengeType)i;
     }
-    
+
     ip_database = global_ip_database;
     load_config(banjax_dir);
-    
+
   }
 
   /**
@@ -242,20 +242,20 @@ public:
   virtual void load_config(const std::string& banjax_dir);
 
   /**
-     Overloaded to tell banjax that we need url, host 
-     to rebuild the redirect address and the host also for selective 
+     Overloaded to tell banjax that we need url, host
+     to rebuild the redirect address and the host also for selective
      challenging, we need the ip to prevent clients using each other's
      challenges.
 
      TransactionMuncher::UA is for reporting only
    */
-  uint64_t requested_info() { return 
+  uint64_t requested_info() { return
       TransactionMuncher::IP            |
       TransactionMuncher::URL           |
       TransactionMuncher::HOST          |
-      TransactionMuncher::UA            | 
+      TransactionMuncher::UA            |
       TransactionMuncher::URL_WITH_HOST |
-      TransactionMuncher::COOKIE;}    
+      TransactionMuncher::COOKIE;}
 
   /**
      needs to be overriden by the filter

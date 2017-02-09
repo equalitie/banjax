@@ -54,7 +54,7 @@ RegexManager::load_config()
        rated_banning_regexes.push_back(new RatedRegex(cur_id, cur_rule, new RE2((const char*)((*it)["regex"].as<std::string>().c_str()), opt), observation_interval * 1000, threshold /(double)(observation_interval* 1000)));
 
      }
-     
+
      total_no_of_rules = cur_id;
     }
    catch(YAML::RepresentationException& e)
@@ -77,7 +77,7 @@ pair<RegexManager::RegexResult,RatedRegex*>
 RegexManager::parse_request(string ip, string ats_record)
 {
   std::pair<bool, FilterState> cur_ip_state;
-  
+
   for(list<RatedRegex*>::iterator it=rated_banning_regexes.begin(); it != rated_banning_regexes.end(); it++) {
     if (RE2::FullMatch(ats_record, *((*it)->re2_regex))) {
         TSDebug(BANJAX_PLUGIN_NAME, "requests matched %s", (char*)((*it)->re2_regex->pattern()).c_str());
@@ -114,7 +114,7 @@ RegexManager::parse_request(string ip, string ats_record)
         cur_ip_and_regex_state.state_allocator[1] = cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 1];
 
         //if it is 0, then we don't have a record for
-        //the current regex 
+        //the current regex
         if (cur_ip_and_regex_state.regex_state.begin_msec == 0) {
           cur_ip_and_regex_state.regex_state.begin_msec = cur_time_msec;
 
@@ -133,12 +133,12 @@ RegexManager::parse_request(string ip, string ats_record)
            //we are still in the same interval so just increase the hit by 1
            cur_ip_and_regex_state.regex_state.rate += 1/(double) (*it)->interval;
          }
-          
+
         TSDebug(BANJAX_PLUGIN_NAME, "with rate %f /msec", cur_ip_and_regex_state.regex_state.rate);
 
         cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 0] = cur_ip_and_regex_state.state_allocator[0];
         cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 1] = cur_ip_and_regex_state.state_allocator[1];
-        
+
         if (cur_ip_and_regex_state.regex_state.rate >= (*it)->rate) {
           TSDebug(BANJAX_PLUGIN_NAME, "exceeding excessive rate %f /msec", (*it)->rate);
           //clear the record to avoid multiple reporting to swabber
@@ -154,12 +154,12 @@ RegexManager::parse_request(string ip, string ats_record)
           //the ip can escape the banning, this however is a miner
           //concern compared to the fact that we might ran out of
           //memory.
-   
+
           ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.second);
           return make_pair(REGEX_MATCHED, (*it));
         }
     }
-  
+
   }
 
   //if we managed to get/make a valid state we are going to store it
@@ -194,7 +194,7 @@ FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
     string ats_rec_comma_sep =
       ats_record_parts[TransactionMuncher::METHOD] + ", " +
       encapsulate_in_quotes(ats_record_parts[TransactionMuncher::URL]) + ", " +
-      ats_record_parts[TransactionMuncher::HOST] + ", " + 
+      ats_record_parts[TransactionMuncher::HOST] + ", " +
       encapsulate_in_quotes(ats_record_parts[TransactionMuncher::UA]);
 
     string banning_reason = "matched regex rule " + result.second->rule_name + ", " + ats_rec_comma_sep;

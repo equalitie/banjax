@@ -305,15 +305,14 @@ Banjax::process_config(const YAML::Node& cfg)
     try {
       std::string node_name = (*it).first.as<std::string>();
       if (std::find(all_filters_names.begin(), all_filters_names.end(), node_name)!=all_filters_names.end()) {
-        //it is filter see if it is already in the list
-      if (filter_config_map.find(node_name) == filter_config_map.end()) {
-        filter_config_map[node_name].priority = current_sequential_priority;
-        current_sequential_priority++;
-        
-      }
 
-      filter_config_map[node_name].config_node_list.push_back(it);
-           
+        // If it's a filter see if it is already in the list
+        if (filter_config_map.find(node_name) == filter_config_map.end()) {
+          filter_config_map[node_name].priority = current_sequential_priority;
+          current_sequential_priority++;
+        }
+
+        filter_config_map[node_name].config_node_list.push_back(it);
        
       } else if (node_name == "swabber") {
         //we simply send swabber configuration to swabber
@@ -322,39 +321,39 @@ Banjax::process_config(const YAML::Node& cfg)
         
       }
       else if (node_name == "priority") {
-      //store it as priority config.
-      //for now we fire error if priority is double
-      //defined
-      if (priorities.size()) {
-        TSError("double definition of priorities. only one priority list is allowed.");
+        //store it as priority config.
+        //for now we fire error if priority is double
+        //defined
+        if (priorities.size()) {
+          TSError("double definition of priorities. only one priority list is allowed.");
 
+          abort_traffic_server();
+        }
+
+        priorities = Clone(it->second);
+        
+      } else if (node_name == "include") {
+        for(YAML::const_iterator sub_it=it->second.begin();sub_it!=it->second.end();++sub_it ) {
+          string inc_loc = banjax_config_dir + sep + (*sub_it).as<std::string>();
+          TSDebug(BANJAX_PLUGIN_NAME, "Reading configuration from [%s]", inc_loc.c_str());
+          try {
+            YAML::Node sub_cfg = YAML::LoadFile(inc_loc);
+            process_config(sub_cfg);
+            
+          }
+          catch(YAML::BadFile& e) {
+            TSDebug(BANJAX_PLUGIN_NAME, "I/O error while reading config file [%s]: [%s]. Make sure that file exists.", inc_loc.c_str(), e.what());
+            abort_traffic_server();
+          }
+          catch(YAML::ParserException& e)  {
+            TSDebug(BANJAX_PLUGIN_NAME, "parsing error while reading config file [%s]: [%s].", inc_loc.c_str(), e.what());
+            abort_traffic_server();
+          }
+        }     
+      } else { //unknown node
+        TSError(("unknown config node " + node_name).c_str());
         abort_traffic_server();
       }
-
-      priorities = Clone(it->second);
-        
-    } else if (node_name == "include") {
-      for(YAML::const_iterator sub_it=it->second.begin();sub_it!=it->second.end();++sub_it ) {
-        string inc_loc = banjax_config_dir + sep + (*sub_it).as<std::string>();
-        TSDebug(BANJAX_PLUGIN_NAME, "Reading configuration from [%s]", inc_loc.c_str());
-        try {
-          YAML::Node sub_cfg = YAML::LoadFile(inc_loc);
-          process_config(sub_cfg);
-          
-        }
-        catch(YAML::BadFile& e) {
-          TSDebug(BANJAX_PLUGIN_NAME, "I/O error while reading config file [%s]: [%s]. Make sure that file exists.", inc_loc.c_str(), e.what());
-          abort_traffic_server();
-        }
-        catch(YAML::ParserException& e)  {
-          TSDebug(BANJAX_PLUGIN_NAME, "parsing error while reading config file [%s]: [%s].", inc_loc.c_str(), e.what());
-          abort_traffic_server();
-        }
-      }     
-    } else { //unknown node
-      TSError(("unknown config node " + node_name).c_str());
-      abort_traffic_server();
-    }
     } catch( YAML::RepresentationException &e ) {
       TSError(("bad config format " +  (string)e.what()).c_str());
       abort_traffic_server();

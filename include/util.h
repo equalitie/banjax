@@ -2,7 +2,7 @@
  * Collection of isolated functions used in different part of banjax
  *
  * Copyright (c) 2013 eQualit.ie under GNU AGPL v3.0 or later
- * 
+ *
  * Vmon: June 2013, Initial version
  *       Oct 2013, send_zmq_mess
  */
@@ -41,12 +41,12 @@ int check_ts_version(const char*);
  *
  * @param char_str pointer to char indicating the start of char string
  * @param length   the length of the char_str
- * 
+ *
  * @return         an std::string which have the same characters as char_str, except
  *                 for all uppercase turned into lower cases.
- */ 
+ */
 inline std::string to_lower(const char* char_str, const int length) {
-  
+
   std::string lower_string(char_str, length);
   std::transform(lower_string.begin(), lower_string.end(), lower_string.begin(), ::tolower);
 
@@ -67,38 +67,38 @@ void send_zmq_mess(zmq::socket_t& zmqsock, const std::string mess, bool more = f
 void send_zmq_encrypted_message(zmq::socket_t& zmqsock, const std::string mess, uint8_t* encryption_key, bool more = false);
 
 /**
- * Uses AES256 to encrypt the data 
+ * Uses AES256 to encrypt the data
  *
  * @param iv is a buffer of size 12 bytes contatining iv
  * @param key is a buffer 32 bytes as we are using AES256
- * @param ciphertext should be buffer of size planitext_len + 16 - 1 
- * @param tag is a buffer 16 bytes. 
+ * @param ciphertext should be buffer of size planitext_len + 16 - 1
+ * @param tag is a buffer 16 bytes.
  */
-size_t gcm_encrypt(const uint8_t *plaintext, size_t plaintext_len, 
+size_t gcm_encrypt(const uint8_t *plaintext, size_t plaintext_len,
                    const uint8_t *key, const uint8_t *iv,
                    uint8_t *ciphertext, uint8_t *tag);
 
 /**
  * Escape all quotes this is for the reason of logging. then
- * add a quote to the beginnig and the end of the string 
+ * add a quote to the beginnig and the end of the string
  *
  * @param unprocessed_log_string for which quote being replaced
- * 
+ *
  * @return the string enclosed in quotes with all middle quotes escaped
  *
  */
 std::string encapsulate_in_quotes(std::string& unprocessed_log_string);
 
-/* dealing with ip ranges, 
+/* dealing with ip ranges,
    all filters can benefit from them */
 
 typedef std::pair<in_addr_t, uint32_t> SubnetRange;
 
 /**
    Get an ip range and return a CIDR bitmask
-   
+
    @param hey_ip ip/range
-   
+
    @return pair of (subnet ip, CIDR bitmask)
 */
 SubnetRange make_mask_for_range(const std::string& hey_ip);
@@ -110,7 +110,7 @@ SubnetRange make_mask_for_range(const std::string& hey_ip);
    @param pair of <subnet ip, CIDR mask>
 
    @return true if in the list
-   
+
  */
 bool is_match(const std::string &needle_ip, const SubnetRange& ip_range_pair);
 

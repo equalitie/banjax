@@ -1,8 +1,8 @@
 /*
- * functions to communicate with swabber to ban the ips detected as botnet 
+ * functions to communicate with swabber to ban the ips detected as botnet
  *
  * Copyright (c) eQualit.ie 2013 under GNU AGPL V3.0 or later
- * 
+ *
  * Vmon: June 2013
  */
 
@@ -31,9 +31,9 @@ const unsigned int SwabberInterface::SWABBER_MAX_MSG_SIZE = 1024;
 
 const string SwabberInterface::BAN_IP_LOG("/usr/local/trafficserver/logs/ban_ip_list.log");
 
-/* initiating the interface */ 
+/* initiating the interface */
 SwabberInterface::SwabberInterface(IPDatabase* global_ip_db)
-  :context (1), 
+  :context (1),
    ban_ip_list(BAN_IP_LOG.c_str(), ios::out | ios::app), //openning banned ip log file
    swabber_mutex(TSMutexCreate()),
    ip_database(global_ip_db),
@@ -42,7 +42,7 @@ SwabberInterface::SwabberInterface(IPDatabase* global_ip_db)
    grace_period(SWABBER_GRACE_PERIOD)
 {
 
-  //TODO: I need to handle error here!!! 
+  //TODO: I need to handle error here!!!
   //socket.bind(("tcp://"+SWABBER_SERVER+":"+SWABBER_PORT).c_str());
 
 }
@@ -68,7 +68,7 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
         auto cur_node = (*cur_node_it)->second;
         if (cur_node["grace_period"])
           grace_period = cur_node["grace_period"].as<long>();
-        
+
         if (cur_node["port"])
           swabber_port = cur_node["port"].as<string>();
 
@@ -76,12 +76,12 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
           swabber_server = cur_node["server"].as<string>();
 
       } catch(YAML::RepresentationException& e)
-        {       
+        {
           TSDebug(BANJAX_PLUGIN_NAME, "Error loading swabber config: %s", e.what());
           throw;
         }
     }
-  
+
   string new_binding_string  = "tcp://"+swabber_server+":"+swabber_port;
   if (!p_socket) { //we haven't got connected to anywhere before
     TSDebug(BANJAX_PLUGIN_NAME,"connecting to %s",  new_binding_string.c_str());
@@ -106,9 +106,9 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
         throw;
       }
 
-      
+
   }; //else  {re-connecting to the same point do nothing} //unbind bind doesn't work
-    
+
   _binding_string = new_binding_string;
   TSDebug(BANJAX_PLUGIN_NAME, "Done loading swabber conf");
 
@@ -124,18 +124,18 @@ SwabberInterface::~SwabberInterface()
 
 /**
    Asks Swabber to ban the bot ip
-   
+
    @param bot_ip the ip address to be banned
    @param banning_reason the reason for the request to be stored in the log
 */
-void 
+void
 SwabberInterface::ban(string bot_ip, std::string banning_reason)
 {
   /*zmq_msg_t msg_to_send, ip_to_send;
-  
+
   zmq_msg_init_size(&msg_to_send, SWABBER_BAN.size());
   memcpy((zmq_msg_data)(&msg_to_send), (void*)SWABBER_BAN.c_str(), SWABBER_BAN.size());
-  if (zmq_send(socket, &msg_to_send, ZMQ_SNDMORE) == -1) 
+  if (zmq_send(socket, &msg_to_send, ZMQ_SNDMORE) == -1)
     throw SEND_ERROR;
   else {
     zmq_msg_close(&msg_to_send);
@@ -152,10 +152,10 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
   timeval cur_time; gettimeofday(&cur_time, NULL);
   char time_buffer[80];
   time_t rawtime;
-  
+
   /* we are waiting for grace period before banning for inteligent gathering purpose */
   if (grace_period > 0) { //if there is no grace then ignore these steps
-  
+
     std::pair<bool,FilterState> cur_ip_state(ip_database->get_ip_state(bot_ip, SWABBER_INTERFACE_ID));
 
     /* If we failed to query the database then just don't report to swabber */
@@ -188,7 +188,7 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
       return;
     }
   }
-    
+
   //grace period pass or no grace period
   /* Format the time for log */
   time(&rawtime);
