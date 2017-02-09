@@ -200,11 +200,16 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
 
   zmq::message_t ip_to_ban(bot_ip.size());
   memcpy((void*)ip_to_ban.data(), bot_ip.c_str(), bot_ip.size());
- 
+
   TSDebug(BANJAX_PLUGIN_NAME, "locking the swabber socket...");
   if (TSMutexLockTry(swabber_mutex) == TS_SUCCESS) {
-    p_socket->send(ban_request, ZMQ_SNDMORE);
-    p_socket->send(ip_to_ban);
+    if (p_socket) {
+      p_socket->send(ban_request, ZMQ_SNDMORE);
+      p_socket->send(ip_to_ban);
+    }
+    else {
+      TSDebug(BANJAX_PLUGIN_NAME, "Can't send ban request, socket not instantiated");
+    }
 
     //also asking fail2ban to ban
     //char fail2ban_cmd[1024] = "fail2ban-client set ats-filter banip ";
@@ -217,9 +222,8 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
     TSMutexUnlock(swabber_mutex);
     //now we can drop the ip from the database
     ip_database->drop_ip(bot_ip);
-    
   }
-  else
+  else {
     TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the swabber socket");
-
+  }
 }
