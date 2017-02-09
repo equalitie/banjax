@@ -213,7 +213,5 @@ FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
 std::string RegexManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
 {
   (void)transaction_parts; (void)response_info;
-  char* forbidden_response = new char[forbidden_message_length+1];
-  memcpy((void*)forbidden_response, (const void*)forbidden_message.c_str(), (forbidden_message_length+1)*sizeof(char));
-  return forbidden_response;
+  return forbidden_message;
 }
