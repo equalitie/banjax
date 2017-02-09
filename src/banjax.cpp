@@ -381,7 +381,7 @@ TSPluginInit(int argc, const char *argv[])
   info.vendor_name = (char*) "eQualit.ie";
   info.support_email = (char*) "info@deflect.ca";
 
-  if (!check_ts_version()) {
+  if (!check_ts_version(TSTrafficServerVersionGet())) {
     TSError("Plugin requires Traffic Server 3.0 or later");
     goto fatal_err;
 

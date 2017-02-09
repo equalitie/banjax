@@ -33,7 +33,8 @@ unittests_SOURCES = \
 	../src/regex_manager.cpp \
 	../src/swabber_interface.cpp \
 	../src/white_lister.cpp \
-	../src/base64.cpp
+	../src/base64.cpp \
+	../src/util.cpp
 
 
 # libb64/src/cencode.c

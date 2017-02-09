@@ -27,9 +27,8 @@ using namespace std;
    that is version 2.0 or higher for now
    */
 int
-check_ts_version()
+check_ts_version(const char* ts_version)
 {
-  const char *ts_version = TSTrafficServerVersionGet();
   int result = 0;
 
   if (ts_version) {

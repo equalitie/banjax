@@ -34,7 +34,7 @@ unsigned int const c_gcm_tag_size = 16;
 unsigned int const c_gcm_iv_size = 12;
 unsigned int const c_max_enc_length = INT_MAX;
 
-int check_ts_version();
+int check_ts_version(const char*);
 
 /**
  * gets an ascii (not unicode) string and return std::string representing its lower case
