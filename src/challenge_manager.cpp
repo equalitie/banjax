@@ -40,8 +40,8 @@ using namespace std;
 #define COOKIE_SIZE 100
 
 //The name of Challenges should be declared here
-//the name of challenges should appear in same order they 
-//FIXME: this is not the best practice, it is better to make 
+//the name of challenges should appear in same order they
+//FIXME: this is not the best practice, it is better to make
 //CHALLENGE_LIST an array of pairs of name and id
 //appears in ChallengType enum in challenge_manager.h
 const char* ChallengeDefinition::CHALLENGE_LIST[] = {"sha_inverse",
@@ -71,10 +71,10 @@ ChallengeManager::load_config(const std::string& banjax_dir)
      //now we compile all of them and store them for later use
      for(YAML::const_iterator it=cfg["challenges"].begin();it!=cfg["challenges"].end();++it) {
        HostChallengeSpec*  host_challenge_spec = new HostChallengeSpec;
-       
+
        host_challenge_spec->name = (const char*)(*it)["name"].as<std::string>().c_str();
        TSDebug(BANJAX_PLUGIN_NAME, "Loading conf for challenge %s", host_challenge_spec->name.c_str());
-      
+
        //it is fundamental to establish what type of challenge we are dealing
        //with
        std::string requested_challenge_type = (*it)["challenge_type"].as<std::string>();
@@ -95,18 +95,18 @@ ChallengeManager::load_config(const std::string& banjax_dir)
        if (challenge_file.size() == 0) {
          challenge_file.append(challenge_specs[host_challenge_spec->challenge_type]->default_page_filename);
        }
-       
+
        std::string challenge_path = banjax_dir + "/" + challenge_file;
        TSDebug(BANJAX_PLUGIN_NAME, "Challenge [%s] uses challenge file [%s]",
                host_challenge_spec->name.c_str(), challenge_path.c_str());
-       
+
        ifstream ifs(challenge_path);
        host_challenge_spec->challenge_stream.assign((istreambuf_iterator<char>(ifs)), istreambuf_iterator<char>());
-       
+
        if (host_challenge_spec->challenge_stream.size() == 0) {
          TSDebug(BANJAX_PLUGIN_NAME, "Warning, [%s] looks empty", challenge_path.c_str());
          TSError("Warning, [%s] looks empty", challenge_path.c_str());
-       } else {  
+       } else {
          TSDebug(BANJAX_PLUGIN_NAME, "Assigning %d bytes of html for [%s]",
                  (int)host_challenge_spec->challenge_stream.size(), host_challenge_spec->name.c_str());
        }
@@ -134,7 +134,7 @@ ChallengeManager::load_config(const std::string& banjax_dir)
          host_challenges[cur_domain].push_back(host_challenge_spec);
 
        }
-     
+
      }
 
      //we use SHA256 to generate a key from the user passphrase
@@ -142,16 +142,16 @@ ChallengeManager::load_config(const std::string& banjax_dir)
      string challenger_key = cfg["key"].as<std::string>();
 
      SHA256((const unsigned char*)challenger_key.c_str(), challenger_key.length(), hashed_key);
- 
+
      number_of_trailing_zeros = cfg["difficulty"].as<unsigned int>();
      assert(!(number_of_trailing_zeros % 4));
      zeros_in_javascript = string(number_of_trailing_zeros / 4, '0');
- 
+
    }
    catch(YAML::RepresentationException& e) {
      TSDebug(BANJAX_PLUGIN_NAME, "Bad config for filter %s: %s", BANJAX_FILTER_NAME.c_str(), e.what());
      throw;
-     
+
    }
    TSDebug(BANJAX_PLUGIN_NAME, "Done loading challenger manager conf");
 
@@ -210,14 +210,14 @@ bool ChallengeManager::check_sha(const char* cookiestr){
       //TSDebug(BANJAX_PLUGIN_NAME, "i= %d, out = %c", i, outputBuffer[i]);
       return false;
     }
-  } 
+  }
 
   return true;
 }
 
 /**
  * Checks if the second part of the cookie indeed SHA256 of the
- *  challenge token +  SHA256(password) 
+ *  challenge token +  SHA256(password)
  * @param  cookie the value of the cookie
  * @return  true if the cookie verifies the challenge
  */
@@ -238,7 +238,7 @@ bool ChallengeManager::check_auth_validity(const char* cookiestr, const std::str
   char to_be_hashed[to_be_hashed_length];
   memcpy(to_be_hashed, cookiestr, b64token_length);
   memcpy(to_be_hashed+b64token_length, password_hash.c_str(), b64_sha256_length);
-  
+
   SHA256_Update(&sha256, to_be_hashed, to_be_hashed_length);
   SHA256_Final(hash, &sha256);
 
@@ -247,11 +247,11 @@ bool ChallengeManager::check_auth_validity(const char* cookiestr, const std::str
   std::string cookiedata=Base64::Decode((const char *)cookiestr+b64token_length, (const char *)(cookiestr+cookie_len));
 
   memcpy(hashed_solution,cookiedata.c_str(),SHA256_DIGEST_LENGTH);
-  
+
   //now compare
   if (memcmp(hashed_solution, hash, SHA256_DIGEST_LENGTH))
     return false;
-   
+
   return true;
 
 }
@@ -265,7 +265,7 @@ bool ChallengeManager::check_auth_validity(const char* cookiestr, const std::str
 bool ChallengeManager::check_cookie(string answer, string cookie_jar, string ip, const HostChallengeSpec& cookied_challenge) {
   CookieParser cookie_parser;
   const char* next_cookie = cookie_jar.c_str();
-  
+
   while((next_cookie = cookie_parser.parse_a_cookie(next_cookie)) != NULL) {
     if (!(memcmp(cookie_parser.str, "deflect", (int)(cookie_parser.nam_end - cookie_parser.str)))) {
       std::string captcha_cookie(cookie_parser.val_start, cookie_parser.val_end - cookie_parser.val_start);
@@ -296,7 +296,7 @@ bool ChallengeManager::check_cookie(string answer, string cookie_jar, string ip,
       return challenge_prevailed && result == 1;
     }
   }
-  
+
   return false;
 }
 
@@ -320,12 +320,12 @@ void ChallengeManager::generate_html(string ip, long t, string url,
   if (ChallengeManager::is_captcha_url(url)) {
     unsigned char text[6];
     memset(text, 0, 6);
-    
+
     unsigned char im[70*200];
     unsigned char gif[gifsize];
     captcha(im,text);
     makegif(im,gif);
-    
+
     uchar cookie[COOKIE_SIZE];
     // TODO(oschaaf): 120 seconds for users to answer. configuration!
     time_t curtime=time(NULL)+120;
@@ -351,7 +351,7 @@ void ChallengeManager::generate_html(string ip, long t, string url,
     response_info->response_code = 403;
     page = "X";
 
-    if (ChallengeManager::check_cookie(answer.c_str(), cookie, transaction_parts.at(TransactionMuncher::IP), *(response_info->responding_challenge))) {      
+    if (ChallengeManager::check_cookie(answer.c_str(), cookie, transaction_parts.at(TransactionMuncher::IP), *(response_info->responding_challenge))) {
       response_info->response_code = 200;
       uchar cookie[COOKIE_SIZE];
       GenerateCookie((uchar*)"", (uchar*)hashed_key, t, (uchar*)ip.c_str(), cookie);
@@ -360,7 +360,7 @@ void ChallengeManager::generate_html(string ip, long t, string url,
       header.append("deflect=");
       header.append((char*)cookie);
       header.append("; path=/; HttpOnly");
-      response_info->set_cookie_header.append(header.c_str());      
+      response_info->set_cookie_header.append(header.c_str());
       page = "OK";
       return;
     } else {
@@ -373,9 +373,9 @@ void ChallengeManager::generate_html(string ip, long t, string url,
     }
 
     return;
-    
+
   }
-  
+
   //if the challenge is solvig SHA inverse image or auth
   //copy the template
   page = response_info->responding_challenge->challenge_stream;
@@ -431,7 +431,7 @@ bool ChallengeManager::url_contains_word(const std::string& url, const std::stri
    overloaded execute to execute the filter, It calls cookie checker
    and if it fails ask for responding by the filter.
 */
-FilterResponse 
+FilterResponse
 ChallengeManager::execute(const TransactionParts& transaction_parts)
 {
   // look up if this host is serving captcha's or not
@@ -444,23 +444,23 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
   TSDebug(BANJAX_PLUGIN_NAME, "cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE).c_str());
   //most likely success response is no comment but the filter like auth
   //can change it
-  unsigned int success_response = FilterResponse::GO_AHEAD_NO_COMMENT; 
+  unsigned int success_response = FilterResponse::GO_AHEAD_NO_COMMENT;
 
   for(list<HostChallengeSpec*>::iterator it=challenges_it->second.begin(); it != challenges_it->second.end(); it++) {
     HostChallengeSpec* cur_challenge = *it;
-    switch((unsigned int)(cur_challenge->challenge_type)) 
+    switch((unsigned int)(cur_challenge->challenge_type))
       {
       case ChallengeDefinition::CHALLENGE_CAPTCHA:
         {
           TSDebug(BANJAX_PLUGIN_NAME, "captch url is %s", transaction_parts.at(TransactionMuncher::URL_WITH_HOST).c_str());
           if (ChallengeManager::is_captcha_url(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
-          //FIXME: This opens the door to attack edge using the captcha url, we probably need to 
+          //FIXME: This opens the door to attack edge using the captcha url, we probably need to
           //count captcha urls as failures as well.
             return FilterResponse(FilterResponse::I_RESPOND, (void*) new ChallengerExtendedResponse(challenger_resopnder, cur_challenge));
           } else if (is_captcha_answer(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
             return FilterResponse(FilterResponse(FilterResponse::I_RESPOND, (void*) new ChallengerExtendedResponse(challenger_resopnder, cur_challenge)));
           }
-          
+
           if (ChallengeManager::check_cookie("", transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP), *(cur_challenge))) {
             report_success(transaction_parts.at(TransactionMuncher::IP));
             //rather go to next challenge
@@ -470,7 +470,7 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
             FilterResponse failure_response(FilterResponse::I_RESPOND, (void*) new ChallengerExtendedResponse(challenger_resopnder, cur_challenge));
             if (cur_challenge->fail_tolerance_threshold)
               ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(transaction_parts.at(TransactionMuncher::IP), cur_challenge, transaction_parts.at(TransactionMuncher::HOST), transaction_parts);
-            
+
           return failure_response;
         }
         break;
@@ -568,19 +568,19 @@ std::string ChallengeManager::generate_response(const TransactionParts& transact
     return too_many_failures_response;
   }
 
-  long time_validity = time(NULL) + extended_response->responding_challenge->challenge_validity_period; 
+  long time_validity = time(NULL) + extended_response->responding_challenge->challenge_validity_period;
 
-  string buf_str; 
+  string buf_str;
   TSDebug("banjax", "%s", transaction_parts.at(TransactionMuncher::IP).c_str());
   TSDebug("banjax", "%s", transaction_parts.at(TransactionMuncher::URL_WITH_HOST).c_str());
   TSDebug("banjax", "%s", transaction_parts.at(TransactionMuncher::HOST).c_str());
 
   (void) response_info;
   TransactionParts test_muncher;
-  generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity, 
+  generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity,
                 ((extended_response)->alternative_url.empty()) ? transaction_parts.at(TransactionMuncher::URL_WITH_HOST) : ((extended_response)->alternative_url),
                 transaction_parts,
-                //NULL, buf_str);//, 
+                //NULL, buf_str);//,
                 extended_response, buf_str);
 
   return buf_str;
@@ -593,7 +593,7 @@ std::string ChallengeManager::generate_response(const TransactionParts& transact
  * report to swabber in case of excessive failure
  *
  * @param client_ip: string representing the failed requester ip
- * @param failed_host_spec: the specification of the challenge for the host 
+ * @param failed_host_spec: the specification of the challenge for the host
  *        that client failed to solve
  *
  * @return true if no_of_failures exceeded the threshold
@@ -613,14 +613,14 @@ ChallengeManager::report_failure(std::string client_ip, HostChallengeSpec* faile
   } else {
     cur_ip_state.second[0]++; //incremet failure
   }
-  
+
   if (cur_ip_state.second[0] >= failed_challenge->fail_tolerance_threshold) {
     banned = true;
     TransactionParts ats_record_parts = (TransactionParts) transaction_parts;
 
     string banning_reason = "failed challenge " + failed_challenge->name + " for host " + failed_host  + " " + to_string(cur_ip_state.second[0]) + " times, " +
       encapsulate_in_quotes(ats_record_parts[TransactionMuncher::URL]) + ", " +
-      ats_record_parts[TransactionMuncher::HOST] + ", " + 
+      ats_record_parts[TransactionMuncher::HOST] + ", " +
       encapsulate_in_quotes(ats_record_parts[TransactionMuncher::UA]);
 
     swabber_interface->ban(client_ip.c_str(), banning_reason);
@@ -643,7 +643,7 @@ ChallengeManager::report_failure(std::string client_ip, HostChallengeSpec* faile
  *
  * @param client_ip: string representing the failed requester ip
  */
-void 
+void
 ChallengeManager::report_success(std::string client_ip)
 {
   FilterState cur_ip_state(1);
