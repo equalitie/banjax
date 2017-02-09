@@ -117,26 +117,34 @@ running unittests in banjax/test will run the unittests corresponding to banjax 
 
 Behavior tests needs to be run as root. You also need to add the following line to conf/remap.conf
 
+```
 regex_map   http://^(www\.)?127.0.0.1$/ ORIGIN_URL
+```
 
 For example, if the http server is running on the same machine, listening on port 8080, you should add:
 
+```
 regex_map   http://^(www\.)?127.0.0.1$/ http://127.0.0.1:8080/
+```
 
 You should also need to have write access to the folder where http origin server websites from.
 
+```
 usage: banjax_behavior_test.py [-h] [--banjax-dir BANJAX_DIR]
                                [--banjax-test-dir BANJAX_TEST_DIR]
                                [--http-doc-root HTTP_DOC_ROOT]
-
 optional arguments:
-  -h, --help   shows help
-  --banjax-dir banjax config folder (default: /usr/local/trafficserver/modules/banjax/)
-  --banjax-test-dir (default: current folder)
-  --http-doc-root origin website folder (default: /var/www)
+    -h, --help shows help
+    --banjax-dir banjax config folder (default: /usr/local/trafficserver/modules/banjax/)
+    --banjax-test-dir (default: current folder)
+    --http-doc-root origin website folder (default: /var/www)
+```
 
+
+```
 cd test
 python banjax_behavior_test
+```
 
 Debugging
 ----------
