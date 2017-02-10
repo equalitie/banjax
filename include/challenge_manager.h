@@ -83,10 +83,10 @@ class HostChallengeSpec {
 class ChallengerExtendedResponse : public FilterExtendedResponse
 {
  public:
-  HostChallengeSpec* responding_challenge;
+  std::shared_ptr<HostChallengeSpec> responding_challenge;
   std::string alternative_url;
 
- ChallengerExtendedResponse(ResponseGenerator requested_response_generator = NULL, HostChallengeSpec* cookied_challenge = NULL)
+ ChallengerExtendedResponse(ResponseGenerator requested_response_generator = NULL, std::shared_ptr<HostChallengeSpec> cookied_challenge = nullptr)
    :  FilterExtendedResponse(requested_response_generator),
     responding_challenge(cookied_challenge)
     {};
@@ -147,16 +147,13 @@ protected:
   std::map<std::string, ChallengeDefinition::ChallengeType> challenge_type;
   ChallengeSpec* challenge_specs[ChallengeDefinition::CHALLENGE_COUNT];
 
-  typedef std::map<std::string, HostChallengeSpec*> ChallengeSettingsMap;
-  typedef std::map<std::string, std::list<HostChallengeSpec*>> HostChallengeMap;
-  ChallengeSettingsMap challenge_settings;
+  typedef std::map<std::string, std::list<std::shared_ptr<HostChallengeSpec>>> HostChallengeMap;
   HostChallengeMap host_challenges;
 
   //We store the forbidden message at the begining so we can copy it fast
   //everytime. It is being stored here for being used again
   //ATS barf if you give it the message in const memory
   const std::string too_many_failures_message;
-  const size_t too_many_failures_message_length;
 
   SwabberInterface* swabber_interface;
 
@@ -165,13 +162,9 @@ protected:
    * for current number of failure of solution for an ip, increament and store it
    * report to swabber in case of excessive failure
    *
-   * @param client_ip: string representing the failed requester ip
-   * @param failed_host_spec: the specification of the challenge for the host
-   *        that client failed to solve
-   *
    * @return true if no_of_failures exceeded the threshold
    */
-  bool report_failure(std::string client_ip, HostChallengeSpec* failed_challenge, std::string failed_host, const TransactionParts& transaction_parts);
+  bool report_failure(const std::shared_ptr<HostChallengeSpec>& failed_challenge, const TransactionParts& transaction_parts);
 
   /**
    * Should be called upon successful solution of a challenge to wipe up the
@@ -215,7 +208,6 @@ public:
  ChallengeManager(const string& banjax_dir, const FilterConfig& filter_config, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
     :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
     too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
-     too_many_failures_message_length(too_many_failures_message.length()),
     swabber_interface(global_swabber_interface),
     challenger_resopnder(static_cast<ResponseGenerator>(&ChallengeManager::generate_response))
 
