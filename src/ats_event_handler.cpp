@@ -64,7 +64,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
 
   case TS_EVENT_HTTP_READ_CACHE_HDR:
     /* on hit we don't do anything for now
-       lack of miss means hit to me 
+       lack of miss means hit to me
        if (contp != Banjax::global_contp) {
        cd = (BanjaxContinuation *) TSContDataGet(contp);
        cd->hit = 1;
@@ -92,7 +92,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
   case TS_EVENT_HTTP_TXN_CLOSE:
     TSDebug(BANJAX_PLUGIN_NAME, "txn close" );
     if (contp != Banjax::global_contp) {
-      cd = (BanjaxContinuation *) TSContDataGet(contp); 
+      cd = (BanjaxContinuation *) TSContDataGet(contp);
       if (banjax_active_queues[BanjaxFilter::HTTP_CLOSE])
         handle_task_queue(banjax->task_queues[BanjaxFilter::HTTP_CLOSE], cd);
 
@@ -137,7 +137,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
 
 /**
    this is to reload banjax config when you get into the traffi_line -x
-   situation 
+   situation
 */
 int
 ATSEventHandler::banjax_management_handler(TSCont contp, TSEvent event, void *edata)
@@ -156,23 +156,26 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
   const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(banjax->which_parts_are_requested());
 
   bool continue_filtering = true;
-  for(Banjax::TaskQueue::iterator cur_task = banjax->task_queues[BanjaxFilter::HTTP_REQUEST].begin(); continue_filtering && cur_task != banjax->task_queues[BanjaxFilter::HTTP_REQUEST].end(); cur_task++) {
+  for(Banjax::TaskQueue::iterator cur_task = banjax->task_queues[BanjaxFilter::HTTP_REQUEST].begin();
+          continue_filtering && cur_task != banjax->task_queues[BanjaxFilter::HTTP_REQUEST].end();
+          cur_task++) {
     FilterResponse cur_filter_result = ((*(cur_task->filter)).*(cur_task->task))(cur_trans_parts);
-    switch (cur_filter_result.response_type) 
+
+    switch (cur_filter_result.response_type)
       {
       case FilterResponse::GO_AHEAD_NO_COMMENT:
         continue;
-        
-      case FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY: 
+
+      case FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY:
         //This is when the requester is white listed
         continue_filtering = false;
         break;
 
       case FilterResponse::SERVE_FRESH:
-        //Tell ATS not to cache this request, hopefully it means that 
+        //Tell ATS not to cache this request, hopefully it means that
         //It shouldn't be served from the cache either.
         //TODO: One might need to investigate TSHttpTxnRespCacheableSet()
-        if (TSHttpTxnServerRespNoStoreSet(cd->txnp, true) != TS_SUCCESS 
+        if (TSHttpTxnServerRespNoStoreSet(cd->txnp, true) != TS_SUCCESS
             || TSHttpTxnConfigIntSet(cd->txnp, TS_CONFIG_HTTP_CACHE_HTTP, 0) != TS_SUCCESS)
           TSDebug(BANJAX_PLUGIN_NAME, "Unable to make the response uncachable" );
         break;
@@ -190,13 +193,13 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
       default:
         //Not implemeneted, hence ignoe
         break;
-        
+
       }
   }
-  
-  //TODO: it is imaginable that a filter needs to be 
+
+  //TODO: it is imaginable that a filter needs to be
   //called during response but does not need to influnence
-  //the response, e.g. botbanger hence we need to get the 
+  //the response, e.g. botbanger hence we need to get the
   //response hook while continuing with the flow
   //destroy_continuation(cd->txnp, cd->contp);
   TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_CONTINUE);
@@ -215,7 +218,7 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
 
     cd->transaction_muncher.set_status(
         (TSHttpStatus)(((FilterExtendedResponse*)cd->response_info.response_data))->response_code);
-    
+
     if ((((FilterExtendedResponse*)cd->response_info.response_data))->set_cookie_header.size()) {
       cd->transaction_muncher.append_header(
           "Set-Cookie", (((FilterExtendedResponse*)cd->response_info.response_data))->set_cookie_header.c_str());
@@ -225,7 +228,7 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
     cd->transaction_muncher.append_header("Expires", "Mon, 23 Aug 1982 12:00:00 GMT");
     cd->transaction_muncher.append_header("Cache-Control", "no-store, no-cache, must-revalidate");
     cd->transaction_muncher.append_header("Pragma", "no-cache");
-    
+
     if (buf.size() == 0) {
       // When we get here, no valid response body was generated somehow.
       // Insert one, to prevent triggering an assert in TSHttpTxnErrorBodySet
@@ -279,22 +282,22 @@ ATSEventHandler::handle_txn_start(TSHttpTxn txnp)
 /**
    runs if a filter is registered to run a function during an event
 */
-void 
+void
 ATSEventHandler::handle_task_queue(Banjax::TaskQueue& current_queue, BanjaxContinuation* cd)
 {
   const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(banjax->which_parts_are_requested());
 
   for(Banjax::TaskQueue::iterator cur_task = current_queue.begin(); cur_task != current_queue.end(); cur_task++)
     /*For now we have no plan on doing anything with the result
-      in future we need to receive the filter instruction for 
+      in future we need to receive the filter instruction for
       the rest of transation but for the moment only it matters
-      at the begining of the transaction to interfere with the 
+      at the begining of the transaction to interfere with the
       transaction.
 
       FilterResponse cur_filter_result =
-     */ 
+     */
     ((*(cur_task->filter)).*(cur_task->task))(cur_trans_parts);
-  
+
 }
 
 void

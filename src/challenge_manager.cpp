@@ -149,7 +149,6 @@ ChallengeManager::load_config(const std::string& banjax_dir)
          host_challenges[cur_domain].push_back(host_challenge_spec);
 
        }
-
      }
 
      //we use SHA256 to generate a key from the user passphrase

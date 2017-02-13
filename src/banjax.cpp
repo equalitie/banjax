@@ -1,14 +1,14 @@
 /*
  * Banjax is an ATS plugin that:
- *                    enforce regex bans 
+ *                    enforce regex bans
  *                    store logs in a mysql db
  *                    run SVM on the log result
  *                    send a ban request to swabber in case of banning.
  *
  * Copyright (c) 2013 eQualit.ie under GNU AGPL v3.0 or later
- * 
+ *
  * Vmon: June 2013 Initial version
- */ 
+ */
 
 #include <ts/ts.h>
 //NULL not defined in c++
@@ -56,7 +56,7 @@ extern Banjax* ATSEventHandler::banjax;
 void TSErrorAlternative(const char* error_str)
 {
   fprintf(stderr,"ERROR: %s\n", error_str);
-  
+
 }
 
 /**
@@ -89,7 +89,7 @@ Banjax::filter_factory()
       TSError(("error in intializing filter " + cur_filter_name_it->second).c_str());
       abort_traffic_server();
     }
-        
+
     //at which que the filter need to be called
     for(unsigned int i = BanjaxFilter::HTTP_START; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++) {
       if (cur_filter->queued_tasks[i]) {
@@ -97,7 +97,7 @@ Banjax::filter_factory()
         task_queues[i].push_back(FilterTask(cur_filter,cur_filter->queued_tasks[i]));
       }
     }
-    
+
     if(cur_filter){
       filters.push_back(cur_filter);
     }
@@ -113,8 +113,8 @@ Banjax::filter_factory()
     all_filters_requested_part |= (*cur_filter)->requested_info();
     all_filters_response_part |= (*cur_filter)->response_info();
   }
-    
-} 
+
+}
 
 /**
    reload config and remake filters when traffic_line -x is executed
@@ -133,13 +133,12 @@ void Banjax::reload_config() {
   TSDebug(BANJAX_PLUGIN_NAME, "locked config lock");
     //empty all queues
   for(unsigned int i = BanjaxFilter::HTTP_START; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++)
-    task_queues[i].clear();      
+    task_queues[i].clear();
 
   //delete all filters
-  for(std::list<BanjaxFilter*>::iterator cur_filter = filters.begin();
-      cur_filter != filters.end();
-      delete *cur_filter,
-        cur_filter++);
+  for (auto filter : filters) {
+      delete filter;
+  }
 
   filters.clear();
 
@@ -152,7 +151,7 @@ void Banjax::reload_config() {
   priority_map.clear();
 
   priorities = YAML::Node();
-    
+
   current_sequential_priority = 0;
 
   all_filters_requested_part = 0;
@@ -161,17 +160,17 @@ void Banjax::reload_config() {
   read_configuration();
   TSDebug(BANJAX_PLUGIN_NAME, "unlock config lock");
   TSMutexUnlock(config_mutex); //we will lock it in read_configuration again
-  
+
 }
 
 
 /**
-   Constructor 
+   Constructor
 
    @param banjax_config_dir path to the folder containing banjax.conf
 */
 Banjax::Banjax(const string& banjax_config_dir)
-  : all_filters_requested_part(0), 
+  : all_filters_requested_part(0),
     all_filters_response_part(0),
     config_mutex(TSMutexCreate()),
     banjax_config_dir(banjax_config_dir),
@@ -181,8 +180,8 @@ Banjax::Banjax(const string& banjax_config_dir)
 
   //Everything is static in ATSEventHandle so it is more like a namespace
   //than a class (we never instatiate from it). so the only reason
-  //we have to create this object is to set the static reference to banjax into 
-  //ATSEventHandler, it is somehow the acknowledgementt that only one banjax 
+  //we have to create this object is to set the static reference to banjax into
+  //ATSEventHandler, it is somehow the acknowledgementt that only one banjax
   //object can exist
   ATSEventHandler::banjax = this;
 
@@ -191,9 +190,9 @@ Banjax::Banjax(const string& banjax_config_dir)
   if (!log || error == TS_ERROR) {
     TSDebug(BANJAX_PLUGIN_NAME, "error while creating log");
   }
-  
+
   TSDebug(BANJAX_PLUGIN_NAME, "in the beginning");
-  
+
   global_contp = TSContCreate(ATSEventHandler::banjax_global_eventhandler, ip_database.db_mutex);
 
   BanjaxContinuation* cd = (BanjaxContinuation *) TSmalloc(sizeof(BanjaxContinuation));
@@ -221,7 +220,7 @@ Banjax::read_configuration()
 {
   // Read the file. If there is an error, report it and exit.
   static const  string sep = "/";
-  
+
   //string banjax_dir = TSPluginDirGet(); //+ sep + BANJAX_PLUGIN_NAME;
   string absolute_config_file = /*TSInstallDirGet() + sep + */ banjax_config_dir + sep+ CONFIG_FILENAME;
   TSDebug(BANJAX_PLUGIN_NAME, "Reading configuration from [%s]", absolute_config_file.c_str());
@@ -280,9 +279,9 @@ Banjax::read_configuration()
         TSError(("Priority " + to_string(it->second.priority) + " has been doubly assigned").c_str());
         abort_traffic_server();
       }
-    
+
     priority_map[it->second.priority] = it->first;
-    
+
   }
 
   //(re)set swabber configuration if there is no swabber node
@@ -290,9 +289,9 @@ Banjax::read_configuration()
   swabber_interface.load_config(swabber_conf);
   //now we can make the filters
   filter_factory();
-  
-}     
-  
+
+}
+
 
 //Recursively read the entire config structure
 //including inside the included files
@@ -313,12 +312,12 @@ Banjax::process_config(const YAML::Node& cfg)
         }
 
         filter_config_map[node_name].config_node_list.push_back(it);
-       
+
       } else if (node_name == "swabber") {
         //we simply send swabber configuration to swabber
         //if it doesn't exists it fails to default
         swabber_conf.config_node_list.push_back(it);
-        
+
       }
       else if (node_name == "priority") {
         //store it as priority config.
@@ -331,7 +330,7 @@ Banjax::process_config(const YAML::Node& cfg)
         }
 
         priorities = Clone(it->second);
-        
+
       } else if (node_name == "include") {
         for(YAML::const_iterator sub_it=it->second.begin();sub_it!=it->second.end();++sub_it ) {
           string inc_loc = banjax_config_dir + sep + (*sub_it).as<std::string>();
@@ -339,7 +338,7 @@ Banjax::process_config(const YAML::Node& cfg)
           try {
             YAML::Node sub_cfg = YAML::LoadFile(inc_loc);
             process_config(sub_cfg);
-            
+
           }
           catch(YAML::BadFile& e) {
             TSDebug(BANJAX_PLUGIN_NAME, "I/O error while reading config file [%s]: [%s]. Make sure that file exists.", inc_loc.c_str(), e.what());
@@ -349,7 +348,7 @@ Banjax::process_config(const YAML::Node& cfg)
             TSDebug(BANJAX_PLUGIN_NAME, "parsing error while reading config file [%s]: [%s].", inc_loc.c_str(), e.what());
             abort_traffic_server();
           }
-        }     
+        }
       } else { //unknown node
         TSError(("unknown config node " + node_name).c_str());
         abort_traffic_server();
@@ -357,7 +356,7 @@ Banjax::process_config(const YAML::Node& cfg)
     } catch( YAML::RepresentationException &e ) {
       TSError(("bad config format " +  (string)e.what()).c_str());
       abort_traffic_server();
-        
+
     }
 
   } //for all nodes
@@ -385,7 +384,7 @@ TSPluginInit(int argc, const char *argv[])
     goto fatal_err;
 
   }
-  
+
   if (argc > 1) {//then use the path specified by the arguemnt
     banjax_config_dir = argv[1];
 
@@ -395,9 +394,9 @@ TSPluginInit(int argc, const char *argv[])
       TSError(error_str.c_str());
       // int err = errno;
       // TSError(explain_errno_stat(err, banjax_config_dir.c_str(), &stat_buffer));
-    
+
       goto fatal_err;
-      
+
     }
 
     if (!S_ISDIR(stat_buffer.st_mode)) {
@@ -405,9 +404,9 @@ TSPluginInit(int argc, const char *argv[])
       TSError(error_str.c_str());
       goto fatal_err;
     }
-    
+
   }
-  
+
   /* create the banjax object that control the whole procedure */
   p_banjax_plugin = (Banjax*)TSmalloc(sizeof(Banjax));
   p_banjax_plugin = new(p_banjax_plugin) Banjax(banjax_config_dir);

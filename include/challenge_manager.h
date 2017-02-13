@@ -178,7 +178,6 @@ protected:
   /**
    * Checks if the cookie is valid: sha256, ip, and time
    * @param  cookie the value of the cookie
-   * @param  ip     the client ip
    * @param  cookied_challenge the challenge structure that the cookie is
    *         supposed to address
    * @return        true if the cookie is valid
