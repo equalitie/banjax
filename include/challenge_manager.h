@@ -182,15 +182,14 @@ protected:
    *         supposed to address
    * @return        true if the cookie is valid
    */
-
-  bool check_cookie(std::string answer, std::string cookie_value, std::string client_ip, const HostChallengeSpec& cookied_challenge);
+  bool check_cookie(std::string answer, const TransactionParts&, const HostChallengeSpec& cookied_challenge);
 
   //TODO: This needs to be changed to adopt Otto's approach in placing
   //the variable info in cookie header and make the jscript to read them
   //nonetheless it is more efficient to have the html generated in a
   //referenece sent to the function rather than copying it in the stack
   //upon return
-  void generate_html(std::string ip, long time, std::string url, const TransactionParts& transaction_parts, ChallengerExtendedResponse* response_info, string& generated_html);
+  void generate_html(std::string ip, long time, std::string url, const TransactionParts& transaction_parts, ChallengerExtendedResponse* response_info, std::string& generated_html);
 
   /**
      gets a time in long format in future and turn it into browser and human
@@ -204,7 +203,7 @@ public:
 
      @param main_root the root of the configuration structure
   */
- ChallengeManager(const string& banjax_dir, const FilterConfig& filter_config, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
+ ChallengeManager(const std::string& banjax_dir, const FilterConfig& filter_config, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
     :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
     too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
     swabber_interface(global_swabber_interface),
@@ -232,6 +231,7 @@ public:
     @param cfg the config node for "challenger"
   */
   virtual void load_config(const std::string& banjax_dir);
+  void load_config(YAML::Node& cfg, const std::string& banjax_dir);
 
   /**
      Overloaded to tell banjax that we need url, host

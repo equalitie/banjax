@@ -71,6 +71,12 @@ static set<T> vector2set(const vector<T>& source) {
 void
 ChallengeManager::load_config(const std::string& banjax_dir)
 {
+  load_config(cfg, banjax_dir);
+}
+
+void
+ChallengeManager::load_config(YAML::Node& cfg, const std::string& banjax_dir)
+{
   //TODO: we should read the auth password from config and store it somewhere
    TSDebug(BANJAX_PLUGIN_NAME, "Loading challenger manager conf");
    try
@@ -122,17 +128,15 @@ ChallengeManager::load_config(const std::string& banjax_dir)
        if ((*it)["password_hash"])
          host_challenge_spec->password_hash = (*it)["password_hash"].as<string>();
 
-       if ((*it)["magic_words"]) {
-         host_challenge_spec->magic_words = vector2set((*it)["magic_words"].as<vector<string>>());
-       }
-
-       // The 'magic_word' entry has the same meaning as 'magic_words' but only
-       // one word can be set with it. This entry preceded the 'megic_words'
-       // one and so I'm keeping it not to break compatibility with existing
-       // configs.
-       // TODO: Remove it once banjax's major version changes?
        if ((*it)["magic_word"]) {
-         host_challenge_spec->magic_words.insert((*it)["magic_word"].as<string>());
+         auto& mw = (*it)["magic_word"];
+
+         if (mw.IsSequence()) {
+           host_challenge_spec->magic_words = vector2set(mw.as<vector<string>>());
+         }
+         else {
+           host_challenge_spec->magic_words.insert(mw.as<string>());
+         }
        }
 
        if ((*it)["magic_word_exceptions"]) {
@@ -276,7 +280,10 @@ bool ChallengeManager::check_auth_validity(const char* cookiestr, const std::str
  * @param  ip     the client ip
  * @return        true if the cookie is valid
  */
-bool ChallengeManager::check_cookie(string answer, string cookie_jar, string ip, const HostChallengeSpec& cookied_challenge) {
+bool ChallengeManager::check_cookie(string answer, const TransactionParts& transaction_parts, const HostChallengeSpec& cookied_challenge) {
+  string cookie_jar = transaction_parts.at(TransactionMuncher::COOKIE);
+  string ip         = transaction_parts.at(TransactionMuncher::IP);
+
   CookieParser cookie_parser;
   const char* next_cookie = cookie_jar.c_str();
 
@@ -365,12 +372,11 @@ void ChallengeManager::generate_html(
     std::string url = transaction_parts.at(TransactionMuncher::URL_WITH_HOST);
     size_t found = url.rfind("__validate/");
 
-    std::string cookie = transaction_parts.at(TransactionMuncher::COOKIE);
     std::string answer = url.substr(found + strlen("__validate/"));
     response_info->response_code = 403;
     page = "X";
 
-    if (ChallengeManager::check_cookie(answer.c_str(), cookie, transaction_parts.at(TransactionMuncher::IP), *response_info->responding_challenge)) {
+    if (ChallengeManager::check_cookie(answer, transaction_parts, *response_info->responding_challenge)) {
       response_info->response_code = 200;
       uchar cookie[COOKIE_SIZE];
       GenerateCookie((uchar*)"", (uchar*)hashed_key, t, (uchar*)ip.c_str(), cookie);
@@ -481,7 +487,7 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
             return FilterResponse(FilterResponse(FilterResponse::I_RESPOND, (void*) new ChallengerExtendedResponse(challenger_resopnder, cur_challenge)));
           }
 
-          if (ChallengeManager::check_cookie("", transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP), *cur_challenge)) {
+          if (ChallengeManager::check_cookie("", transaction_parts, *cur_challenge)) {
             report_success(transaction_parts.at(TransactionMuncher::IP));
             //rather go to next challenge
             continue;
@@ -497,7 +503,7 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
       }
 
       case ChallengeDefinition::CHALLENGE_SHA_INVERSE:
-        if(!ChallengeManager::check_cookie("", transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP), *cur_challenge))
+        if(!ChallengeManager::check_cookie("", transaction_parts, *cur_challenge))
           {
             TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, sending challenge");
             //record challenge failure
@@ -513,7 +519,7 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
         break;
 
       case ChallengeDefinition::CHALLENGE_AUTH:
-        if(!ChallengeManager::check_cookie("", transaction_parts.at(TransactionMuncher::COOKIE), transaction_parts.at(TransactionMuncher::IP), *cur_challenge))
+        if(!ChallengeManager::check_cookie("", transaction_parts, *cur_challenge))
           {
             TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, looking for magic word");
             //from cache
