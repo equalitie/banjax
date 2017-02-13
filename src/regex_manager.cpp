@@ -180,7 +180,7 @@ FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
   ats_record+= ats_record_parts[TransactionMuncher::HOST] + sep;
   ats_record+= ats_record_parts[TransactionMuncher::UA];
 
-  TSDebug(BANJAX_PLUGIN_NAME, "Examining %s for banned matches", ats_record.c_str());
+  TSDebug(BANJAX_PLUGIN_NAME, "Examining '%s' for banned matches", ats_record.c_str());
   pair<RegexResult,RatedRegex*> result = parse_request(
 						ats_record_parts[TransactionMuncher::IP],
 						ats_record

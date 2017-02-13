@@ -68,12 +68,9 @@ using namespace std;
  */
 class RegexManagerTest : public testing::Test {
  protected:
+  string TEMP_DIR = "/tmp";
 
-  string TEMP_DIR;
-  string TEST_CONF_FILE, TEST_CONF_FILE_SUB;
-
-  fstream  mock_config, mock_config_sub;
-  BanjaxFilter* test_regex_manager;
+  std::unique_ptr<BanjaxFilter> test_regex_manager;
 
   IPDatabase test_ip_database;
   SwabberInterface test_swabber_interface;
@@ -82,129 +79,54 @@ class RegexManagerTest : public testing::Test {
     :  test_swabber_interface(&test_ip_database)
   {}
 
-  virtual void SetUp() {
+  virtual void SetUp() { }
+  virtual void TearDown() { }
 
-    test_regex_manager = NULL;
-    TEMP_DIR = "/tmp";
-
-    //gtest is multip thread so we can't use the same file
-    //for them
-    char random_suffix[7];
-    sprintf(random_suffix,"%i", rand()%100000);
-    TEST_CONF_FILE = TEMP_DIR + "/test"+random_suffix+".conf";
-    try {
-      mock_config.open(TEST_CONF_FILE,ios::out);
-    }  catch (std::ifstream::failure e) {
-
-      ASSERT_TRUE(false);
-    }
-
-    mock_config << "regex_banner:" << endl;
-    mock_config << "  - rule: simple to ban" << endl;
-    mock_config << "    regex: \'.*simple_to_ban.*\'" << endl;
-    mock_config << "    interval: 1" << endl;
-    mock_config << "    hits_per_interval: 0" << endl;
-    mock_config << "  - rule: hard to ban" << endl;
-    mock_config << "    regex: \'.*not%20so%20simple%20to%20ban[\\s\\S]*\'" << endl;
-    mock_config << "    interval: 1" << endl;
-    mock_config << "    hits_per_interval: 0" << endl;
-    mock_config << "  - rule: \'flooding ban\' " << endl;
-    mock_config << "    regex: \'.*flooding_ban.*\'" << endl;
-    mock_config << "    interval: 30 " << endl;
-    mock_config << "    hits_per_interval: 10" << endl;
-    mock_config << "  - rule: \'flooding ban 2\' " << endl;
-    mock_config << "    regex: \'.*flooding_diff_ban.*\'" << endl;
-    mock_config << "    interval: 30 " << endl;
-    mock_config << "    hits_per_interval: 10" << endl;
-
-
-    // mock_config_sub << "regex_banner :" << endl;
-    // mock_config_sub << "{" << endl;
-    // mock_config_sub << "banned_regexes = ( {" << endl;
-    // mock_config_sub << "rule = \"simple to ban\"; " << endl;
-    // mock_config_sub << "regex = \".*simple_to_ban.*\";" << endl;
-    // mock_config_sub << "interval = 1; " << endl;
-    // mock_config_sub << "hits_per_interval = 0;" << endl;
-    // mock_config_sub << "}," << endl;
-    // mock_config_sub << "{ rule = \"hard to ban\"; " << endl;
-    // mock_config_sub << "regex = \".*not%20so%20simple%20to%20ban[\\s\\S]*\";" << endl;
-    // mock_config_sub << "interval = 1; " << endl;
-    // mock_config_sub << "hits_per_interval = 0;" << endl;
-    // mock_config_sub << "}," << endl;
-    // mock_config_sub << "{ rule = \"flooding ban\"; " << endl;
-    // mock_config_sub << "regex = \".*flooding_ban.*\";" << endl;
-    // mock_config_sub << "interval = 30; " << endl;
-    // mock_config_sub << "hits_per_interval = 10;" << endl;
-    // mock_config_sub << "}," << endl;
-    // mock_config_sub << "{ rule = \"flooding ban 2\"; " << endl;
-    // mock_config_sub << "regex = \".*flooding_diff_ban.*\";" << endl;
-    // mock_config_sub << "interval = 30; " << endl;
-    // mock_config_sub << "hits_per_interval = 10;" << endl;
-    // mock_config_sub << "});" << endl;
-    // mock_config_sub << "};" << endl;
-    mock_config.close();
-
-    // mock_config << "white_listed_ips: " << endl;
-    // mock_config << " - 127.0.0.1" << endl;
-    // mock_config << " - x.y.z.w" << endl;
-    // mock_config << "" << endl;
-    // mock_config << "botbanger_port: 1234" << endl;
-    // mock_config << "" << endl;
-    // mock_config << "challenger:" << endl;
-    // mock_config << "  key: testtest" << endl;
-    // mock_config << "  difficulty: 8" << endl;
-    // mock_config << "" << endl;
-    // mock_config << "include:" << endl;
-    // mock_config << " - " + TEST_CONF_FILE_SUB << endl;
-    // mock_config.close();
+  static std::string default_config() {
+    return
+      "regex_banner:\n"
+      "  - rule: simple to ban\n"
+      "    regex: '.*simple_to_ban.*'\n"
+      "    interval: 1\n"
+      "    hits_per_interval: 0\n"
+      "  - rule: hard to ban\n"
+      "    regex: '.*not%20so%20simple%20to%20ban[\\s\\S]*'\n"
+      "    interval: 1\n"
+      "    hits_per_interval: 0\n"
+      "  - rule: 'flooding ban' \n"
+      "    regex: '.*flooding_ban.*'\n"
+      "    interval: 30 \n"
+      "    hits_per_interval: 10\n"
+      "  - rule: 'flooding ban 2' \n"
+      "    regex: '.*flooding_diff_ban.*'\n"
+      "    interval: 30 \n"
+      "    hits_per_interval: 10\n";
   }
 
-  //if there is no way to feed an sstream to
-  //to config reader then we might need to close the file
-  //tear down. More importantly we need to make the file in case of non
-  //existence anyways
-  virtual void TearDown() {
-   string rm_command("rm ");
-   rm_command += TEST_CONF_FILE;
-   int r = system(rm_command.c_str());
-   (void)r;
-
-   delete test_regex_manager;
-  }
-
-  void open_config()
+  void open_config(std::string config = default_config())
   {
-    YAML::Node cfg;
-    try  {
-      cfg= YAML::LoadFile(TEST_CONF_FILE.c_str());
-    }
-    catch(YAML::BadFile& e) {
-      ASSERT_TRUE(false);
-    }
-    catch(YAML::ParserException& e)
-      {
-        ASSERT_TRUE(false);
-      }
+    YAML::Node cfg = YAML::Load(config);
 
     FilterConfig regex_filter_config;
 
     try {
-      for(YAML::const_iterator subit = cfg.begin(); subit!=cfg.end();++subit) {
-        std::string node_name = (*subit).first.as<std::string>();
+      for(auto i = cfg.begin(); i != cfg.end(); ++i) {
+        std::string node_name = i->first.as<std::string>();
         if (node_name == "regex_banner")
-          regex_filter_config.config_node_list.push_back(subit);
+          regex_filter_config.config_node_list.push_back(i);
       }
-
     }
     catch(YAML::RepresentationException& e)
     {
       ASSERT_TRUE(false);
     }
 
-    test_regex_manager = new RegexManager(TEMP_DIR, regex_filter_config, &test_ip_database, &test_swabber_interface);
-
+    test_regex_manager.reset(
+        new RegexManager(TEMP_DIR,
+                         regex_filter_config,
+                         &test_ip_database,
+                         &test_swabber_interface));
   }
-
 };
 
 /**
@@ -233,7 +155,34 @@ TEST_F(RegexManagerTest, match)
   FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
 
   EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
+}
 
+/**
+ * A test to fix a github issue:
+ * https://github.com/equalitie/banjax/issues/35
+ */
+TEST_F(RegexManagerTest, match_blank)
+{
+  auto config =
+    "regex_banner:\n"
+    "  - rule: simple to ban\n"
+    "    regex: '^GET\\ .*mywebsite\\.org\\ $'\n"
+    "    interval: 1\n"
+    "    hits_per_interval: 0\n";
+
+  open_config(config);
+
+  //first we make a mock up request
+  TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::METHOD] = "GET";
+  mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
+  mock_transaction[TransactionMuncher::URL] = "http:///";
+  mock_transaction[TransactionMuncher::HOST] = "mywebsite.org";
+  mock_transaction[TransactionMuncher::UA] = "";
+
+  FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
+
+  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
 }
 
 /**
@@ -241,7 +190,6 @@ TEST_F(RegexManagerTest, match)
  */
 TEST_F(RegexManagerTest, miss)
 {
-
   open_config();
 
   //first we make a mock up request
@@ -331,7 +279,7 @@ TEST_F(RegexManagerTest, forbidden_response)
 
   EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
 
-  EXPECT_FALSE(strcmp("<html><header></header><body>Forbidden</body></html>", test_regex_manager->generate_response(mock_transaction, cur_filter_result).c_str()));
+  EXPECT_EQ("<html><header></header><body>Forbidden</body></html>", test_regex_manager->generate_response(mock_transaction, cur_filter_result));
 
 }
 
