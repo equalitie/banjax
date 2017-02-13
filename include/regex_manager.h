@@ -40,17 +40,17 @@ struct RegexState {
 
   RegexState():begin_msec(0), rate(0.0) {};
 };
-  
+
 union RegexStateUnion {
   FilterStateUnit state_allocator[NO_OF_STATE_UNIT_PER_REGEX];
   RegexState regex_state;
-RegexStateUnion(): state_allocator() {}  
+RegexStateUnion(): state_allocator() {}
 };
 
 class RegexManager : public BanjaxFilter
 {
  protected:
-  //We store the forbidden message at the begining so we can copy it fast 
+  //We store the forbidden message at the begining so we can copy it fast
   //everytime. It is being stored here for being used again
   //ATS barf if you give it the message in const memory
   const std::string forbidden_message;
@@ -59,7 +59,7 @@ class RegexManager : public BanjaxFilter
   //list of compiled banning_regex, called for matching everytime
   //the filter get a new connection
   //the idea is that the regex can add stuff at the end
-  std::list<RatedRegex*> rated_banning_regexes;
+  std::list<std::unique_ptr<RatedRegex>> rated_banning_regexes;
   unsigned int total_no_of_rules;
 
   //swabber object used for banning bots
@@ -70,6 +70,8 @@ class RegexManager : public BanjaxFilter
     REGEX_MISSED,
     REGEX_MATCHED
   };
+
+ protected:
   /**
     applies all regex to an ATS record
 
@@ -77,8 +79,9 @@ class RegexManager : public BanjaxFilter
     @return: pair of 1 match 0 not match < 0 error and
              the matched regex (for loging) or NULL in miss
   */
-
   std::pair<RegexResult,RatedRegex*> parse_request(std::string ip, std::string ats_record);
+
+ public:
   /**
      receives the db object need to read the regex list,
      subsequently it reads all the regexs
@@ -108,12 +111,12 @@ class RegexManager : public BanjaxFilter
      At this point we only asks for url, host and user agent
      later we can ask more if it is needed
    */
-  uint64_t requested_info() { return 
+  uint64_t requested_info() { return
       TransactionMuncher::IP     |
       TransactionMuncher::METHOD |
       TransactionMuncher::URL    |
       TransactionMuncher::HOST   |
-      TransactionMuncher::UA;}    
+      TransactionMuncher::UA;}
 
   /**
      overloaded execute to execute the filter, it assemble the
@@ -124,5 +127,5 @@ class RegexManager : public BanjaxFilter
   virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
 
 };
-  
+
 #endif /* regex_manager.h */

@@ -32,39 +32,42 @@ using namespace std;
 void
 RegexManager::load_config()
 {
-   try
-   {
-     TSDebug(BANJAX_PLUGIN_NAME, "Setting regex re2 options");
-     RE2::Options opt;
-     opt.set_log_errors(false);
-     opt.set_perl_classes(true);
-     opt.set_posix_syntax(true);
+  try
+  {
+    TSDebug(BANJAX_PLUGIN_NAME, "Setting regex re2 options");
+    RE2::Options opt;
+    opt.set_log_errors(false);
+    opt.set_perl_classes(true);
+    opt.set_posix_syntax(true);
 
-     TSDebug(BANJAX_PLUGIN_NAME, "Loading regex manager conf");
-     //now we compile all of them and store them for later use
-     unsigned int cur_id = 0;
-     for(YAML::const_iterator it = cfg.begin(); it != cfg.end(); ++it, cur_id++) {
-       string cur_rule = (const char*) (*it)["rule"].as<std::string>().c_str();
+    TSDebug(BANJAX_PLUGIN_NAME, "Loading regex manager conf");
 
-       TSDebug(BANJAX_PLUGIN_NAME, "initiating rule %s", cur_rule.c_str());
+    //now we compile all of them and store them for later use
+    for(auto it = cfg.begin(); it != cfg.end(); ++it) {
+      string cur_rule = (*it)["rule"].as<std::string>();
 
-       unsigned int observation_interval = (*it)["interval"].as<unsigned int>();
-       unsigned int threshold  = (*it)["hits_per_interval"].as<unsigned int>();
+      TSDebug(BANJAX_PLUGIN_NAME, "initiating rule %s", cur_rule.c_str());
 
-       rated_banning_regexes.push_back(new RatedRegex(cur_id, cur_rule, new RE2((const char*)((*it)["regex"].as<std::string>().c_str()), opt), observation_interval * 1000, threshold /(double)(observation_interval* 1000)));
+      unsigned int observation_interval = (*it)["interval"].as<unsigned int>();
+      unsigned int threshold  = (*it)["hits_per_interval"].as<unsigned int>();
 
-     }
-
-     total_no_of_rules = cur_id;
+      rated_banning_regexes.emplace_back(
+          new RatedRegex(rated_banning_regexes.size(),
+                         cur_rule,
+                         new RE2(((*it)["regex"].as<std::string>()), opt),
+                         observation_interval * 1000,
+                         threshold /(double)(observation_interval* 1000)));
     }
-   catch(YAML::RepresentationException& e)
-     {
-       TSDebug(BANJAX_PLUGIN_NAME, "Error loading regex manager conf [%s].", e.what());
-       throw;
-     }
 
-   TSDebug(BANJAX_PLUGIN_NAME, "Done loading regex manager conf");
+    total_no_of_rules = rated_banning_regexes.size();
+  }
+  catch(YAML::RepresentationException& e)
+  {
+    TSDebug(BANJAX_PLUGIN_NAME, "Error loading regex manager conf [%s].", e.what());
+    throw;
+  }
 
+  TSDebug(BANJAX_PLUGIN_NAME, "Done loading regex manager conf");
 }
 
 /**
@@ -78,14 +81,14 @@ RegexManager::parse_request(string ip, string ats_record)
 {
   std::pair<bool, FilterState> cur_ip_state;
 
-  for(list<RatedRegex*>::iterator it=rated_banning_regexes.begin(); it != rated_banning_regexes.end(); it++) {
+  for(auto it=rated_banning_regexes.begin(); it != rated_banning_regexes.end(); it++) {
     if (RE2::FullMatch(ats_record, *((*it)->re2_regex))) {
-        TSDebug(BANJAX_PLUGIN_NAME, "requests matched %s", (char*)((*it)->re2_regex->pattern()).c_str());
+        TSDebug(BANJAX_PLUGIN_NAME, "requests matched %s", ((*it)->re2_regex->pattern()).c_str());
         //if it is a simple regex i.e. with rate 0 we bans immidiately without
         //wasting time and mem
         if ((*it)->rate == 0) {
-            TSDebug(BANJAX_PLUGIN_NAME, "simple regex, ban immediately");
-            return make_pair(REGEX_MATCHED, (*it));
+          TSDebug(BANJAX_PLUGIN_NAME, "simple regex, ban immediately");
+          return make_pair(REGEX_MATCHED, (*it).get());
         }
         //select appropriate rate, dependent on whether GET or POST request
 
@@ -104,7 +107,6 @@ RegexManager::parse_request(string ip, string ats_record)
         //if we succeeded in retreiving but the size is zero then it meaens we don't have a record of this ip at all
         if (cur_ip_state.second.size() == 0) {
           cur_ip_state.second.resize(total_no_of_rules * NO_OF_STATE_UNIT_PER_REGEX);
-
         }
 
         //now we check the begining of the hit for this regex (if the vector is just created everything is 0, in case
@@ -117,7 +119,6 @@ RegexManager::parse_request(string ip, string ats_record)
         //the current regex
         if (cur_ip_and_regex_state.regex_state.begin_msec == 0) {
           cur_ip_and_regex_state.regex_state.begin_msec = cur_time_msec;
-
         }
 
         //now we have a record, update the rate and ban if necessary.
@@ -126,8 +127,8 @@ RegexManager::parse_request(string ip, string ats_record)
         long time_window_movement = cur_time_msec - cur_ip_and_regex_state.regex_state.begin_msec - (*it)->interval;
         if (time_window_movement > 0) { //we need to move
            cur_ip_and_regex_state.regex_state.begin_msec += time_window_movement;
-           cur_ip_and_regex_state.regex_state.rate= cur_ip_and_regex_state.regex_state.rate - (cur_ip_and_regex_state.regex_state.rate * time_window_movement - 1)/(double) (*it)->interval;
-           cur_ip_and_regex_state.regex_state.rate =  cur_ip_and_regex_state.regex_state.rate < 0 ? 1/(double) (*it)->interval : cur_ip_and_regex_state.regex_state.rate; //if time_window_movement > time_window_movement(*it)->interval, then we just wipe history and start as a new interval
+           cur_ip_and_regex_state.regex_state.rate = cur_ip_and_regex_state.regex_state.rate - (cur_ip_and_regex_state.regex_state.rate * time_window_movement - 1)/(double) (*it)->interval;
+           cur_ip_and_regex_state.regex_state.rate = cur_ip_and_regex_state.regex_state.rate < 0 ? 1/(double) (*it)->interval : cur_ip_and_regex_state.regex_state.rate; //if time_window_movement > time_window_movement(*it)->interval, then we just wipe history and start as a new interval
          }
          else {
            //we are still in the same interval so just increase the hit by 1
@@ -156,10 +157,9 @@ RegexManager::parse_request(string ip, string ats_record)
           //memory.
 
           ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.second);
-          return make_pair(REGEX_MATCHED, (*it));
+          return make_pair(REGEX_MATCHED, (*it).get());
         }
     }
-
   }
 
   //if we managed to get/make a valid state we are going to store it
@@ -168,7 +168,6 @@ RegexManager::parse_request(string ip, string ats_record)
 
   //no match
   return make_pair(REGEX_MISSED, (RatedRegex*)NULL);
-
 }
 
 FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
