@@ -8,6 +8,7 @@
 #include <ts/ts.h>
 #include <regex.h>
 #include <string.h>
+#include <iostream>
 
 #include <string>
 #include <vector>

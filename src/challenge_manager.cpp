@@ -102,7 +102,7 @@ ChallengeManager::load_config(YAML::Node& cfg, const std::string& banjax_dir)
        // TODO(oschaaf): host name can be configured twice, and could except here
        std::string challenge_file;
        if ((*it)["challenge"])
-         challenge_file = (const char*)(*it)["challenge"].as<std::string>().c_str();
+         challenge_file = (*it)["challenge"].as<std::string>();
 
        // If no file is configured, default to hard coded solver_page.
        if (challenge_file.size() == 0) {

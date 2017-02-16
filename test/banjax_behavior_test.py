@@ -15,18 +15,37 @@ import unittest
 
 from pdb import set_trace as tr
 
+auth_challenge_config = (
+    "challenger:\n"
+    "    difficulty: 0\n"
+    "    key: 'allwearesayingisgivewarachance'\n"
+    "    challenges:\n"
+    "      - name: 'example.co_auth'\n"
+    "        domains:\n"
+    "         - 'localhost:8080'\n"
+    "         - '127.0.0.1:8080'\n"
+    "        challenge_type: 'auth'\n"
+    "        challenge: 'auth.html'\n"
+    "        password_hash: 'BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM='\n"
+    "        # sha256('howisbabbyformed?')\n"
+    "        magic_word: 'iloveyoumoinonplus'\n"
+    "        magic_word_exceptions: ['wp-admin/admin.ajax.php']\n"
+    "        validity_period: 120\n"
+    "        no_of_fails_to_ban: 10\n");
+
 class BanjaxBehaviorTest(unittest.TestCase):
 
     BANNED_URL = "localhost/vmon"
     BANNED_MESSAGE = "<html><header></header><body>Forbidden</body></html>"
-    ATS_HOST = "127.0.0.1"
+    #ATS_HOST = "127.0.0.1:8080"
+    ATS_HOST = "localhost:8080"
 
-    MAGIC_WORD = "iloveyoumoinonplus"
-    AUTH_COOKIE = "deflect=DeeiSdkg/fu1w5hnq0p9V1A/fXawj5/TAAAAAAuRHVwMK26GySv0PJmDDd7QccMDiJSU/3uffRiGLQ60s="
+    MAGIC_WORD      = "iloveyoumoinonplus"
+    AUTH_COOKIE     = "deflect=m/FW19g3DzzDxDrC2eM+Zn+KsZP5fAmRAAAAAA==bNfg7zBaZHmqSwiLtvKpqzi4QFt/bknzYOmjjbaPhe8="
     BAD_AUTH_COOKIE = "deflect=DeeiSdkg/fu1w5hnq0p9V1A/fXawj5/TAAAAAAuwxyzabcdefghijklmnopqrstuvwxyz3uffRiGLQ60s="
-    AUTH_PAGE = "auth.html"
-    CACHED_PAGE = "cached_page.html"
-    UNCACHED_PAGE = "uncached_page.html"
+    AUTH_PAGE       = "auth.html"
+    CACHED_PAGE     = "cached_page.html"
+    UNCACHED_PAGE   = "uncached_page.html"
 
     STD_OUT = 0
     STD_ERR = 1
@@ -40,19 +59,6 @@ class BanjaxBehaviorTest(unittest.TestCase):
     banjax_test_dir = "/root/dev/banjax/test"
     ats_bin_dir = "/usr/local/trafficserver/bin"
     http_doc_root = "/var/www"
-
-    # def __init__(self, banjax_dir = "/usr/local/trafficserver/modules/banjax"):
-    #     """
-    #     Set the banjax directory in the ats module directory. this is where the
-    #     config file lives which needs to be backed up before testing
-
-    #     INPUT::
-    #        banjax_dir: the directory that contains banjax file. it is
-    #                    /usr/local/trafficserver/modules/banjax
-    #                    on a typical deflect edge
-    #     """
-    #     BanjaxBehaviorTest.banjax_dir = banjax_dir
-    #     unittest.TestCase.__init__(self)
 
     #Auxilary functions
     def read_page(self, page_filename):
@@ -71,12 +77,16 @@ class BanjaxBehaviorTest(unittest.TestCase):
         return os.path.exists(BanjaxBehaviorTest.banjax_dir + "/banjax.conf") and True or False
 
     def backup_config(self):
-        shutil.copyfile(BanjaxBehaviorTest.banjax_dir + "/banjax.conf", BanjaxBehaviorTest.banjax_dir + "/banjax.conf.tmpbak")
-        return os.path.exists(BanjaxBehaviorTest.banjax_dir + "/banjax.conf.tmpbak")
+        bck = BanjaxBehaviorTest.banjax_dir + "/banjax.conf.tmpbak"
+        orig = BanjaxBehaviorTest.banjax_dir + "/banjax.conf"
 
-    def replace_config(self, new_config_filename):
-        shutil.copyfile(self.banjax_test_dir + "/" + new_config_filename , BanjaxBehaviorTest.banjax_dir + "/banjax.conf")
-        #We need to restart ATS to make banjax to read the config again
+        if not os.path.exists(orig):
+            return True
+
+        shutil.copyfile(orig, bck)
+        return os.path.exists(bck)
+
+    def restart_traffic_server(self):
         traffic_proc = subprocess.Popen([BanjaxBehaviorTest.ats_bin_dir + "/trafficserver", "restart"],
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
@@ -87,11 +97,36 @@ class BanjaxBehaviorTest(unittest.TestCase):
         return (traffic_proc.stdout.read(), traffic_proc.stderr.read())
         return ('','')
 
+    def stop_traffic_server(self):
+        traffic_proc = subprocess.Popen([BanjaxBehaviorTest.ats_bin_dir + "/trafficserver", "stop"],
+                         stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+        traffic_proc.wait()
+
+    def replace_config(self, new_config_filename):
+        shutil.copyfile(self.banjax_test_dir + "/" + new_config_filename , BanjaxBehaviorTest.banjax_dir + "/banjax.conf")
+        #We need to restart ATS to make banjax to read the config again
+        return self.restart_traffic_server()
+
+    def replace_config2(self, config_string):
+        config_path = BanjaxBehaviorTest.banjax_dir + "/banjax.conf"
+        config = open(config_path, 'w')
+        config.write(config_string)
+        config.close()
+        #We need to restart ATS to make banjax to read the config again
+        return self.restart_traffic_server()
+
     def put_page(self, page_filename):
         shutil.copyfile(BanjaxBehaviorTest.banjax_test_dir + "/" + page_filename, BanjaxBehaviorTest.http_doc_root + "/" +page_filename)
 
     def replace_page(self, page_old, page_new):
         shutil.copyfile(BanjaxBehaviorTest.banjax_test_dir + "/" + page_new, BanjaxBehaviorTest.http_doc_root + "/" +page_old)
+
+    def write_page(self, page_name, content):
+        page = open(BanjaxBehaviorTest.http_doc_root + "/" + page_name, 'w')
+        page.write(content)
+        page.close()
 
     def remove_page(self, page_filename):
         shutil.remove(BanjaxBehaviorTest.http_doc_root + "/" + page_filename)
@@ -107,34 +142,14 @@ class BanjaxBehaviorTest(unittest.TestCase):
     def setUp(self):
         #check if the user has provided us with the config directory of
         #ATS or we should use the default
-        self.assertEqual(self.check_config_exists(),True)
+        #self.assertEqual(self.check_config_exists(),True)
 
         self.read_solver_body()
-        self.try_to_recover_backup_config()
+        #self.try_to_recover_backup_config()
         self.assertEqual(self.backup_config(), True)
 
     def tearDown(self):
-        self.try_to_recover_backup_config()
-
-    # def doTest(self, label, st_args):
-    #     st = Stegotorus(st_args)
-    #     tester = Tltester(self.scriptFile,
-    #                       ("127.0.0.1:4999", "127.0.0.1:5001"))
-    #     errors = ""
-    #     try:
-    #         testtl = tester.check_completion(label + " tester")
-    #         if testtl != self.reftl:
-    #             errors += diff("errors in transfer:", self.reftl, testtl)
-
-    #     except AssertionError, e:
-    #         errors += e.message
-    #     except Exception, e:
-    #         errors += repr(e)
-
-    #     errors += st.check_completion(label + " proxy", errors != "")
-
-    #     if errors != "":
-    #         self.fail("\n" + errors)
+        self.stop_traffic_server()
 
     def ntest_request_banned_url(self):
         result = self.replace_config("banned_url_test.conf")
@@ -160,7 +175,7 @@ class BanjaxBehaviorTest(unittest.TestCase):
         from origin everytime
         """
         #Auth page
-        result = self.replace_config("auth_challenge_test.conf")
+        result = self.replace_config2(auth_challenge_config)
         self.assertEqual(result[BanjaxBehaviorTest.STD_ERR], "")
         result = self.do_curl(BanjaxBehaviorTest.ATS_HOST + "/" +BanjaxBehaviorTest.MAGIC_WORD)
         self.assertEqual(result[BanjaxBehaviorTest.STD_OUT][:BanjaxBehaviorTest.COMP_LEN],self.read_page(BanjaxBehaviorTest.AUTH_PAGE)[:BanjaxBehaviorTest.COMP_LEN]);
@@ -187,19 +202,36 @@ class BanjaxBehaviorTest(unittest.TestCase):
         The test simulate entering a wrong password in the auth challenge
         a banned message is expected to be served
         """
-        result = self.replace_config("auth_challenge_test.conf")
+        # NOTE: This test requires the record.config option 'required_headers' set to zero
+        #       CONFIG proxy.config.http.cache.required_headers INT 0
+
+        # TODO: This test sometimes fails because the first time a page is downloaded
+        #       it is already cached. So figure out how to clear the cache on the
+        #       traffic server before the below code is executed.
+        #       NOTE: TS v7.2 this can be done with `traffic_ctl server --clear-cache`
+        #             but I haven't yet found a way how to do it with previous versions.
+        page       = BanjaxBehaviorTest.CACHED_PAGE
+        host       = BanjaxBehaviorTest.ATS_HOST
+        bad_cookie = BanjaxBehaviorTest.BAD_AUTH_COOKIE
+
+        def html(body):
+            return "<html><body>" + body + "</body></html>"
+
+        result = self.replace_config2(auth_challenge_config)
         self.assertEqual(result[BanjaxBehaviorTest.STD_ERR], "")
+
         #request to guarantee cache
-        self.put_page(BanjaxBehaviorTest.CACHED_PAGE)
-        result = self.do_curl(BanjaxBehaviorTest.ATS_HOST + "/" + BanjaxBehaviorTest.CACHED_PAGE, cookie = BanjaxBehaviorTest.BAD_AUTH_COOKIE)
-        self.assertEqual(result[self.STD_OUT], self.read_page(BanjaxBehaviorTest.CACHED_PAGE))
+        self.write_page(page, html("body 0"))
+        result = self.do_curl(host + "/" + page, cookie = bad_cookie)
+        self.assertEqual(result[self.STD_OUT], html("body 0"))
 
         #check if it is reading from cache if the cookie is bad
-        self.replace_page(BanjaxBehaviorTest.CACHED_PAGE,BanjaxBehaviorTest.UNCACHED_PAGE)
-        result = self.do_curl(BanjaxBehaviorTest.ATS_HOST + "/" + BanjaxBehaviorTest.CACHED_PAGE, cookie = BanjaxBehaviorTest.BAD_AUTH_COOKIE)
-        self.assertEqual(result[self.STD_OUT],self.read_page(BanjaxBehaviorTest.CACHED_PAGE));
+        self.write_page(page, html("body 1"))
+        result = self.do_curl(host + "/" + page, cookie = bad_cookie)
+        self.assertEqual(result[self.STD_OUT], html("body 0"))
 
-    def test_auth_challenged_unchallenged_cached(self):
+
+    def ntest_auth_challenged_unchallenged_cached(self):
         """
         This test request a website with auth challenge but it does
         not invoke the magic word, hence ATS should serve the page
