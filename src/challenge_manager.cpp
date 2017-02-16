@@ -386,7 +386,6 @@ void ChallengeManager::generate_html(
     }
 
     return;
-
   }
 
   //if the challenge is solvig SHA inverse image or auth
@@ -507,50 +506,43 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
         break;
 
       case ChallengeDefinition::CHALLENGE_AUTH:
-        if(!ChallengeManager::check_cookie("", transaction_parts, *cur_challenge))
-          {
-            TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, looking for magic word");
-            //from cache
-            //If the url has the magic word to activate the auth challenge
-            //    Check if the auth cookie is valid
-            //      return FilterResponse(FilterResponse::SERVE_FRESH);
-            //    eles
-            //      do all failure/banning ritual?
-            //record challenge failure
+        if(ChallengeManager::check_cookie("", transaction_parts, *cur_challenge)) {
+          // Success response in auth means don't serve
+          report_success(transaction_parts.at(TransactionMuncher::IP));
+          return FilterResponse(FilterResponse::SERVE_FRESH);
+        }
+        else {
+          TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, looking for magic word");
 
-            if (needs_authentication(transaction_parts.at(TransactionMuncher::URL_WITH_HOST), *cur_challenge)) {
-              FilterResponse failure_response(FilterResponse::I_RESPOND, (void*) new ChallengerExtendedResponse(challenger_resopnder, cur_challenge));
+          if (needs_authentication(transaction_parts.at(TransactionMuncher::URL_WITH_HOST), *cur_challenge)) {
+            FilterResponse failure_response(FilterResponse::I_RESPOND,
+                                            (void*) new ChallengerExtendedResponse(challenger_resopnder,
+                                                                                   cur_challenge));
 
-              FilterExtendedResponse* ext_response = ((FilterExtendedResponse*)(failure_response.response_data));
+            FilterExtendedResponse* ext_response = ((FilterExtendedResponse*)(failure_response.response_data));
 
-              if (cur_challenge->fail_tolerance_threshold) {
-                ext_response->banned_ip
-                    = report_failure(cur_challenge, transaction_parts);
-              }
-
-              // We need to clear out the cookie here, to make sure switching from
-              // challenge type (captcha->computational) doesn't end up in an infinite reload
-              ext_response->set_cookie_header.append("deflect=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly");
-              return failure_response;
+            if (cur_challenge->fail_tolerance_threshold) {
+              ext_response->banned_ip
+                  = report_failure(cur_challenge, transaction_parts);
             }
-            else {
-              // This is a normal client reading website not participating in
-              // auth challenge, so just go ahead without comment
-              break;
-            }
+
+            // We need to clear out the cookie here, to make sure switching from
+            // challenge type (captcha->computational) doesn't end up in an infinite reload
+            ext_response->set_cookie_header.append("deflect=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly");
+            return failure_response;
           }
-
-        //here means auth cookie was good
-        success_response = FilterResponse::SERVE_FRESH; //success response in auth means don't serve
-        goto done_with_challenges;
+          else {
+            // This is a normal client reading website not participating in
+            // auth challenge, so just go ahead without comment
+            break;
+          }
+        }
         break;
       }
   }
 
-done_with_challenges:
   report_success(transaction_parts.at(TransactionMuncher::IP));
   return FilterResponse(success_response);
-
 }
 
 bool ChallengeManager::needs_authentication(const std::string& url, const HostChallengeSpec& challenge) const {
