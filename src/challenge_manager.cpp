@@ -164,13 +164,12 @@ ChallengeManager::load_config(YAML::Node& cfg, const std::string& banjax_dir)
      number_of_trailing_zeros = cfg["difficulty"].as<unsigned int>();
      assert(!(number_of_trailing_zeros % 4));
      zeros_in_javascript = string(number_of_trailing_zeros / 4, '0');
-
    }
    catch(YAML::RepresentationException& e) {
      TSDebug(BANJAX_PLUGIN_NAME, "Bad config for filter %s: %s", BANJAX_FILTER_NAME.c_str(), e.what());
      throw;
-
    }
+
    TSDebug(BANJAX_PLUGIN_NAME, "Done loading challenger manager conf");
 
    // load the page

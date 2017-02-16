@@ -30,7 +30,7 @@ void GenerateCookieHash(uchar *captcha,uchar *secret,time_t valid_till_timestamp
   ibufp+=tlen;
   unsigned int totallen=ibufp-ibuf;
   unsigned int retlen=HASH_LENGTH;
-  HMAC(EVP_sha1(),secret,SECRET_LENGTH,ibuf,totallen,obuf,&retlen);  
+  HMAC(EVP_sha1(),secret,SECRET_LENGTH,ibuf,totallen,obuf,&retlen);
 }
 
 // Generate a cookie over :
