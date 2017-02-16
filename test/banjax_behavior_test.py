@@ -231,13 +231,13 @@ class BanjaxBehaviorTest(unittest.TestCase):
         self.assertEqual(result[self.STD_OUT], html("body 0"))
 
 
-    def ntest_auth_challenged_unchallenged_cached(self):
+    def test_auth_challenged_unchallenged_cached(self):
         """
         This test request a website with auth challenge but it does
         not invoke the magic word, hence ATS should serve the page
         through cache consitantly
         """
-        result = self.replace_config("auth_challenge_test.conf")
+        result = self.replace_config2(auth_challenge_config)
         self.assertEqual(result[BanjaxBehaviorTest.STD_ERR], "")
         self.put_page(BanjaxBehaviorTest.CACHED_PAGE)
         result = self.do_curl(BanjaxBehaviorTest.ATS_HOST + "/" + BanjaxBehaviorTest.CACHED_PAGE)
