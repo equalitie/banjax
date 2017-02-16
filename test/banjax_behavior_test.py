@@ -15,24 +15,6 @@ import unittest
 
 from pdb import set_trace as tr
 
-auth_challenge_config = (
-    "challenger:\n"
-    "    difficulty: 0\n"
-    "    key: 'allwearesayingisgivewarachance'\n"
-    "    challenges:\n"
-    "      - name: 'example.co_auth'\n"
-    "        domains:\n"
-    "         - 'localhost:8080'\n"
-    "         - '127.0.0.1:8080'\n"
-    "        challenge_type: 'auth'\n"
-    "        challenge: 'auth.html'\n"
-    "        password_hash: 'BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM='\n"
-    "        # sha256('howisbabbyformed?')\n"
-    "        magic_word: 'iloveyoumoinonplus'\n"
-    "        magic_word_exceptions: ['wp-admin/admin.ajax.php']\n"
-    "        validity_period: 120\n"
-    "        no_of_fails_to_ban: 10\n");
-
 class BanjaxBehaviorTest(unittest.TestCase):
 
     BANNED_URL = "localhost/vmon"
@@ -47,20 +29,34 @@ class BanjaxBehaviorTest(unittest.TestCase):
     CACHED_PAGE     = "cached_page.html"
     UNCACHED_PAGE   = "uncached_page.html"
 
-    STD_OUT = 0
-    STD_ERR = 1
-
     SOLVER_PAGE_PREFIX_LEN = 100;
     COMP_LEN = 100;
 
-    ATS_INIT_DELAY = 5
+    ATS_INIT_DELAY = 6
 
-    banjax_dir = "/usr/local/trafficserver/modules/banjax"
+    banjax_dir      = "/usr/local/trafficserver/modules/banjax"
     banjax_test_dir = "/root/dev/banjax/test"
-    ats_bin_dir = "/usr/local/trafficserver/bin"
-    http_doc_root = "/var/www"
+    ats_bin_dir     = "/usr/local/trafficserver/bin"
+    http_doc_root   = "/var/www"
 
-    #Auxilary functions
+    AUTH_CHALLENGE_CONFIG = (
+        "challenger:\n"
+        "    difficulty: 0\n"
+        "    key: 'allwearesayingisgivewarachance'\n"
+        "    challenges:\n"
+        "      - name: 'example.co_auth'\n"
+        "        domains:\n"
+        "         - '"+ATS_HOST+"'\n"
+        "        challenge_type: 'auth'\n"
+        "        challenge: 'auth.html'\n"
+        "        password_hash: 'BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM='\n"
+        "        # sha256('howisbabbyformed?')\n"
+        "        magic_word: '"+MAGIC_WORD+"'\n"
+        "        magic_word_exceptions: ['wp-admin/admin.ajax.php']\n"
+        "        validity_period: 120\n"
+        "        no_of_fails_to_ban: 10\n");
+
+    # Auxilary functions
     def read_page(self, page_filename):
         page_file  = open(BanjaxBehaviorTest.banjax_test_dir + "/"+ page_filename, 'rb')
         return page_file.read()
@@ -68,23 +64,6 @@ class BanjaxBehaviorTest(unittest.TestCase):
     def read_solver_body(self):
         solver_body = open(BanjaxBehaviorTest.banjax_dir + "/solver.html")
         self.SOLVER_PAGE_PREFIX = solver_body.read(self.SOLVER_PAGE_PREFIX_LEN)
-
-    def try_to_recover_backup_config(self):
-        if (os.path.exists(BanjaxBehaviorTest.banjax_dir + "/banjax.conf.tmpbak")):
-            shutil.copyfile(BanjaxBehaviorTest.banjax_dir + "/banjax.conf.tmpbak", BanjaxBehaviorTest.banjax_dir + "/banjax.conf")
-
-    def check_config_exists(self):
-        return os.path.exists(BanjaxBehaviorTest.banjax_dir + "/banjax.conf") and True or False
-
-    def backup_config(self):
-        bck = BanjaxBehaviorTest.banjax_dir + "/banjax.conf.tmpbak"
-        orig = BanjaxBehaviorTest.banjax_dir + "/banjax.conf"
-
-        if not os.path.exists(orig):
-            return True
-
-        shutil.copyfile(orig, bck)
-        return os.path.exists(bck)
 
     def restart_traffic_server(self):
         traffic_proc = subprocess.Popen([BanjaxBehaviorTest.ats_bin_dir + "/trafficserver", "restart"],
@@ -94,8 +73,8 @@ class BanjaxBehaviorTest(unittest.TestCase):
         traffic_proc.wait()
         import time
         time.sleep(BanjaxBehaviorTest.ATS_INIT_DELAY)
-        return (traffic_proc.stdout.read(), traffic_proc.stderr.read())
-        return ('','')
+        self.assertEqual(traffic_proc.stderr.read(), "")
+        return traffic_proc.stdout.read()
 
     def stop_traffic_server(self):
         traffic_proc = subprocess.Popen([BanjaxBehaviorTest.ats_bin_dir + "/trafficserver", "stop"],
@@ -128,45 +107,36 @@ class BanjaxBehaviorTest(unittest.TestCase):
         page.write(content)
         page.close()
 
-    def remove_page(self, page_filename):
-        shutil.remove(BanjaxBehaviorTest.http_doc_root + "/" + page_filename)
-
-    def do_curl(self, url, cookie= None):
+    def do_curl(self, url, cookie = None):
         curl_cmd = ["curl", url] + (cookie and ["--cookie", cookie] or [])
         curl_proc = subprocess.Popen(curl_cmd,
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
-        return (curl_proc.stdout.read(), curl_proc.stderr.read())
+
+        return curl_proc.stdout.read()
 
     def setUp(self):
-        #check if the user has provided us with the config directory of
-        #ATS or we should use the default
-        #self.assertEqual(self.check_config_exists(),True)
-
         self.read_solver_body()
-        #self.try_to_recover_backup_config()
-        self.assertEqual(self.backup_config(), True)
 
     def tearDown(self):
         self.stop_traffic_server()
 
     def ntest_request_banned_url(self):
-        result = self.replace_config("banned_url_test.conf")
-        self.assertEqual(result[self.STD_ERR], "")
+        self.replace_config("banned_url_test.conf")
         result = self.do_curl(self.BanjaxBehaviorTest.BANNED_URL)
-        self.assertEqual(result[self.STD_OUT],self.BANNED_MESSAGE);
+        self.assertEqual(result,self.BANNED_MESSAGE);
 
     def ntest_unbanned_challenged_url(self):
         self.replace_config("challenged_url_test.conf")
         result = self.do_curl(ALLOWED_URL)
-        self.assertEqual(result[self.STD_OUT][0:self.SOLVER_PAGE_PREFIX_LEN],self.SOLVER_PAGE_PREFIX);
+        self.assertEqual(result[0:self.SOLVER_PAGE_PREFIX_LEN],self.SOLVER_PAGE_PREFIX);
 
     def ntest_unchallenged_white_listed_ip(self):
         tr()
         self.replace_config("white_listed.conf")
         result = self.do_curl(BanjaxBehaviorTest.BANNED_URL)
-        self.assertEqual(result[self.STD_OUT],self.ALLOWED_PAGE);
+        self.assertEqual(result,self.ALLOWED_PAGE);
 
     def test_auth_challenged_success(self):
         """
@@ -175,25 +145,24 @@ class BanjaxBehaviorTest(unittest.TestCase):
         from origin everytime
         """
         #Auth page
-        result = self.replace_config2(auth_challenge_config)
-        self.assertEqual(result[BanjaxBehaviorTest.STD_ERR], "")
+        self.replace_config2(self.AUTH_CHALLENGE_CONFIG)
         result = self.do_curl(BanjaxBehaviorTest.ATS_HOST + "/" +BanjaxBehaviorTest.MAGIC_WORD)
-        self.assertEqual(result[BanjaxBehaviorTest.STD_OUT][:BanjaxBehaviorTest.COMP_LEN],self.read_page(BanjaxBehaviorTest.AUTH_PAGE)[:BanjaxBehaviorTest.COMP_LEN]);
+        self.assertEqual(result[:BanjaxBehaviorTest.COMP_LEN],self.read_page(BanjaxBehaviorTest.AUTH_PAGE)[:BanjaxBehaviorTest.COMP_LEN]);
 
         #request to guarantee cache if fails
         self.put_page(BanjaxBehaviorTest.CACHED_PAGE)
         result = self.do_curl(BanjaxBehaviorTest.ATS_HOST + "/" + BanjaxBehaviorTest.CACHED_PAGE, cookie = BanjaxBehaviorTest.AUTH_COOKIE)
-        self.assertEqual(result[self.STD_OUT], self.read_page(BanjaxBehaviorTest.CACHED_PAGE))
+        self.assertEqual(result, self.read_page(BanjaxBehaviorTest.CACHED_PAGE))
 
         #check if it is not cached
         self.replace_page(BanjaxBehaviorTest.CACHED_PAGE,BanjaxBehaviorTest.UNCACHED_PAGE)
         result = self.do_curl(BanjaxBehaviorTest.ATS_HOST + "/" + BanjaxBehaviorTest.CACHED_PAGE, cookie = BanjaxBehaviorTest.AUTH_COOKIE)
-        self.assertEqual(result[self.STD_OUT],self.read_page(BanjaxBehaviorTest.UNCACHED_PAGE));
+        self.assertEqual(result,self.read_page(BanjaxBehaviorTest.UNCACHED_PAGE));
 
         #check that the nocache reply is not cached
         self.replace_page(BanjaxBehaviorTest.CACHED_PAGE,BanjaxBehaviorTest.CACHED_PAGE)
         result = self.do_curl(BanjaxBehaviorTest.ATS_HOST + "/" + BanjaxBehaviorTest.CACHED_PAGE, cookie = BanjaxBehaviorTest.AUTH_COOKIE)
-        self.assertEqual(result[self.STD_OUT],self.read_page(BanjaxBehaviorTest.CACHED_PAGE));
+        self.assertEqual(result,self.read_page(BanjaxBehaviorTest.CACHED_PAGE));
 
 
 
@@ -217,18 +186,17 @@ class BanjaxBehaviorTest(unittest.TestCase):
         def html(body):
             return "<html><body>" + body + "</body></html>"
 
-        result = self.replace_config2(auth_challenge_config)
-        self.assertEqual(result[BanjaxBehaviorTest.STD_ERR], "")
+        self.replace_config2(self.AUTH_CHALLENGE_CONFIG)
 
         #request to guarantee cache
         self.write_page(page, html("body 0"))
         result = self.do_curl(host + "/" + page, cookie = bad_cookie)
-        self.assertEqual(result[self.STD_OUT], html("body 0"))
+        self.assertEqual(result, html("body 0"))
 
         #check if it is reading from cache if the cookie is bad
         self.write_page(page, html("body 1"))
         result = self.do_curl(host + "/" + page, cookie = bad_cookie)
-        self.assertEqual(result[self.STD_OUT], html("body 0"))
+        self.assertEqual(result, html("body 0"))
 
 
     def test_auth_challenged_unchallenged_cached(self):
@@ -237,17 +205,15 @@ class BanjaxBehaviorTest(unittest.TestCase):
         not invoke the magic word, hence ATS should serve the page
         through cache consitantly
         """
-        result = self.replace_config2(auth_challenge_config)
-        self.assertEqual(result[BanjaxBehaviorTest.STD_ERR], "")
+        self.replace_config2(self.AUTH_CHALLENGE_CONFIG)
+
         self.put_page(BanjaxBehaviorTest.CACHED_PAGE)
         result = self.do_curl(BanjaxBehaviorTest.ATS_HOST + "/" + BanjaxBehaviorTest.CACHED_PAGE)
-        self.assertEqual(result[self.STD_OUT], self.read_page(BanjaxBehaviorTest.CACHED_PAGE))
+        self.assertEqual(result, self.read_page(BanjaxBehaviorTest.CACHED_PAGE))
+
         self.replace_page(BanjaxBehaviorTest.CACHED_PAGE,BanjaxBehaviorTest.UNCACHED_PAGE)
         result = self.do_curl(BanjaxBehaviorTest.ATS_HOST + "/" + BanjaxBehaviorTest.CACHED_PAGE)
-        self.assertEqual(result[self.STD_OUT],self.read_page(BanjaxBehaviorTest.CACHED_PAGE));
-
-# Synthesize TimelineTest+TestCase subclasses for every 'tl_*' file in
-# the test directory.
+        self.assertEqual(result,self.read_page(BanjaxBehaviorTest.CACHED_PAGE));
 
 if __name__ == '__main__':
     from unittest import main
@@ -261,21 +227,10 @@ if __name__ == '__main__':
     parser.add_argument('unittest_args', nargs='*')
 
     args = parser.parse_args()
-    BanjaxBehaviorTest.banjax_dir = args.banjax_dir
+    BanjaxBehaviorTest.banjax_dir      = args.banjax_dir
     BanjaxBehaviorTest.banjax_test_dir = args.banjax_test_dir
-    BanjaxBehaviorTest.http_doc_root = args.http_doc_root
-    BanjaxBehaviorTest.ats_bin_dir = args.ats_bin_dir
-
-    traffic_proc = subprocess.Popen([BanjaxBehaviorTest.ats_bin_dir + "/trafficserver", "start"],
-                                     stdin=subprocess.PIPE,
-                                     stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE)
-    traffic_proc.wait()
-
-    print traffic_proc.stdout.read()
-    std_err = traffic_proc.stderr.read()
-    print std_err and "Error: \n"+std_err or ''
-    # TODO: Go do something with args.input and args.filename
+    BanjaxBehaviorTest.http_doc_root   = args.http_doc_root
+    BanjaxBehaviorTest.ats_bin_dir     = args.ats_bin_dir
 
     # Now set the sys.argv to the unittest_args (leaving sys.argv[0] alone)
     sys.argv[1:] = args.unittest_args
