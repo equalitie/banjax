@@ -27,6 +27,7 @@ using namespace std;
 
 #include <re2/re2.h>
 #include <zmq.hpp>
+#include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
 
 #include "util.h"
 #include "banjax_continuation.h"
@@ -53,10 +54,14 @@ extern const string Banjax::CONFIG_FILENAME = "banjax.conf";
 
 extern Banjax* ATSEventHandler::banjax;
 
-void TSErrorAlternative(const char* error_str)
+void TSErrorAlternative(const char* fmt, ...)
 {
-  fprintf(stderr,"ERROR: %s\n", error_str);
-
+  va_list arglist;
+  va_start(arglist, fmt);
+  fprintf(stderr, "ERROR: ");
+  vfprintf(stderr, fmt, arglist);
+  fprintf(stderr, "\n");
+  va_end(arglist);
 }
 
 /**
@@ -231,12 +236,12 @@ Banjax::read_configuration()
     process_config(cfg);
   }
   catch(YAML::BadFile& e) {
-    TSDebug(BANJAX_PLUGIN_NAME, "I/O error while reading config file [%s]: [%s]. Make sure that file exists.", absolute_config_file.c_str(), e.what());
+    TSError("I/O error while reading config file [%s]: [%s]. Make sure that file exists.", absolute_config_file.c_str(), e.what());
     abort_traffic_server();
   }
   catch(YAML::ParserException& e)
   {
-    TSDebug(BANJAX_PLUGIN_NAME, "parsing error while reading config file [%s]: [%s].", absolute_config_file.c_str(), e.what());
+    TSError("parsing error while reading config file [%s]: [%s].", absolute_config_file.c_str(), e.what());
     abort_traffic_server();
   }
 
@@ -341,11 +346,11 @@ Banjax::process_config(const YAML::Node& cfg)
 
           }
           catch(YAML::BadFile& e) {
-            TSDebug(BANJAX_PLUGIN_NAME, "I/O error while reading config file [%s]: [%s]. Make sure that file exists.", inc_loc.c_str(), e.what());
+            TSError("I/O error while reading config file [%s]: [%s]. Make sure that file exists.", inc_loc.c_str(), e.what());
             abort_traffic_server();
           }
           catch(YAML::ParserException& e)  {
-            TSDebug(BANJAX_PLUGIN_NAME, "parsing error while reading config file [%s]: [%s].", inc_loc.c_str(), e.what());
+            TSError("Parsing error while reading config file [%s]: [%s].", inc_loc.c_str(), e.what());
             abort_traffic_server();
           }
         }
