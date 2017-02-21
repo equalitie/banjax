@@ -2,7 +2,7 @@
  * Collection of isolated functions used in different part of banjax
  *
  * Copyright (c) 2013 eQualit.ie under GNU AGPL v3.0 or later
- * 
+ *
  * Vmon: June 2013 Initial version
  *       Oct  2013 zmq stuff moved here for public use.
  */
@@ -61,7 +61,7 @@ void send_zmq_mess(zmq::socket_t& zmqsock, const std::string mess, bool more){
   if(more){
     zmqsock.send(m, ZMQ_SNDMORE);
   } else {
-    zmqsock.send(m);  
+    zmqsock.send(m);
   }
 }
 
@@ -83,14 +83,14 @@ void send_zmq_encrypted_message(zmq::socket_t& zmqsock, const string mess, uint8
   uint8_t enc_out[c_gcm_iv_size +
                          enc_length + c_gcm_tag_size ];
   uint8_t gcm_tag[c_gcm_tag_size];
-  
+
   //generate a random iv;
   if (!RAND_bytes(enc_out, c_gcm_iv_size)) {
     /* OpenSSL reports a failure, act accordingly */
     throw EncryptionException();
   }
 
-  enc_length = gcm_encrypt(reinterpret_cast<const uint8_t*>(mess.data()), mess.length(), 
+  enc_length = gcm_encrypt(reinterpret_cast<const uint8_t*>(mess.data()), mess.length(),
               encryption_key, enc_out,
                              enc_out + c_gcm_iv_size, gcm_tag);
 
@@ -105,20 +105,20 @@ void send_zmq_encrypted_message(zmq::socket_t& zmqsock, const string mess, uint8
   if(more){
     zmqsock.send(m, ZMQ_SNDMORE);
   } else {
-    zmqsock.send(m);  
+    zmqsock.send(m);
   }
 
 }
 
 /**
- * Uses AES256 to encrypt the data 
+ * Uses AES256 to encrypt the data
  *
  * @param iv is a buffer of size 12 bytes contatining iv
  * @param key is a buffer 32 bytes as we are using AES256
- * @param ciphertext should be buffer of size planitext_len + 16 - 1 
- * @param tag is a buffer 16 bytes. 
+ * @param ciphertext should be buffer of size planitext_len + 16 - 1
+ * @param tag is a buffer 16 bytes.
  */
-size_t gcm_encrypt(const uint8_t *plaintext, size_t plaintext_len, 
+size_t gcm_encrypt(const uint8_t *plaintext, size_t plaintext_len,
             const uint8_t *key, const uint8_t *iv,
             uint8_t *ciphertext, uint8_t *tag)
 {
@@ -161,10 +161,10 @@ size_t gcm_encrypt(const uint8_t *plaintext, size_t plaintext_len,
 
 /**
  * Escape all quotes this is for the reason of logging. then
- * add a quote to the beginnig and the end of the string 
+ * add a quote to the beginnig and the end of the string
  *
  * @param unprocessed_log_string for which quote being replaced
- * 
+ *
  * @return the string enclosed in quotes with all middle quotes escaped
  *
  */
@@ -180,25 +180,26 @@ string encapsulate_in_quotes(std::string& unprocessed_log_string) {
 
 }
 
-/* dealing with ip ranges, these probably should go somewhere so 
+/* dealing with ip ranges, these probably should go somewhere so
    all filters can benefit from them */
 
 /**
    Check an ip against a CDR mask
-   
+
  */
 bool is_match(const std::string &needle_ip, const SubnetRange& ip_range_pair) {
 
   in_addr_t _IP = inet_addr(needle_ip.c_str());
   _IP = ntohl(_IP);
-  return ( (ip_range_pair.first & ip_range_pair.second) == (_IP & ip_range_pair.second) );
+  bool result = (ip_range_pair.first & ip_range_pair.second) == (_IP & ip_range_pair.second);
+  return result;
 }
 
 /**
    Get an ip range and return a CIDR bitmask
-   
+
    @param hey_ip ip/range
-   
+
    @return pair of (subnet ip, CIDR bitmask)
 */
 SubnetRange  make_mask_for_range(const std::string& hay_ip)
@@ -215,16 +216,15 @@ SubnetRange  make_mask_for_range(const std::string& hay_ip)
     unsigned int keep_bits = std::stoi(hay_ip.substr(slash_pos+1));
     if (keep_bits > 32)
       throw InvalidConfException();
-    
+
     mask = (mask >> (32 - keep_bits )) << (32 - keep_bits);
 
     rep_ip = hay_ip.substr(0, slash_pos);
-
   }
-  
+
   in_addr_t _ip = inet_addr(rep_ip.c_str());
   _ip = ntohl(_ip);
-  // uint32_t mask=((_ip & 0x0000ffff) == 0) ? 0xffff0000 : 
+  // uint32_t mask=((_ip & 0x0000ffff) == 0) ? 0xffff0000 :
   //   ((_ip & 0x000000ff) == 0 ? 0xffffff00 : 0xffffffff);
 
   return SubnetRange(_ip, mask);

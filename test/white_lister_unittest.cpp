@@ -1,6 +1,6 @@
 /*
  * WhiteLister unit test set
- * 
+ *
  * Copyright (c) eQualit.ie 2013 under GNU AGPL v3.0 or later
  *
  *  Vmon: Sept 2013, Initial version
@@ -67,100 +67,40 @@ class WhiteListerTest : public testing::Test {
  protected:
 
   YAML::Node cfg;
-  string TEMP_DIR;
-  string TEST_CONF_FILE;
+  string TEMP_DIR = "/tmp";
 
-  fstream  mock_config;
-  BanjaxFilter* test_white_lister;
+  std::unique_ptr<BanjaxFilter> test_white_lister;
 
-  virtual void SetUp() {
-
-    test_white_lister = NULL;
-    TEMP_DIR = "/tmp";
-
-    //gtest is multip thread so we can't use the same file
-    //for them
-    char random_suffix[7]; 
-    sprintf(random_suffix,"%i", rand()%100000);
-    TEST_CONF_FILE = TEMP_DIR + "/test"+random_suffix+".conf";
-    try {
-      mock_config.open(TEST_CONF_FILE,ios::out);
-    } catch (std::ifstream::failure e) {
-      ASSERT_TRUE(false);
-    }
-    
-    mock_config << "white_lister:" << endl;
-    mock_config << "  white_listed_ips: " << endl;
-    mock_config << "    - 127.0.0.1" << endl;
-    mock_config << "    - x.y.z.w" << endl;
-    mock_config << "" << endl;
-    
-    mock_config.close();
-  }
-
-  //if there is no way to feed an sstream to
-  //to config reader then we might need to close the file
-  //tear down. More importantly we need to make the file in case of non
-  //existence anyways
-  virtual void TearDown() {
-   string rm_command("rm ");
-   rm_command += TEST_CONF_FILE;
-   int r = system(rm_command.c_str());
-   (void)r;
-
-   delete test_white_lister;
-  }
-
-  void open_config()
+  void open_config(std::string config)
   {
-    YAML::Node cfg;
-    try  {
-      cfg= YAML::LoadFile(TEST_CONF_FILE.c_str());
-    }
-    catch(YAML::BadFile& e) {
-      ASSERT_TRUE(false);
-    }
-    catch(YAML::ParserException& e)
-      {
-        ASSERT_TRUE(false);
-      }
+    YAML::Node cfg = YAML::Load(config);
 
-    FilterConfig regex_filter_config;
+    FilterConfig filter_config;
 
     try {
-      for(YAML::const_iterator subit = cfg.begin(); subit!=cfg.end();++subit) {
-        std::string node_name = (*subit).first.as<std::string>();
+      for(auto i = cfg.begin(); i != cfg.end(); ++i) {
+        std::string node_name = i->first.as<std::string>();
         if (node_name == "white_lister")
-          regex_filter_config.config_node_list.push_back(subit);
+          filter_config.config_node_list.push_back(i);
       }
-      
     }
     catch(YAML::RepresentationException& e)
     {
       ASSERT_TRUE(false);
     }
 
-    test_white_lister = new WhiteLister(TEMP_DIR, regex_filter_config);
-    
+    test_white_lister.reset(new WhiteLister(TEMP_DIR, filter_config));
   }
-
 };
-  
-/**
-   read a pre determined config file and check if the values are
-   as expected for the regex manager
- */
-TEST_F(WhiteListerTest, load_config) {
-  open_config();
-}
 
 /**
    make up a fake transaction and check that the ip get white listed
  */
 TEST_F(WhiteListerTest, white_listed_ip)
 {
-
-  open_config();
+  open_config("white_lister:\n"
+              "  white_listed_ips: \n"
+              "    - 127.0.0.1\n");
 
   //first we make a mock up request
   TransactionParts mock_transaction;
@@ -169,7 +109,22 @@ TEST_F(WhiteListerTest, white_listed_ip)
   FilterResponse cur_filter_result = test_white_lister->execute(mock_transaction);
 
   EXPECT_EQ(cur_filter_result.response_type, FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
+}
 
+TEST_F(WhiteListerTest, white_listed_ip2)
+{
+  open_config("white_lister:\n"
+              "  white_listed_ips: \n"
+              "    - 11.22.33.44\n"
+              "    - 127.0.0.1\n");
+
+  //first we make a mock up request
+  TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::IP] = "127.0.0.1";
+
+  FilterResponse cur_filter_result = test_white_lister->execute(mock_transaction);
+
+  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
 }
 
 /**
@@ -177,27 +132,30 @@ TEST_F(WhiteListerTest, white_listed_ip)
  */
 TEST_F(WhiteListerTest, ordinary_ip)
 {
-
-  open_config();
+  open_config("white_lister:\n"
+              "  white_listed_ips: \n"
+              "    - x.y.y.z\n"
+              "    - 127.0.0.1\n");
 
   //first we make a mock up request
   TransactionParts mock_transaction;
-  mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
+  mock_transaction[TransactionMuncher::IP] = "123.124.125.126";
 
   FilterResponse cur_filter_result = test_white_lister->execute(mock_transaction);
 
   EXPECT_EQ(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
-
 }
 
 /**
-   make up a fake transaction and check that the ip get white listed even if it is an 
+   make up a fake transaction and check that the ip get white listed even if it is an
    invalid one
  */
 TEST_F(WhiteListerTest, invalid_white_ip)
 {
-
-  open_config();
+  open_config("white_lister:\n"
+              "  white_listed_ips: \n"
+              "    - x.y.y.z\n"
+              "    - 127.0.0.1\n");
 
   //first we make a mock up request
   TransactionParts mock_transaction;
@@ -206,6 +164,5 @@ TEST_F(WhiteListerTest, invalid_white_ip)
   FilterResponse cur_filter_result = test_white_lister->execute(mock_transaction);
 
   EXPECT_EQ(cur_filter_result.response_type, FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
-
 }
 
