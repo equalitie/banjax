@@ -151,7 +151,6 @@ ChallengeManager::load_config(YAML::Node& cfg, const std::string& banjax_dir)
        for(unsigned int i = 0; i < domain_count; i++) {
          string cur_domain = (*it)["domains"][i].as<std::string>();
          host_challenges[cur_domain].push_back(host_challenge_spec);
-
        }
      }
 
@@ -570,27 +569,28 @@ bool ChallengeManager::needs_authentication(const std::string& url, const HostCh
 
 std::string ChallengeManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
 {
+  ChallengerExtendedResponse* extended_response = (ChallengerExtendedResponse*) response_info.response_data;
 
-  ChallengerExtendedResponse* extended_response =  (ChallengerExtendedResponse*)(response_info.response_data);
-
-  if ((extended_response)->banned_ip) {
+  if (extended_response->banned_ip) {
     return too_many_failures_message;
   }
 
   long time_validity = time(NULL) + extended_response->responding_challenge->challenge_validity_period;
 
-  string buf_str;
   TSDebug("banjax", "%s", transaction_parts.at(TransactionMuncher::IP).c_str());
   TSDebug("banjax", "%s", transaction_parts.at(TransactionMuncher::URL_WITH_HOST).c_str());
   TSDebug("banjax", "%s", transaction_parts.at(TransactionMuncher::HOST).c_str());
 
-  (void) response_info;
-  TransactionParts test_muncher;
-  generate_html(transaction_parts.at(TransactionMuncher::IP), time_validity,
-                ((extended_response)->alternative_url.empty()) ? transaction_parts.at(TransactionMuncher::URL_WITH_HOST) : ((extended_response)->alternative_url),
+  string buf_str;
+
+  generate_html(transaction_parts.at(TransactionMuncher::IP),
+                time_validity,
+                extended_response->alternative_url.empty()
+                  ? transaction_parts.at(TransactionMuncher::URL_WITH_HOST)
+                  : extended_response->alternative_url,
                 transaction_parts,
-                //NULL, buf_str);//,
-                extended_response, buf_str);
+                extended_response,
+                buf_str);
 
   return buf_str;
 }
