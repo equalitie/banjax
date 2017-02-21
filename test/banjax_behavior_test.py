@@ -171,7 +171,7 @@ class BanjaxBehaviorTest(unittest.TestCase):
         The test simulate entering a wrong password in the auth challenge
         a banned message is expected to be served
         """
-        # NOTE: This test requires the record.config option 'required_headers' set to zero
+        # NOTE: This test requires the records.config option 'required_headers' set to zero
         #       CONFIG proxy.config.http.cache.required_headers INT 0
 
         # TODO: This test sometimes fails because the first time a page is downloaded

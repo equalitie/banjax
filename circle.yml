@@ -1,0 +1,26 @@
+dependencies:
+  override:
+    - sudo apt-get install tcl-dev libyaml-cpp-dev libzmq-dev libboost-dev libconfig++-dev libssl-dev
+    - ls; pwd; nproc
+    - cd ..; git clone git@github.com:google/re2.git && cd re2; make && sudo make install
+    - sudo cp ~/re2/obj/so/lib* /lib/
+    - cd ..; wget http://tux.rainside.sk/apache/trafficserver/trafficserver-6.0.0.tar.bz2
+    - cd ..; tar xf trafficserver-6.0.0.tar.bz2
+    - cd ../trafficserver-6.0.0 && ./configure --prefix=`pwd`/../ts && make -j`nproc` && make install
+    - find ../ts
+    - echo "banjax/banjax.so $HOME/ts/libexec/trafficserver/banjax/" >> ../ts/etc/trafficserver/plugin.config
+    - echo "regex_map http://^localhost:8080$/ http://127.0.0.1:8000/" >> ../ts/etc/trafficserver/remap.config
+    - perl -pi -e 's/CONFIG proxy.config.http.cache.required_headers INT .+/CONFIG proxy.config.http.cache.required_headers INT 0/g' ../ts/etc/trafficserver/records.config
+    - cat ../ts/etc/trafficserver/records.config
+    - cd gtest && cp Makefile.am.original Makefile.am && autoreconf -vif && ./configure && make
+    - ./autogen.sh
+    - ./configure
+    - make -j`nproc` check CPPFLAGS="$CPPFLAGS -I`pwd`/../ts/include"
+    - mkdir -p ../http
+    - mkdir ../ts/libexec/trafficserver/banjax
+    - cp config/{auth,solver}.html ../ts/libexec/trafficserver/banjax/
+    - cp src/.libs/banjax.so ../ts/libexec/trafficserver/banjax/
+test:
+  override:
+    - ./test/unittests
+    - (cd ../http && nohup python -m SimpleHTTPServer 8000 2>/dev/null >/dev/null &) && python ./test/banjax_behavior_test.py --banjax-dir=`pwd`/../ts/libexec/trafficserver/banjax --banjax-test-dir=`pwd`/test --ats-bin-dir=../ts/bin --http-doc-root=`pwd`/../http
