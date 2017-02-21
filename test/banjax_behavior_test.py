@@ -48,7 +48,7 @@ class BanjaxBehaviorTest(unittest.TestCase):
         "        domains:\n"
         "         - '"+ATS_HOST+"'\n"
         "        challenge_type: 'auth'\n"
-        "        challenge: 'auth.html'\n"
+        "        challenge: '"+AUTH_PAGE+"'\n"
         "        password_hash: 'BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM='\n"
         "        # sha256('howisbabbyformed?')\n"
         "        magic_word: '"+MAGIC_WORD+"'\n"
