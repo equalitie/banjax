@@ -1,6 +1,10 @@
 Banjax
 ======
 
+CircleCI status:
+  * master [![CircleCI](https://circleci.com/gh/equalitie/banjax/tree/master.svg?style=svg&circle-token=86713a4ce3cf55d0c00b3ac62943f7fecd8a3e2a)](https://circleci.com/gh/equalitie/banjax/tree/master)
+  * devel [![CircleCI](https://circleci.com/gh/equalitie/banjax/tree/devel.svg?style=svg&circle-token=86713a4ce3cf55d0c00b3ac62943f7fecd8a3e2a)](https://circleci.com/gh/equalitie/banjax/tree/devel)
+
 Apache Traffic Server Plugin performing various anti-DDoS measures
 
 Copyright 2013 eQualit.ie
