@@ -78,7 +78,7 @@ static std::unique_ptr<BanjaxFilter> open_config(std::string config)
     BOOST_REQUIRE(false);
   }
 
-  return std::make_unique<WhiteLister>(TEMP_DIR, filter_config);
+  return unique_ptr<WhiteLister>(new WhiteLister(TEMP_DIR, filter_config));
 }
 
 /**

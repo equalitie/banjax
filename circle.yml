@@ -1,6 +1,6 @@
 dependencies:
   override:
-    - sudo apt-get install tcl-dev libyaml-cpp-dev libzmq-dev libboost-dev libconfig++-dev libssl-dev
+    - sudo apt-get install tcl-dev libyaml-cpp-dev libzmq-dev libboost-dev libconfig++-dev libssl-dev libboost-system-dev libboost-test-dev
     - ls; pwd; nproc
     - cd ..; git clone git@github.com:google/re2.git && cd re2; make && sudo make install
     - sudo cp ~/re2/obj/so/lib* /lib/
@@ -13,7 +13,7 @@ dependencies:
     - perl -pi -e 's/CONFIG proxy.config.http.cache.required_headers INT .+/CONFIG proxy.config.http.cache.required_headers INT 0/g' ../ts/etc/trafficserver/records.config
     - cat ../ts/etc/trafficserver/records.config
     - mkdir build
-    - cd build && cmake ../ -DCMAKE_CXX_FLAGS="-I`pwd`/../ts/include"
+    - cd build && cmake ../ -DCMAKE_CXX_FLAGS="-I$HOME/ts/include"
     - cd build && make -j`nproc`
     - mkdir -p ../http
     - mkdir ../ts/libexec/trafficserver/banjax
@@ -21,5 +21,5 @@ dependencies:
     - cp build/banjax.so ../ts/libexec/trafficserver/banjax/
 test:
   override:
-    - ./test/unittests
+    - ./build/unit-tests
     - (cd ../http && nohup python -m SimpleHTTPServer 8000 2>/dev/null >/dev/null &) && python ./test/banjax_behavior_test.py --banjax-dir=`pwd`/../ts/libexec/trafficserver/banjax --banjax-test-dir=`pwd`/test --ats-bin-dir=../ts/bin --http-doc-root=`pwd`/../http
