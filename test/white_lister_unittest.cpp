@@ -35,6 +35,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include <boost/test/unit_test.hpp>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -47,8 +48,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <gtest/gtest.h> //google test
-
 #include <ts/ts.h>
 
 #include "util.h"
@@ -56,113 +55,103 @@
 #include "unittest_common.h"
 #include "white_lister.h"
 
+BOOST_AUTO_TEST_SUITE(WhiteListerManagerUnitTests)
 using namespace std;
 
-/**
-   Mainly fill an string stream buffer with a predefined configuration
-   and to check if the white lister has picked them correctly and
-   match them correctly.
- */
-class WhiteListerTest : public testing::Test {
- protected:
+string TEMP_DIR = "/tmp";
 
-  YAML::Node cfg;
-  string TEMP_DIR = "/tmp";
+static std::unique_ptr<BanjaxFilter> open_config(std::string config)
+{
+  YAML::Node cfg = YAML::Load(config);
 
-  std::unique_ptr<BanjaxFilter> test_white_lister;
+  FilterConfig filter_config;
 
-  void open_config(std::string config)
-  {
-    YAML::Node cfg = YAML::Load(config);
-
-    FilterConfig filter_config;
-
-    try {
-      for(auto i = cfg.begin(); i != cfg.end(); ++i) {
-        std::string node_name = i->first.as<std::string>();
-        if (node_name == "white_lister")
-          filter_config.config_node_list.push_back(i);
-      }
+  try {
+    for(auto i = cfg.begin(); i != cfg.end(); ++i) {
+      std::string node_name = i->first.as<std::string>();
+      if (node_name == "white_lister")
+        filter_config.config_node_list.push_back(i);
     }
-    catch(YAML::RepresentationException& e)
-    {
-      ASSERT_TRUE(false);
-    }
-
-    test_white_lister.reset(new WhiteLister(TEMP_DIR, filter_config));
   }
-};
+  catch(YAML::RepresentationException& e)
+  {
+    BOOST_REQUIRE(false);
+  }
+
+  return std::make_unique<WhiteLister>(TEMP_DIR, filter_config);
+}
 
 /**
    make up a fake transaction and check that the ip get white listed
  */
-TEST_F(WhiteListerTest, white_listed_ip)
+BOOST_AUTO_TEST_CASE(white_listed_ip)
 {
-  open_config("white_lister:\n"
-              "  white_listed_ips: \n"
-              "    - 127.0.0.1\n");
+  auto test = open_config("white_lister:\n"
+                          "  white_listed_ips: \n"
+                          "    - 127.0.0.1\n");
 
   //first we make a mock up request
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::IP] = "127.0.0.1";
 
-  FilterResponse cur_filter_result = test_white_lister->execute(mock_transaction);
+  FilterResponse cur_filter_result = test->execute(mock_transaction);
 
-  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
+  BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
 }
 
-TEST_F(WhiteListerTest, white_listed_ip2)
+BOOST_AUTO_TEST_CASE(white_listed_ip2)
 {
-  open_config("white_lister:\n"
-              "  white_listed_ips: \n"
-              "    - 11.22.33.44\n"
-              "    - 127.0.0.1\n");
+  auto test = open_config("white_lister:\n"
+                          "  white_listed_ips: \n"
+                          "    - 11.22.33.44\n"
+                          "    - 127.0.0.1\n");
 
   //first we make a mock up request
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::IP] = "127.0.0.1";
 
-  FilterResponse cur_filter_result = test_white_lister->execute(mock_transaction);
+  FilterResponse cur_filter_result = test->execute(mock_transaction);
 
-  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
+  BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
 }
 
 /**
    make up a fake transaction and check that an ip get doesn't get white listed
  */
-TEST_F(WhiteListerTest, ordinary_ip)
+BOOST_AUTO_TEST_CASE(ordinary_ip)
 {
-  open_config("white_lister:\n"
-              "  white_listed_ips: \n"
-              "    - x.y.y.z\n"
-              "    - 127.0.0.1\n");
+  auto test = open_config("white_lister:\n"
+                          "  white_listed_ips: \n"
+                          "    - x.y.y.z\n"
+                          "    - 127.0.0.1\n");
 
   //first we make a mock up request
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::IP] = "123.124.125.126";
 
-  FilterResponse cur_filter_result = test_white_lister->execute(mock_transaction);
+  FilterResponse cur_filter_result = test->execute(mock_transaction);
 
-  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
+  BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
 }
 
 /**
    make up a fake transaction and check that the ip get white listed even if it is an
    invalid one
  */
-TEST_F(WhiteListerTest, invalid_white_ip)
+BOOST_AUTO_TEST_CASE(invalid_white_ip)
 {
-  open_config("white_lister:\n"
-              "  white_listed_ips: \n"
-              "    - x.y.y.z\n"
-              "    - 127.0.0.1\n");
+  auto test = open_config("white_lister:\n"
+                          "  white_listed_ips: \n"
+                          "    - x.y.y.z\n"
+                          "    - 127.0.0.1\n");
 
   //first we make a mock up request
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::IP] = "x.y.z.w";
 
-  FilterResponse cur_filter_result = test_white_lister->execute(mock_transaction);
+  FilterResponse cur_filter_result = test->execute(mock_transaction);
 
-  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
+  BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
 }
 
+BOOST_AUTO_TEST_SUITE_END()

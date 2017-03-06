@@ -40,12 +40,12 @@ template<class T> DebugRange<T> debug_range(const T& r) {
  */
 void TSDebug(const char* tag, const char* format_str, ...)
 {
-  va_list arglist;
-  va_start(arglist, format_str);
-  printf("%s: ", tag);
-  vprintf(format_str, arglist);
-  printf("\n");
-  va_end(arglist);
+  //va_list arglist;
+  //va_start(arglist, format_str);
+  //printf("%s: ", tag);
+  //vprintf(format_str, arglist);
+  //printf("\n");
+  //va_end(arglist);
 }
 
 void TSError(const char* fmt, ...)

@@ -12,14 +12,13 @@ dependencies:
     - echo "regex_map http://^localhost:8080$/ http://127.0.0.1:8000/" >> ../ts/etc/trafficserver/remap.config
     - perl -pi -e 's/CONFIG proxy.config.http.cache.required_headers INT .+/CONFIG proxy.config.http.cache.required_headers INT 0/g' ../ts/etc/trafficserver/records.config
     - cat ../ts/etc/trafficserver/records.config
-    - cd gtest && cp Makefile.am.original Makefile.am && autoreconf -vif && ./configure && make
-    - ./autogen.sh
-    - ./configure
-    - make -j`nproc` check CPPFLAGS="$CPPFLAGS -I`pwd`/../ts/include"
+    - mkdir build
+    - cd build && cmake ../ -DCMAKE_CXX_FLAGS="-I`pwd`/../ts/include"
+    - cd build && make -j`nproc`
     - mkdir -p ../http
     - mkdir ../ts/libexec/trafficserver/banjax
     - cp config/{auth,solver}.html ../ts/libexec/trafficserver/banjax/
-    - cp src/.libs/banjax.so ../ts/libexec/trafficserver/banjax/
+    - cp build/banjax.so ../ts/libexec/trafficserver/banjax/
 test:
   override:
     - ./test/unittests

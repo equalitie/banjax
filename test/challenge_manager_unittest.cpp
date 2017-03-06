@@ -35,6 +35,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include <boost/test/unit_test.hpp>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -47,8 +48,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <gtest/gtest.h> //google test
-
 #include <ts/ts.h>
 
 #define protected public
@@ -60,37 +59,28 @@
 
 using namespace std;
 
-class ChallengeManagerTest : public testing::Test {
- protected:
+static string TEMP_DIR = "/tmp";
 
-  YAML::Node cfg;
-  string TEMP_DIR = "/tmp";
+BOOST_AUTO_TEST_SUITE(ChallengeManagerUnitTests)
 
-  unique_ptr<ChallengeManager> challenge_manager;
+unique_ptr<ChallengeManager> open_config(const std::string& config)
+{
+  YAML::Node cfg = YAML::Load(config);
 
-  virtual void SetUp() { }
+  FilterConfig filter_config;
 
-  virtual void TearDown() { }
+  for(auto i = cfg.begin(); i != cfg.end(); ++i) {
+    std::string node_name = i->first.as<std::string>();
 
-  unique_ptr<ChallengeManager> open_config(const std::string& config)
-  {
-    YAML::Node cfg = YAML::Load(config);
-
-    FilterConfig filter_config;
-
-    for(auto i = cfg.begin(); i != cfg.end(); ++i) {
-      std::string node_name = i->first.as<std::string>();
-
-      if (node_name == "challenger")
-        filter_config.config_node_list.push_back(i);
-    }
-
-    return unique_ptr<ChallengeManager>(
-        new ChallengeManager(TEMP_DIR, filter_config, nullptr, nullptr));
+    if (node_name == "challenger")
+      filter_config.config_node_list.push_back(i);
   }
-};
 
-TEST_F(ChallengeManagerTest, load_config1) {
+  return unique_ptr<ChallengeManager>(
+      new ChallengeManager(TEMP_DIR, filter_config, nullptr, nullptr));
+}
+
+BOOST_AUTO_TEST_CASE(load_config1) {
   std::string config =
     "challenger:\n"
     "  difficulty: 0 \n"
@@ -113,16 +103,16 @@ TEST_F(ChallengeManagerTest, load_config1) {
 
   auto mgr = open_config(config);
   auto challenges = mgr->host_challenges.at("example.co");
-  ASSERT_TRUE(challenges.size() == 1);
+  BOOST_CHECK_EQUAL(challenges.size(), 1);
 
   set<string> expected({"old_style_back_compat"});
 
   auto magic_words = challenges.front()->magic_words;
 
-  ASSERT_TRUE(magic_words == expected);
+  BOOST_CHECK(magic_words == expected);
 }
 
-TEST_F(ChallengeManagerTest, load_config2) {
+BOOST_AUTO_TEST_CASE(load_config2) {
   std::string config =
     "challenger:\n"
     "  difficulty: 0 \n"
@@ -147,16 +137,16 @@ TEST_F(ChallengeManagerTest, load_config2) {
 
   auto mgr = open_config(config);
   auto challenges = mgr->host_challenges.at("example.co");
-  ASSERT_TRUE(challenges.size() == 1);
+  BOOST_CHECK_EQUAL(challenges.size(), 1);
 
   set<string> expected({"wp-admin", "wp-login.php"});
 
   auto magic_words = challenges.front()->magic_words;
 
-  ASSERT_TRUE(magic_words == expected);
+  BOOST_CHECK(magic_words == expected);
 }
 
-TEST_F(ChallengeManagerTest, load_config3) {
+BOOST_AUTO_TEST_CASE(load_config3) {
   std::string config =
     "challenger:\n"
     "  difficulty: 0 \n"
@@ -179,12 +169,13 @@ TEST_F(ChallengeManagerTest, load_config3) {
 
   auto mgr = open_config(config);
   auto challenges = mgr->host_challenges.at("example.co");
-  ASSERT_TRUE(challenges.size() == 1);
+  BOOST_CHECK_EQUAL(challenges.size(), 1);
 
   set<string> expected({"wp-admin", "wp-login.php"});
 
   auto magic_words = challenges.front()->magic_words;
 
-  ASSERT_TRUE(magic_words == expected);
+  BOOST_CHECK(magic_words == expected);
 }
 
+BOOST_AUTO_TEST_SUITE_END()

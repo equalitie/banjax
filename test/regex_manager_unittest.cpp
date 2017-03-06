@@ -35,6 +35,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include <boost/test/unit_test.hpp>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -46,8 +47,6 @@
 #include <yaml-cpp/yaml.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include <gtest/gtest.h> //google test
 
 #include <ts/ts.h>
 
@@ -61,49 +60,51 @@
 
 using namespace std;
 
+BOOST_AUTO_TEST_SUITE(RegexManagerUnitTests)
+
+static std::string default_config() {
+  return
+    "regex_banner:\n"
+    "  - rule: simple to ban\n"
+    "    regex: '.*simple_to_ban.*'\n"
+    "    interval: 1\n"
+    "    hits_per_interval: 0\n"
+    "  - rule: hard to ban\n"
+    "    regex: '.*not%20so%20simple%20to%20ban[\\s\\S]*'\n"
+    "    interval: 1\n"
+    "    hits_per_interval: 0\n"
+    "  - rule: 'flooding ban' \n"
+    "    regex: '.*flooding_ban.*'\n"
+    "    interval: 30 \n"
+    "    hits_per_interval: 10\n"
+    "  - rule: 'flooding ban 2' \n"
+    "    regex: '.*flooding_diff_ban.*'\n"
+    "    interval: 30 \n"
+    "    hits_per_interval: 10\n";
+}
+
+string TEMP_DIR = "/tmp";
+
 /**
    Mainly fill an string stream buffer with a predefined configuration
    and to check if the regex manager has picked them correctly and
    match them correctly.
  */
-class RegexManagerTest : public testing::Test {
- protected:
-  string TEMP_DIR = "/tmp";
-
-  std::unique_ptr<BanjaxFilter> test_regex_manager;
+class Test {
+public:
+  std::unique_ptr<BanjaxFilter> regex_manager;
 
   IPDatabase test_ip_database;
   SwabberInterface test_swabber_interface;
 
-  RegexManagerTest()
+  Test(std::string config = default_config())
     :  test_swabber_interface(&test_ip_database)
-  {}
-
-  virtual void SetUp() { }
-  virtual void TearDown() { }
-
-  static std::string default_config() {
-    return
-      "regex_banner:\n"
-      "  - rule: simple to ban\n"
-      "    regex: '.*simple_to_ban.*'\n"
-      "    interval: 1\n"
-      "    hits_per_interval: 0\n"
-      "  - rule: hard to ban\n"
-      "    regex: '.*not%20so%20simple%20to%20ban[\\s\\S]*'\n"
-      "    interval: 1\n"
-      "    hits_per_interval: 0\n"
-      "  - rule: 'flooding ban' \n"
-      "    regex: '.*flooding_ban.*'\n"
-      "    interval: 30 \n"
-      "    hits_per_interval: 10\n"
-      "  - rule: 'flooding ban 2' \n"
-      "    regex: '.*flooding_diff_ban.*'\n"
-      "    interval: 30 \n"
-      "    hits_per_interval: 10\n";
+  {
+    open_config(move(config));
   }
 
-  void open_config(std::string config = default_config())
+private:
+  void open_config(std::string config)
   {
     YAML::Node cfg = YAML::Load(config);
 
@@ -118,10 +119,10 @@ class RegexManagerTest : public testing::Test {
     }
     catch(YAML::RepresentationException& e)
     {
-      ASSERT_TRUE(false);
+      BOOST_REQUIRE(false);
     }
 
-    test_regex_manager.reset(
+    regex_manager.reset(
         new RegexManager(TEMP_DIR,
                          regex_filter_config,
                          &test_ip_database,
@@ -133,16 +134,16 @@ class RegexManagerTest : public testing::Test {
    read a pre determined config file and check if the values are
    as expected for the regex manager
  */
-TEST_F(RegexManagerTest, load_config) {
-  open_config();
+BOOST_AUTO_TEST_CASE(load_config) {
+  Test test;
 }
 
 /**
    make up a fake GET request and check that the manager is banning
  */
-TEST_F(RegexManagerTest, match)
+BOOST_AUTO_TEST_CASE(match)
 {
-  open_config();
+  Test test;
 
   //first we make a mock up request
   TransactionParts mock_transaction;
@@ -152,16 +153,16 @@ TEST_F(RegexManagerTest, match)
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
   mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
 
-  FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
+  FilterResponse cur_filter_result = test.regex_manager->execute(mock_transaction);
 
-  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
+  BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::I_RESPOND);
 }
 
 /**
  * A test to fix a github issue:
  * https://github.com/equalitie/banjax/issues/35
  */
-TEST_F(RegexManagerTest, match_blank)
+BOOST_AUTO_TEST_CASE(match_blank)
 {
   auto config =
     "regex_banner:\n"
@@ -170,7 +171,7 @@ TEST_F(RegexManagerTest, match_blank)
     "    interval: 1\n"
     "    hits_per_interval: 0\n";
 
-  open_config(config);
+  Test test(config);
 
   //first we make a mock up request
   TransactionParts mock_transaction;
@@ -180,17 +181,17 @@ TEST_F(RegexManagerTest, match_blank)
   mock_transaction[TransactionMuncher::HOST] = "mywebsite.org";
   mock_transaction[TransactionMuncher::UA] = "";
 
-  FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
+  FilterResponse cur_filter_result = test.regex_manager->execute(mock_transaction);
 
-  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
+  BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::I_RESPOND);
 }
 
 /**
    make up a fake GET request and check that the manager is not banning
  */
-TEST_F(RegexManagerTest, miss)
+BOOST_AUTO_TEST_CASE(miss)
 {
-  open_config();
+  Test test;
 
   //first we make a mock up request
   TransactionParts mock_transaction;
@@ -200,10 +201,9 @@ TEST_F(RegexManagerTest, miss)
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
   mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
 
-  FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
+  FilterResponse cur_filter_result = test.regex_manager->execute(mock_transaction);
 
-  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
-
+  BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
 }
 
 
@@ -211,10 +211,9 @@ TEST_F(RegexManagerTest, miss)
    make up a fake GET request and check that the manager is not banning when
    the request method changes to POST despite passing the allowed rate
  */
-TEST_F(RegexManagerTest, post_get_counter)
+BOOST_AUTO_TEST_CASE(post_get_counter)
 {
-
-  open_config();
+  Test test;
 
   //first we make a mock up request
   TransactionParts mock_transaction;
@@ -226,24 +225,22 @@ TEST_F(RegexManagerTest, post_get_counter)
   FilterResponse cur_filter_result = FilterResponse::GO_AHEAD_NO_COMMENT;
 
   for ( int i=0; i<2; i++ ) {
-    cur_filter_result = test_regex_manager->execute(mock_transaction);
+    cur_filter_result = test.regex_manager->execute(mock_transaction);
   }
 
   mock_transaction[TransactionMuncher::URL] = "http://flooding_diff_ban/";
-  cur_filter_result = test_regex_manager->execute(mock_transaction);
+  cur_filter_result = test.regex_manager->execute(mock_transaction);
 
-  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
-
+  BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
 }
 
 /**
    make up a fake GET request and check that the manager is banning a request
    with special chars that . doesn't match
  */
-TEST_F(RegexManagerTest, match_special_chars)
+BOOST_AUTO_TEST_CASE(match_special_chars)
 {
-
-  open_config();
+  Test test;
 
   //first we make a mock up request
   TransactionParts mock_transaction;
@@ -253,19 +250,17 @@ TEST_F(RegexManagerTest, match_special_chars)
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
   mock_transaction[TransactionMuncher::UA] = "\"[this is no simple]\" () * ... :; neverhood browsing and co";
 
-  FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
+  FilterResponse cur_filter_result = test.regex_manager->execute(mock_transaction);
 
-  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
-
+  BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::I_RESPOND);
 }
 
 /**
    Check the response
  */
-TEST_F(RegexManagerTest, forbidden_response)
+BOOST_AUTO_TEST_CASE(forbidden_response)
 {
-
-  open_config();
+  Test test;
 
   //first we make a mock up request
   TransactionParts mock_transaction;
@@ -275,12 +270,13 @@ TEST_F(RegexManagerTest, forbidden_response)
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
   mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
 
-  FilterResponse cur_filter_result = test_regex_manager->execute(mock_transaction);
+  FilterResponse cur_filter_result = test.regex_manager->execute(mock_transaction);
 
-  EXPECT_EQ(cur_filter_result.response_type, FilterResponse::I_RESPOND);
+  BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::I_RESPOND);
 
-  EXPECT_EQ("<html><header></header><body>Forbidden</body></html>", test_regex_manager->generate_response(mock_transaction, cur_filter_result));
-
+  BOOST_CHECK_EQUAL("<html><header></header><body>Forbidden</body></html>", test.regex_manager->generate_response(mock_transaction, cur_filter_result));
 }
 
 //TOOD: We need a test that listen on the publication and see if the ip really being send on the port
+
+BOOST_AUTO_TEST_SUITE_END()

@@ -7,7 +7,7 @@ CircleCI status:
 
 Apache Traffic Server Plugin performing various anti-DDoS measures
 
-Copyright 2013 eQualit.ie
+Copyright 2017 eQualit.ie
 
 Banjax is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
