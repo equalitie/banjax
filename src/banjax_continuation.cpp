@@ -7,7 +7,6 @@
  */
 #include <ts/ts.h>
 
-//#include "banjax.h"
 #include "banjax_continuation.h"
 
 /**

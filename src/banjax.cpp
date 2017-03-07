@@ -108,11 +108,6 @@ Banjax::filter_factory()
     }
   }
 
-  //now Get rid of inactives events
-  for(unsigned int cur_queue = BanjaxFilter::HTTP_START; cur_queue < BanjaxFilter::TOTAL_NO_OF_QUEUES; cur_queue++) {
-    ATSEventHandler::banjax_active_queues[cur_queue] = !task_queues[cur_queue].empty();
-  }
-
   //Ask each filter what part of http transaction they are interested in
   for(list<BanjaxFilter*>::iterator cur_filter = filters.begin(); cur_filter != filters.end(); cur_filter++) {
     all_filters_requested_part |= (*cur_filter)->requested_info();

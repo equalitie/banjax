@@ -12,13 +12,6 @@
 
 class BanjaxContinuation{
 public:
-  enum calling_func
-  {
-    HANDLE_RESPONSE,
-    HANDLE_REQUEST,
-    READ_REGEX_LIST
-  } cf;
-
   TSHttpTxn txnp;
   TSCont contp;
 

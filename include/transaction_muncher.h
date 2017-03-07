@@ -38,7 +38,6 @@ class TransactionMuncher{
      internally to retrieve the response header. Throws exception
      if it faces error.
    */
-
   void retrieve_response_header();
 
  public:
@@ -137,7 +136,6 @@ class TransactionMuncher{
        destructor releasing the header buffer
     */
     ~TransactionMuncher();
-    
 };
 
 #endif // transaction_muncher.h 

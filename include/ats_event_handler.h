@@ -19,11 +19,7 @@ class Banjax;
 class ATSEventHandler
 {
   friend class Banjax;
- protected:
-
-  //We are going to keep a pointer to task queue so we don't need to 
-  //call handler on events without tasks
-  static bool banjax_active_queues[BanjaxFilter::TOTAL_NO_OF_QUEUES];
+protected:
   static Banjax* banjax; //As we only have one banjax main object it
   //make sense to have it as an static member. In fact there is no 
   //fundamental different between ATSEventHandler and Banjax,
@@ -32,7 +28,7 @@ class ATSEventHandler
   //friend of each other
   static TSCont global_contp;
 
- public:
+public:
   /**
      called always when the transaction starts
      The global continuation is a protected static member of
@@ -72,7 +68,6 @@ class ATSEventHandler
      transaction ends
    */
   static void destroy_continuation(TSCont contp);
-
 };
 
 //extern Banjax* ATSEventHandler::banjax;
