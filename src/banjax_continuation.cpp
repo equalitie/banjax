@@ -17,7 +17,7 @@
 BanjaxContinuation::~BanjaxContinuation()
 {
   if (response_info.response_data != NULL && response_info.response_type == FilterResponse::I_RESPOND) {
-    delete (FilterExtendedResponse*)response_info.response_data;
+    delete response_info.response_data;
     response_info.response_data = NULL;
   }
   // TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);

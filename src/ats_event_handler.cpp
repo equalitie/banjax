@@ -215,15 +215,15 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
 
   if (cd->response_info.response_type == FilterResponse::I_RESPOND) {
     cd->transaction_muncher.set_status(TS_HTTP_STATUS_GATEWAY_TIMEOUT);
-    std::string buf = (cd->responding_filter->*(((FilterExtendedResponse*)cd->response_info.response_data)->response_generator))
+    std::string buf = (cd->responding_filter->*(cd->response_info.response_data->response_generator))
                       (cd->transaction_muncher.retrieve_parts(banjax->all_filters_requested_part), cd->response_info);
 
     cd->transaction_muncher.set_status(
-        (TSHttpStatus)((FilterExtendedResponse*)cd->response_info.response_data)->response_code);
+        (TSHttpStatus) cd->response_info.response_data->response_code);
 
-    if (((FilterExtendedResponse*)cd->response_info.response_data)->set_cookie_header.size()) {
+    if (cd->response_info.response_data->set_cookie_header.size()) {
       cd->transaction_muncher.append_header(
-          "Set-Cookie", (((FilterExtendedResponse*)cd->response_info.response_data))->set_cookie_header.c_str());
+          "Set-Cookie", cd->response_info.response_data->set_cookie_header.c_str());
     }
 
     // Forcefully disable cacheing
@@ -239,7 +239,7 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
     char* b = (char*) TSmalloc(buf.size());
     memcpy(b, buf.data(), buf.size());
     TSHttpTxnErrorBodySet(cd->txnp, b, buf.size(),
-                          ((FilterExtendedResponse*)cd->response_info.response_data)->get_and_release_content_type());
+                          cd->response_info.response_data->get_and_release_content_type());
   }
   //Now we should take care of registerd filters in the queue these are not
   //going to generate the response at least that is the plan

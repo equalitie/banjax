@@ -266,8 +266,6 @@ public:
   virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
   //and a pointer to it use later
   ResponseGenerator challenger_resopnder;
-
-
 };
 
 #endif /* challenge_manager.h */

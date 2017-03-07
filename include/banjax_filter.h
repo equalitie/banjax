@@ -116,13 +116,14 @@ public:
         CALL_ME_ON_RESPONSE
    };
 
-  unsigned int response_type;
-  void* response_data; //because FilterResponse does not have any idea about the
+  ResponseType response_type;
+  FilterExtendedResponse* response_data; //because FilterResponse does not have any idea about the
   //way this pointer is used it is the filter responsibility to release the memory
   //it is pointing to at the approperiate moment
 
-  FilterResponse(unsigned int cur_response_type = GO_AHEAD_NO_COMMENT, void* cur_response_data = NULL)
-    : response_type(cur_response_type), response_data(cur_response_data)
+  FilterResponse(ResponseType cur_response_type = GO_AHEAD_NO_COMMENT, FilterExtendedResponse* cur_response_data = nullptr) :
+    response_type(cur_response_type),
+    response_data(cur_response_data)
   {}
 
   /**
@@ -132,12 +133,10 @@ public:
      If you are only intended to call afunction for the matter of information
      gathering you should not use the response_generator
    */
- FilterResponse(ResponseGenerator cur_response_generator)
-    :response_type(I_RESPOND),
-     response_data((void*) new FilterExtendedResponse(cur_response_generator))
-  {
-  }
-
+  FilterResponse(ResponseGenerator cur_response_generator) :
+    response_type(I_RESPOND),
+    response_data(new FilterExtendedResponse(cur_response_generator))
+  {}
 };
 
 typedef FilterResponse (BanjaxFilter::*FilterTaskFunction) (const TransactionParts& transactionp_parts);
