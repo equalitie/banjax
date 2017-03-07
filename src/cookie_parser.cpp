@@ -21,51 +21,56 @@
 const char*
 CookieParser::parse_a_cookie(const char *cookie_str)
 {
-	memset(this, 0, sizeof(CookieParser));
-	this->str = cookie_str;
+  using std::experimental::string_view;
 
-	/* Parse name token */
-	while (*cookie_str != ';' && *cookie_str != '=' && !isspace(*cookie_str) && *cookie_str && (!(*cookie_str == '\r' && *(cookie_str+1) == '\n')))
-		cookie_str++;
+  name  = string_view();
+  value = string_view();
 
-	/* Bail out if name token is empty */
-	if (cookie_str == str) return NULL;
+  const char* name_begin = cookie_str;
 
-	nam_end = cookie_str;
+  /* Parse name token */
+  while (*cookie_str != ';' && *cookie_str != '=' && !isspace(*cookie_str) && *cookie_str && (!(*cookie_str == '\r' && *(cookie_str+1) == '\n')))
+    cookie_str++;
 
-	cookie_str = skip_space(cookie_str);
+  /* Bail out if name token is empty */
+  if (cookie_str == name_begin) return NULL;
 
-	switch (*cookie_str) {
-	case '\0':
-	case ';':
-		/* No value token, so just set to empty value */
-		val_start = cookie_str;
-		val_end = cookie_str;
-		return cookie_str;
+  name = string_view(name_begin, cookie_str - name_begin);
 
-	case '=':
-		/* Map 'a===b' to 'a=b' */
-		do cookie_str++; while (*cookie_str == '=');
-		break;
+  cookie_str = skip_space(cookie_str);
 
-	default:
-		/* No spaces in the name token is allowed */
-		return NULL;
-	}
+  switch (*cookie_str) {
+  case '\0':
+  case ';':
+    /* No value token, so just set to empty value */
+    value = string_view(cookie_str, 0);
+    return cookie_str;
 
-	cookie_str = skip_space(cookie_str);
+  case '=':
+    /* Map 'a===b' to 'a=b' */
+    do cookie_str++; while (*cookie_str == '=');
+    break;
 
-	/* Parse value token */
+  default:
+    /* No spaces in the name token is allowed */
+    return NULL;
+  }
 
-	/* Start with empty value, so even 'a=' will work */
-	val_start = cookie_str;
-	val_end = cookie_str;
+  cookie_str = skip_space(cookie_str);
 
-	for (; *cookie_str != ';' && *cookie_str && (!(*cookie_str == '\r' && *(cookie_str+1) == '\n')); cookie_str++) {
-		/* Allow spaces in the value but leave out ending spaces */
-		if (!isspace(*cookie_str))
-			val_end = cookie_str + 1;
-	}
+  /* Parse value token */
 
-	return skip_space(++cookie_str);
+  /* Start with empty value, so even 'a=' will work */
+  const char* val_start = cookie_str;
+  const char* val_end   = cookie_str;
+
+  for (; *cookie_str != ';' && *cookie_str && (!(*cookie_str == '\r' && *(cookie_str+1) == '\n')); cookie_str++) {
+    /* Allow spaces in the value but leave out ending spaces */
+    if (!isspace(*cookie_str))
+      val_end = cookie_str + 1;
+  }
+
+  value = string_view(val_start, val_end - val_start);
+
+  return skip_space(++cookie_str);
 }

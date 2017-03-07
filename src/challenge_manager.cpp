@@ -49,8 +49,6 @@ const char* ChallengeDefinition::CHALLENGE_LIST[] = {"sha_inverse",
 const char* ChallengeDefinition::CHALLENGE_FILE_LIST[] = {"solver.html",
                                                           "captcha.html", "auth.html"};
 
-string ChallengeManager::zeros_in_javascript = "00"; // needs to be in accordance with the number above
-
 std::string ChallengeManager::sub_token = "$token";
 std::string ChallengeManager::sub_time = "$time";
 std::string ChallengeManager::sub_url = "$url";
@@ -85,7 +83,7 @@ ChallengeManager::load_config(YAML::Node& cfg, const std::string& banjax_dir)
      for(YAML::const_iterator it=cfg["challenges"].begin();it!=cfg["challenges"].end();++it) {
        auto host_challenge_spec = make_shared<HostChallengeSpec>();
 
-       host_challenge_spec->name = (const char*)(*it)["name"].as<std::string>().c_str();
+       host_challenge_spec->name = (*it)["name"].as<std::string>();
        TSDebug(BANJAX_PLUGIN_NAME, "Loading conf for challenge %s", host_challenge_spec->name.c_str());
 
        //it is fundamental to establish what type of challenge we are dealing
@@ -114,7 +112,7 @@ ChallengeManager::load_config(YAML::Node& cfg, const std::string& banjax_dir)
                host_challenge_spec->name.c_str(), challenge_path.c_str());
 
        ifstream ifs(challenge_path);
-       host_challenge_spec->challenge_stream.assign((istreambuf_iterator<char>(ifs)), istreambuf_iterator<char>());
+       host_challenge_spec->challenge_stream.assign(istreambuf_iterator<char>(ifs), istreambuf_iterator<char>());
 
        if (host_challenge_spec->challenge_stream.size() == 0) {
          TSDebug(BANJAX_PLUGIN_NAME, "Warning, [%s] looks empty", challenge_path.c_str());
@@ -161,8 +159,6 @@ ChallengeManager::load_config(YAML::Node& cfg, const std::string& banjax_dir)
      SHA256((const unsigned char*)challenger_key.c_str(), challenger_key.length(), hashed_key);
 
      number_of_trailing_zeros = cfg["difficulty"].as<unsigned int>();
-     assert(!(number_of_trailing_zeros % 4));
-     zeros_in_javascript = string(number_of_trailing_zeros / 4, '0');
    }
    catch(YAML::RepresentationException& e) {
      TSDebug(BANJAX_PLUGIN_NAME, "Bad config for filter %s: %s", BANJAX_FILTER_NAME.c_str(), e.what());
@@ -207,7 +203,6 @@ vector<string> ChallengeManager::split(const string &s, char delim) {
  * @return        true if the SHA256 of the cookie verifies the challenge
  */
 bool ChallengeManager::check_sha(const char* cookiestr){
-  char outputBuffer[65];
 
   unsigned char hash[SHA256_DIGEST_LENGTH];
   SHA256_CTX sha256;
@@ -215,20 +210,31 @@ bool ChallengeManager::check_sha(const char* cookiestr){
   SHA256_Update(&sha256, cookiestr, strlen(cookiestr));
   SHA256_Final(hash, &sha256);
 
-  for(int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-    sprintf(outputBuffer + (i * 2), "%02x", hash[i]);
-  }
-  outputBuffer[64] = 0;
+  unsigned int count = 0;
 
-  //TSDebug(BANJAX_PLUGIN_NAME, "SHA256 = %s", outputBuffer);
-  for(unsigned i=0; i<number_of_trailing_zeros/4; i++){
-    if(outputBuffer[i] != '0'){
-      //TSDebug(BANJAX_PLUGIN_NAME, "i= %d, out = %c", i, outputBuffer[i]);
-      return false;
-    }
+  for (auto h : hash) {
+    // The order of nibbles is reversed in a byte.
+    if (h &  16) break; else ++count;
+    if (h &  32) break; else ++count;
+    if (h &  64) break; else ++count;
+    if (h & 128) break; else ++count;
+    if (h &   1) break; else ++count;
+    if (h &   2) break; else ++count;
+    if (h &   4) break; else ++count;
+    if (h &   8) break; else ++count;
   }
 
-  return true;
+  //{
+  //  char outputBuffer[2 * SHA256_DIGEST_LENGTH + 1];
+  //  for(int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+  //    sprintf(outputBuffer + (i * 2), "%02x", hash[i]);
+  //  }
+  //  outputBuffer[64] = 0;
+
+  //  TSDebug(BANJAX_PLUGIN_NAME, "SHA256 = %s (%d)", outputBuffer, count);
+  //}
+
+  return count >= number_of_trailing_zeros;
 }
 
 /**
@@ -275,11 +281,13 @@ bool ChallengeManager::check_cookie(string answer, const TransactionParts& trans
   const char* next_cookie = cookie_jar.c_str();
 
   while((next_cookie = cookie_parser.parse_a_cookie(next_cookie)) != NULL) {
-    if (!(memcmp(cookie_parser.str, "deflect", (int)(cookie_parser.nam_end - cookie_parser.str)))) {
-      std::string captcha_cookie(cookie_parser.val_start, cookie_parser.val_end - cookie_parser.val_start);
+    if (cookie_parser.name == "deflect") {
+      // TODO(inetic): No need to actually make a copy.
+      std::string captcha_cookie(cookie_parser.value.begin(), cookie_parser.value.end());
+
       //Here we check the challenge specific requirement of the cookie
       bool challenge_prevailed;
-      switch ((unsigned int)(cookied_challenge.challenge_type)) {
+      switch ((unsigned int) cookied_challenge.challenge_type) {
         case ChallengeDefinition::CHALLENGE_SHA_INVERSE:
           challenge_prevailed = check_sha(captcha_cookie.c_str());
           break;
@@ -314,7 +322,7 @@ bool ChallengeManager::check_cookie(string answer, const TransactionParts& trans
  * @param from     substing to be replaced
  * @param to       what to replace by
  */
-bool ChallengeManager::replace(string &original, string &from, string &to){
+bool ChallengeManager::replace(string &original, const string& from, const string& to){
   size_t start_pos = original.find(from);
   if(start_pos == string::npos)
     return false;
@@ -326,7 +334,7 @@ void ChallengeManager::generate_html(
              string ip,
              long t,
              string url,
-				     const TransactionParts& transaction_parts,
+             const TransactionParts& transaction_parts,
              ChallengerExtendedResponse* response_info,
              string& page)
 {
@@ -404,7 +412,7 @@ void ChallengeManager::generate_html(
   // replace the url
   replace(page, sub_url, url);
   // set the correct number of zeros
-  replace(page, sub_zeros, zeros_in_javascript);
+  replace(page, sub_zeros, to_string(number_of_trailing_zeros));
 }
 
 /**
@@ -492,14 +500,19 @@ ChallengeManager::execute(const TransactionParts& transaction_parts)
         if(!ChallengeManager::check_cookie("", transaction_parts, *cur_challenge))
           {
             TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, sending challenge");
+
             //record challenge failure
             FilterResponse failure_response(FilterResponse::I_RESPOND, (void*) new ChallengerExtendedResponse(challenger_resopnder, cur_challenge));
-            if (cur_challenge->fail_tolerance_threshold)
 
-              ((FilterExtendedResponse*)(failure_response.response_data))->banned_ip = report_failure(cur_challenge, transaction_parts);
-          // We need to clear out the cookie here, to make sure switching from
-          // challenge type (captcha->computational) doesn't end up in an infinite reload
-            ((FilterExtendedResponse*)(failure_response.response_data))->set_cookie_header.append("deflect=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly");
+            auto response_data = (FilterExtendedResponse*)(failure_response.response_data);
+
+            if (cur_challenge->fail_tolerance_threshold)
+              response_data->banned_ip = report_failure(cur_challenge, transaction_parts);
+
+            // We need to clear out the cookie here, to make sure switching from
+            // challenge type (captcha->computational) doesn't end up in an infinite reload
+            response_data->set_cookie_header.append("deflect=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly");
+
             return failure_response;
           }
         break;

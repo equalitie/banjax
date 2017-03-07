@@ -101,8 +101,6 @@ protected:
   // string to replace the number of trailing zeros in the javascript
   unsigned int cookie_life_time;
 
-  static std::string zeros_in_javascript;
-
   std::vector<std::string> split(const std::string &, char);
 
   //Challenge specific validity checks
@@ -121,7 +119,7 @@ protected:
    */
   bool check_auth_validity(const char* cookiestr, const std::string password_hash);
 
-  bool replace(std::string &original, std::string &from, std::string &to);
+  bool replace(std::string &original, const std::string& from, const std::string& to);
 
   //Hosts that challenger needs to check
   std::vector<std::string> challenged_hosts;

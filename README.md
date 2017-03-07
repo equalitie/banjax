@@ -233,7 +233,7 @@ Challenger serves different challenges to confirm the legitimacy of the client f
 
 key: is the string from which MAC key that is used to authenticate the cookie is being used. MAC prevents the attacker from tampering with the challenge or reuse its solution for different bots.
 
-difficulty: it determines the number of leading zeros that the  SHA256(solution) at least should have in binary representation. Hence adding this value by 1 doubles the difficulty of the challenge. However in current version only multiple of four bits is supported as difficulty hence it can be 4,8,16,... each one is 16 times harder than proceeding one.
+difficulty: it determines the number of leading zeros that the  SHA256(solution) at least should have in binary representation. Hence adding this value by 1 doubles the difficulty of the challenge.
 
 For each host then the user needs to specifies the following parameters:
 
