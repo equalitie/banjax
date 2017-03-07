@@ -21,21 +21,10 @@ using namespace std;
 #include "denialator.h"
 #include "ip_database.h"
 
-/**
-   do nothing
+/*
+ * checks if the ip has been reported to swabber and denial
  */
-void
-Denialator::load_config()
-{
-
-}
-
-/**
-  checks if the ip has been reported to swabber and denial
-
-
-*/
-FilterResponse Denialator::execute(const TransactionParts& transaction_parts)
+FilterResponse Denialator::on_http_request(const TransactionParts& transaction_parts)
 {
 
   std::string cur_ip = transaction_parts.at(TransactionMuncher::IP);

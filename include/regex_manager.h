@@ -27,7 +27,6 @@ struct RatedRegex
     re2_regex(regex),
     interval(observation_interval),
     rate(excessive_rate) {}
-
 };
 
 const size_t NO_OF_STATE_UNIT_PER_REGEX = 2;
@@ -49,7 +48,7 @@ RegexStateUnion(): state_allocator() {}
 
 class RegexManager : public BanjaxFilter
 {
- protected:
+protected:
   //We store the forbidden message at the begining so we can copy it fast
   //everytime. It is being stored here for being used again
   //ATS barf if you give it the message in const memory
@@ -65,13 +64,13 @@ class RegexManager : public BanjaxFilter
   //swabber object used for banning bots
   SwabberInterface* swabber_interface;
 
- public:
+public:
   enum RegexResult{
     REGEX_MISSED,
     REGEX_MATCHED
   };
 
- protected:
+protected:
   /**
     applies all regex to an ATS record
 
@@ -81,29 +80,25 @@ class RegexManager : public BanjaxFilter
   */
   std::pair<RegexResult,RatedRegex*> parse_request(std::string ip, std::string ats_record);
 
- public:
+public:
   /**
      receives the db object need to read the regex list,
      subsequently it reads all the regexs
 
   */
- RegexManager(const std::string& banjax_dir, const FilterConfig& filter_config, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
-   :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME),
+  RegexManager(const std::string& banjax_dir,
+               const FilterConfig& filter_config,
+               IPDatabase* global_ip_database,
+               SwabberInterface* global_swabber_interface) :
+    BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME),
     forbidden_message("<html><header></header><body>Forbidden</body></html>"),
     forbidden_message_length(forbidden_message.length()),
     swabber_interface(global_swabber_interface)
   {
-    queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&RegexManager::execute);
+    queued_tasks[HTTP_REQUEST] = this;
     ip_database = global_ip_database;
     load_config();
   }
-
-  /**
-    Overload of the load config
-    reads all the regular expressions from the database.
-    and compile them
-  */
-  virtual void load_config();
 
   /**
      Overloaded to tell banjax that we need url, host, ua and ip
@@ -111,21 +106,21 @@ class RegexManager : public BanjaxFilter
      At this point we only asks for url, host and user agent
      later we can ask more if it is needed
    */
-  uint64_t requested_info() { return
-      TransactionMuncher::IP     |
-      TransactionMuncher::METHOD |
-      TransactionMuncher::URL    |
-      TransactionMuncher::HOST   |
-      TransactionMuncher::UA;}
+  uint64_t requested_info() {
+    return TransactionMuncher::IP     |
+           TransactionMuncher::METHOD |
+           TransactionMuncher::URL    |
+           TransactionMuncher::HOST   |
+           TransactionMuncher::UA;
+  }
 
-  /**
-     overloaded execute to execute the filter, it assemble the
-     parts to make ats record and then call the parse log
-  */
-  FilterResponse execute(const TransactionParts& transaction_parts);
+  FilterResponse on_http_request(const TransactionParts& transaction_parts) override;
+  void on_http_close(const TransactionParts& transaction_parts) override {}
 
   virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
 
+private:
+  void load_config();
 };
 
 #endif /* regex_manager.h */

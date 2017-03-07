@@ -60,7 +60,7 @@ public:
     bot_sniffer_mutex(TSMutexCreate()),
     BOTBANGER_LOG("botbanger_log")
   {
-    queued_tasks[HTTP_CLOSE] = static_cast<FilterTaskFunction>(&BotSniffer::execute);
+    queued_tasks[HTTP_CLOSE] = this;
     load_config();
   }
 
@@ -94,12 +94,12 @@ public:
       TransactionMuncher::CONTENT_LENGTH;
   }
 
-  /**
-     overloaded execute to execute the filter, it assemble the
-     parts to make ats record and then send them over a zmq socket
-     to botbanger
-  */
-  FilterResponse execute(const TransactionParts& transaction_parts);
+  FilterResponse on_http_request(const TransactionParts& transaction_parts) override
+  {
+    return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+  }
+
+  void on_http_close(const TransactionParts& transaction_parts) override;
 
   /**
      we do not overload generate_respons cause we have no response to generate

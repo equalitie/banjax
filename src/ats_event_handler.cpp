@@ -95,7 +95,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
     if (contp != Banjax::global_contp) {
       cd = (BanjaxContinuation *) TSContDataGet(contp);
       if (banjax_active_queues[BanjaxFilter::HTTP_CLOSE])
-        handle_task_queue(banjax->task_queues[BanjaxFilter::HTTP_CLOSE], cd);
+        handle_http_close(banjax->task_queues[BanjaxFilter::HTTP_CLOSE], cd);
 
       //killing the continuation
       cd->~BanjaxContinuation(); //leave mem manage to ATS
@@ -152,20 +152,18 @@ ATSEventHandler::banjax_management_handler(TSCont contp, TSEvent event, void *ed
 void
 ATSEventHandler::handle_request(BanjaxContinuation* cd)
 {
-  //retreiving part of header requested by the filters
+  // Retreiving part of header requested by the filters
   const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(banjax->which_parts_are_requested());
 
   bool continue_filtering = true;
 
-  auto& http_requests = banjax->task_queues[BanjaxFilter::HTTP_REQUEST];
+  auto& http_request_filters = banjax->task_queues[BanjaxFilter::HTTP_REQUEST];
 
-  for(Banjax::TaskQueue::iterator cur_task = http_requests.begin();
-          continue_filtering && cur_task != http_requests.end();
-          cur_task++) {
-    FilterResponse cur_filter_result = ((*cur_task->filter).*cur_task->task)(cur_trans_parts);
+  for (auto filter : http_request_filters) {
+    FilterResponse cur_filter_result = filter->on_http_request(cur_trans_parts);
 
     switch (cur_filter_result.response_type)
-      {
+    {
       case FilterResponse::GO_AHEAD_NO_COMMENT:
         continue;
 
@@ -186,7 +184,7 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
       case FilterResponse::I_RESPOND:
         // from here on, cur_filter_result is owned by the continuation data.
         cd->response_info = cur_filter_result;
-        cd->responding_filter = cur_task->filter;
+        cd->responding_filter = filter;
         // TODO(oschaaf): commented this. @vmon: we already hook this globally,
         // is there a reason we need to hook it again here?
         //TSHttpTxnHookAdd(cd->txnp, TS_HTTP_SEND_RESPONSE_HDR_HOOK, cd->contp);
@@ -196,7 +194,9 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
       default:
         //Not implemeneted, hence ignore
         break;
-      }
+    }
+
+    if (!continue_filtering) break;
   }
 
   //TODO: it is imaginable that a filter needs to be
@@ -241,10 +241,6 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
     TSHttpTxnErrorBodySet(cd->txnp, b, buf.size(),
                           cd->response_info.response_data->get_and_release_content_type());
   }
-  //Now we should take care of registerd filters in the queue these are not
-  //going to generate the response at least that is the plan
-  if (banjax_active_queues[BanjaxFilter::HTTP_START])
-    handle_task_queue(banjax->task_queues[BanjaxFilter::HTTP_RESPONSE], cd);
 
   TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_CONTINUE);
 }
@@ -277,28 +273,16 @@ ATSEventHandler::handle_txn_start(TSHttpTxn txnp)
   TSHttpTxnHookAdd(txnp, TS_HTTP_TXN_CLOSE_HOOK, txn_contp);
 
   TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
-
 }
 
-/**
-   runs if a filter is registered to run a function during an event
-*/
 void
-ATSEventHandler::handle_task_queue(Banjax::TaskQueue& current_queue, BanjaxContinuation* cd)
+ATSEventHandler::handle_http_close(Banjax::TaskQueue& current_queue, BanjaxContinuation* cd)
 {
   const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(banjax->which_parts_are_requested());
 
-  for(Banjax::TaskQueue::iterator cur_task = current_queue.begin(); cur_task != current_queue.end(); cur_task++)
-    /*For now we have no plan on doing anything with the result
-      in future we need to receive the filter instruction for
-      the rest of transation but for the moment only it matters
-      at the begining of the transaction to interfere with the
-      transaction.
-
-      FilterResponse cur_filter_result =
-     */
-    ((*(cur_task->filter)).*(cur_task->task))(cur_trans_parts);
-
+  for(auto cur_task : current_queue) {
+    cur_task->on_http_close(cur_trans_parts);
+  }
 }
 
 void

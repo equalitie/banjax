@@ -92,14 +92,13 @@ class ChallengerExtendedResponse : public FilterExtendedResponse
     {};
 
 };
+
 class ChallengeManager : public BanjaxFilter {
 protected:
   // MAC key.
   unsigned char hashed_key[SHA256_DIGEST_LENGTH];
   // Number of zeros needed at the end of the SHA hash
   unsigned int number_of_trailing_zeros;
-  // string to replace the number of trailing zeros in the javascript
-  unsigned int cookie_life_time;
 
   std::vector<std::string> split(const std::string &, char);
 
@@ -182,12 +181,7 @@ protected:
    */
   bool check_cookie(std::string answer, const TransactionParts&, const HostChallengeSpec& cookied_challenge);
 
-  //TODO: This needs to be changed to adopt Otto's approach in placing
-  //the variable info in cookie header and make the jscript to read them
-  //nonetheless it is more efficient to have the html generated in a
-  //referenece sent to the function rather than copying it in the stack
-  //upon return
-  void generate_html(std::string ip, long time, std::string url, const TransactionParts& transaction_parts, ChallengerExtendedResponse* response_info, std::string& generated_html);
+  std::string generate_html(std::string ip, long time, std::string url, const TransactionParts& transaction_parts, ChallengerExtendedResponse* response_info);
 
   /**
      gets a time in long format in future and turn it into browser and human
@@ -208,7 +202,7 @@ public:
     challenger_resopnder(static_cast<ResponseGenerator>(&ChallengeManager::generate_response))
 
   {
-    queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&ChallengeManager::execute);
+    queued_tasks[HTTP_REQUEST] = this;
 
     //Initializing the challenge definitions
     for(unsigned int i = 0; i < ChallengeDefinition::CHALLENGE_COUNT; i++) {
@@ -258,7 +252,8 @@ public:
      overloaded execute to execute the filter, It calls cookie checker
      and if it fails ask for responding by the filter.
   */
-  FilterResponse execute(const TransactionParts& transaction_parts);
+  FilterResponse on_http_request(const TransactionParts& transaction_parts) override;
+  void on_http_close(const TransactionParts& transaction_parts) override {}
 
   /**
      This basically calls the function to generate the html

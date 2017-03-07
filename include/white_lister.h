@@ -24,10 +24,9 @@ class WhiteLister : public BanjaxFilter
      subsequently it reads all the ips
 
   */
- WhiteLister(const std::string& banjax_dir, const FilterConfig& filter_config)
-   :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME)
+  WhiteLister(const std::string& banjax_dir, const FilterConfig& filter_config) :
+    BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME)
   {
-    queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&WhiteLister::execute);
     load_config();
   }
 
@@ -51,7 +50,8 @@ class WhiteLister : public BanjaxFilter
      overloaded execute to execute the filter, it assemble the
      parts to make ats record and then call the parse log
    */
-  FilterResponse execute(const TransactionParts& transaction_parts);
+  FilterResponse on_http_request(const TransactionParts& transaction_parts) override;
+  void on_http_close(const TransactionParts& transaction_parts) override {};
 
   /**
      we do not overload generate_respons cause we have no response to generate

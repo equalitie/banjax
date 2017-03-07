@@ -47,7 +47,7 @@ WhiteLister::load_config()
    TSDebug(BANJAX_PLUGIN_NAME, "Done loading white lister manager conf");
 }
 
-FilterResponse WhiteLister::execute(const TransactionParts& transaction_parts)
+FilterResponse WhiteLister::on_http_request(const TransactionParts& transaction_parts)
 {
   for(list<SubnetRange>::iterator it= white_list.begin(); it != white_list.end(); it++)
   {

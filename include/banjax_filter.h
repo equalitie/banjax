@@ -58,12 +58,13 @@ namespace YAML {
  */
 class FilterExtendedResponse
 {
- public:
+public:
   ResponseGenerator response_generator;
   char* content_type_;
   bool banned_ip;
-
   std::string set_cookie_header;
+  int response_code;
+
   // Returns the set content type. Transfers
   // ownership to the caller.
   char* get_and_release_content_type() {
@@ -82,19 +83,15 @@ class FilterExtendedResponse
     }
   }
 
-  int response_code;
-
   /**
      A constructor that optionally set the response_generator on creation
    */
- FilterExtendedResponse(ResponseGenerator requested_response_generator = NULL)
-    : response_generator(requested_response_generator),
-      content_type_(NULL),
-      banned_ip(false),
+  FilterExtendedResponse(ResponseGenerator requested_response_generator = NULL) :
+    response_generator(requested_response_generator),
+    content_type_(NULL),
+    banned_ip(false),
     response_code(403)
-  {
-  }
-
+  {}
 };
 
 /** we want to keep the FilterResponse struture as light as possible.
@@ -117,9 +114,10 @@ public:
    };
 
   ResponseType response_type;
-  FilterExtendedResponse* response_data; //because FilterResponse does not have any idea about the
-  //way this pointer is used it is the filter responsibility to release the memory
-  //it is pointing to at the approperiate moment
+  // TODO(inetic): Where is this deleted?
+  // TODO(inetic): Check whether classes that inherit from
+  //               FilterExtendedResponse have virtual destructor.
+  FilterExtendedResponse* response_data;
 
   FilterResponse(ResponseType cur_response_type = GO_AHEAD_NO_COMMENT, FilterExtendedResponse* cur_response_data = nullptr) :
     response_type(cur_response_type),
@@ -144,16 +142,9 @@ typedef FilterResponse (BanjaxFilter::*FilterTaskFunction) (const TransactionPar
 struct  FilterTask
 {
   BanjaxFilter* filter;
-  FilterTaskFunction task;
 
-  FilterTask(BanjaxFilter* cur_filter, FilterTaskFunction cur_task)
-    : filter(cur_filter), task(cur_task) {}
-
-  //Default constructor just to make everthing null
-  FilterTask()
-    : filter(NULL),
-      task(NULL) {}
-
+  FilterTask() : filter(NULL) {}
+  FilterTask(BanjaxFilter* cur_filter) : filter(cur_filter) {}
 };
 
 class BanjaxFilter
@@ -162,13 +153,6 @@ class BanjaxFilter
   IPDatabase* ip_database;
   YAML::Node cfg;
 
-  /**
-     It should be overriden by the filter to load its specific configurations
-
-     @param banjax_dir the directory which contains banjax config files
-     @param cfg the object that contains the configuration of the filter
-  */
-  virtual void load_config(const std::string& banjax_dir) {(void) cfg; (void)banjax_dir; assert(0);};
  public:
   const unsigned int BANJAX_FILTER_ID;
   const std::string BANJAX_FILTER_NAME;
@@ -189,7 +173,7 @@ class BanjaxFilter
     TOTAL_NO_OF_QUEUES
   };
 
-  FilterTaskFunction queued_tasks[BanjaxFilter::TOTAL_NO_OF_QUEUES];
+  BanjaxFilter* queued_tasks[BanjaxFilter::TOTAL_NO_OF_QUEUES];
 
   /**
      A disabled filter won't run,
@@ -211,28 +195,19 @@ class BanjaxFilter
      it also merge scattered config in one node
 
   */
- BanjaxFilter(const std::string& banjax_dir, const FilterConfig& filter_config, unsigned int child_id, std::string child_name)
-   :BANJAX_FILTER_ID(child_id),
-    BANJAX_FILTER_NAME(child_name),
-    queued_tasks()
+  BanjaxFilter(const std::string& banjax_dir, const FilterConfig& filter_config, unsigned int child_id, std::string child_name) :
+    BANJAX_FILTER_ID(child_id),
+    BANJAX_FILTER_NAME(child_name)
   {
     (void) banjax_dir; ip_database = NULL;
 
+    for (size_t i = 0; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; ++i) {
+      queued_tasks[i] = nullptr;
+    }
+
     for(std::list<YAML::const_iterator>::const_iterator cur_node = filter_config.config_node_list.begin(); cur_node != filter_config.config_node_list.end(); cur_node++)
-      {
-        cfg = cfg | (*cur_node)->second;
-
-      }
-  }
-
-  /**
-     Filter should call this function cause nullify in constructor does not
-     work :( then setting their functions
-   */
-  virtual void set_tasks()
-  {
-    for(unsigned int i = 0; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++) {
-      queued_tasks[i] = NULL;
+    {
+      cfg = cfg | (*cur_node)->second;
     }
   }
 
@@ -241,8 +216,8 @@ class BanjaxFilter
      virtual
   */
   virtual ~BanjaxFilter()
-    {
-    }
+  {
+  }
 
   /**
      needs to be overriden by the filter
@@ -272,7 +247,8 @@ class BanjaxFilter
      to challenge it.
 
   */
-  virtual FilterResponse execute(const TransactionParts& transaction_parts) = 0;
+  virtual FilterResponse on_http_request(const TransactionParts& transaction_parts) = 0;
+  virtual void on_http_close(const TransactionParts& transaction_parts) = 0;
 
   /**
      The functoin will be called if the filter reply with I_RESPOND
@@ -297,7 +273,6 @@ class BanjaxFilter
     (void) transaction_parts;
     return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
   }
-
 };
 
 #endif /* regex_manager.h */

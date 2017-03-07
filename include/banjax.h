@@ -24,7 +24,7 @@ class BanjaxFilter;
 //object can exist
 class Banjax
 {
- protected:
+protected:
   //it keeps all part of requests and responses which is
   //requested by filter at initialization for later
   //fast use
@@ -36,39 +36,40 @@ class Banjax
 
   std::string banjax_config_dir; //this keeps the folder contains banjax.conf and banjax.d folder
   static const std::string CONFIG_FILENAME;
-  //libconfig object
+
   YAML::Node cfg;
   YAML::Node priorities;
 
-  //manage the priority for filter whose priority isn't
-  //specified in the config file
+  // Manage the priority for filter whose priority isn't specified in the
+  // config file.
   int current_sequential_priority;
 
-  //store all configs related to a filter in different
-  //yaml nodes (in different files maybe)
+  // Store all configs related to a filter in different yaml nodes (in
+  // different files maybe).
   std::map<std::string, FilterConfig> filter_config_map;
 
-  //keep swabber configuration
+  // Keep swabber configuration.
   FilterConfig swabber_conf;
 
-  //ordering and accessing filters by priority
+  // Ordering and accessing filters by priority.
   std::map<int, std::string> priority_map;
 
   friend class ATSEventHandler;
 
- public:
-  typedef std::list<FilterTask> TaskQueue;
+public:
+  typedef std::list<BanjaxFilter*> TaskQueue;
   
- protected:
+protected:
   //requests
   TSTextLogObject log;
   static TSCont global_contp;
   
   IPDatabase ip_database;
   SwabberInterface swabber_interface;
-  
-  std::list<BanjaxFilter*> filters;    //this keeps the list of
-  //all created filter objects so we can delete them on re-load
+
+  // This keeps the list of all created filter objects so we can delete them on
+  // re-load.
+  std::list<BanjaxFilter*> filters;    
   TaskQueue task_queues[BanjaxFilter::TOTAL_NO_OF_QUEUES];
 
   /**
@@ -93,7 +94,7 @@ class Banjax
   */
   void filter_factory();
 
- public:
+public:
   uint64_t which_parts_are_requested() { return all_filters_requested_part;}
   uint64_t which_response_parts_are_requested() { return all_filters_response_part;}
   /**
@@ -109,7 +110,6 @@ class Banjax
      be stay steady
   */
   void reload_config();
-
 };
 
 #endif /*banjax.h*/

@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(white_listed_ip)
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::IP] = "127.0.0.1";
 
-  FilterResponse cur_filter_result = test->execute(mock_transaction);
+  FilterResponse cur_filter_result = test->on_http_request(mock_transaction);
 
   BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
 }
@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE(white_listed_ip2)
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::IP] = "127.0.0.1";
 
-  FilterResponse cur_filter_result = test->execute(mock_transaction);
+  FilterResponse cur_filter_result = test->on_http_request(mock_transaction);
 
   BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
 }
@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE(ordinary_ip)
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::IP] = "123.124.125.126";
 
-  FilterResponse cur_filter_result = test->execute(mock_transaction);
+  FilterResponse cur_filter_result = test->on_http_request(mock_transaction);
 
   BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
 }
@@ -149,7 +149,7 @@ BOOST_AUTO_TEST_CASE(invalid_white_ip)
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::IP] = "x.y.z.w";
 
-  FilterResponse cur_filter_result = test->execute(mock_transaction);
+  FilterResponse cur_filter_result = test->on_http_request(mock_transaction);
 
   BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
 }

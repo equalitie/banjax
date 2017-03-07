@@ -29,8 +29,7 @@ using namespace std;
   reads all the regular expressions from the database.
   and compile them
  */
-void
-RegexManager::load_config()
+void RegexManager::load_config()
 {
   try
   {
@@ -170,7 +169,7 @@ RegexManager::parse_request(string ip, string ats_record)
   return make_pair(REGEX_MISSED, (RatedRegex*)NULL);
 }
 
-FilterResponse RegexManager::execute(const TransactionParts& transaction_parts)
+FilterResponse RegexManager::on_http_request(const TransactionParts& transaction_parts)
 {
   const string sep(" ");
   TransactionParts ats_record_parts = (TransactionParts) transaction_parts;

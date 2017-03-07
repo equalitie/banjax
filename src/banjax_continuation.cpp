@@ -25,5 +25,4 @@ BanjaxContinuation::~BanjaxContinuation()
   // TSCont temp_contp = contp;
   // TSfree(this);
   // TSContDestroy(temp_contp);
-
 }

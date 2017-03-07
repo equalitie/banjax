@@ -11,8 +11,7 @@
 #include "transaction_muncher.h"
 
 class BanjaxContinuation{
-
- public:
+public:
   enum calling_func
   {
     HANDLE_RESPONSE,
@@ -26,21 +25,17 @@ class BanjaxContinuation{
   TransactionMuncher transaction_muncher;
   FilterResponse response_info;
 
-  //the filter that genenates the response
+  // The filter that genenates the response.
   BanjaxFilter* responding_filter;
-  //the function that should generate the response
-  //std::string (BanjaxFilter::*response_generator)(const TransactionParts& transaction_parts, const FilterResponse& response_info);
 
-  /* Destructor: Destroys the continuation after response
-     has been served */
   ~BanjaxContinuation();
+
   /**
      Constructor to set the default values
    */
   BanjaxContinuation(TSHttpTxn cur_txn)
     : txnp(cur_txn), transaction_muncher(cur_txn)
-    {
-    }
+  { }
 };
 
 #endif /*banjax_continuation.h*/

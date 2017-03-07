@@ -34,7 +34,7 @@ class Denialator : public BanjaxFilter
     forbidden_message_length(forbidden_message.length()),
     swabber_interface(global_swabber_interface)
   {
-    queued_tasks[HTTP_REQUEST] = static_cast<FilterTaskFunction>(&Denialator::execute);
+    queued_tasks[HTTP_REQUEST] = this;
     ip_database = global_ip_database;
     banning_grace_period = swabber_interface->get_grace_period();
     load_config();
@@ -45,7 +45,7 @@ class Denialator : public BanjaxFilter
     reads all the regular expressions from the database.
     and compile them
   */
-  virtual void load_config();
+  virtual void load_config() {};
 
   /**
      Overloaded to tell banjax that we need url, host, ua and ip
@@ -53,14 +53,14 @@ class Denialator : public BanjaxFilter
      At this point we only asks for the ip
      later we can ask more if it is needed
    */
-  uint64_t requested_info() { return 
-      TransactionMuncher::IP;}    
+  uint64_t requested_info() { return TransactionMuncher::IP;}    
 
   /**
      overloaded execute to execute the filter, it assemble the
      parts to make ats record and then call the parse log
    */
-  FilterResponse execute(const TransactionParts& transaction_parts);
+  FilterResponse on_http_request(const TransactionParts& transaction_parts) override;
+  void on_http_close(const TransactionParts& transaction_parts) override {}
 
   /**
      we  overload generate_respons cause we have to say denied access

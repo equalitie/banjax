@@ -65,10 +65,7 @@ class ATSEventHandler
    */
   static int  banjax_management_handler(TSCont contp, TSEvent event, void *edata);
 
-  /**
-    runs if a filter is registered to run a function during an event
-   */
-  static void handle_task_queue(Banjax::TaskQueue& current_queue, BanjaxContinuation* cd);
+  static void handle_http_close(Banjax::TaskQueue& current_queue, BanjaxContinuation* cd);
 
   /**
      Destroy the continuation and release the object related to it after

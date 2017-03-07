@@ -99,7 +99,7 @@ Banjax::filter_factory()
     for(unsigned int i = BanjaxFilter::HTTP_START; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++) {
       if (cur_filter->queued_tasks[i]) {
         TSDebug(BANJAX_PLUGIN_NAME, "active task %s %u", cur_filter->BANJAX_FILTER_NAME.c_str(), i);
-        task_queues[i].push_back(FilterTask(cur_filter,cur_filter->queued_tasks[i]));
+        task_queues[i].push_back(cur_filter->queued_tasks[i]);
       }
     }
 
@@ -118,7 +118,6 @@ Banjax::filter_factory()
     all_filters_requested_part |= (*cur_filter)->requested_info();
     all_filters_response_part |= (*cur_filter)->response_info();
   }
-
 }
 
 /**

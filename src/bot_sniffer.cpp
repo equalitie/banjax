@@ -33,21 +33,17 @@ using namespace std;
 void
 BotSniffer::load_config()
 {
+  try {
+    botbanger_port = cfg["botbanger_port"].as<unsigned int>();
 
-  try
-   {
-     botbanger_port = cfg["botbanger_port"].as<unsigned int>();
+    string passphrase = cfg["key"].as<std::string>();
 
-     string passphrase = cfg["key"].as<std::string>();
-
-     SHA256((const unsigned char*)passphrase.c_str(), passphrase.length(), encryption_key);
-
-   }
-   catch(YAML::RepresentationException& e)
-     {
-       TSDebug(BANJAX_PLUGIN_NAME, "Error loading bot sniffer conf [%s].", e.what());
-       throw;
-     }
+    SHA256((const unsigned char*)passphrase.c_str(), passphrase.length(), encryption_key);
+  }
+  catch(YAML::RepresentationException& e) {
+    TSDebug(BANJAX_PLUGIN_NAME, "Error loading bot sniffer conf [%s].", e.what());
+    throw;
+  }
 
   string new_binding_string  = "tcp://"+botbanger_server +":"+to_string(botbanger_port);
   if (!p_zmqsock) { //we haven't got connected to anywhere before
@@ -62,11 +58,11 @@ BotSniffer::load_config()
     p_zmqsock->bind(new_binding_string.c_str());
     _binding_string = new_binding_string;
   }; //else  {re-connecting to the same point do nothing} //unbind bind doesn't work
+
   TSDebug(BANJAX_PLUGIN_NAME, "Done connecting to botbanger server...");
- 
 }
 
-FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
+void BotSniffer::on_http_close(const TransactionParts& transaction_parts)
 {
 
   /*TSDebug("banjax", "sending log to botbanger");
@@ -130,8 +126,6 @@ FilterResponse BotSniffer::execute(const TransactionParts& transaction_parts)
   }
   //botbanger_interface.add_log(transaction_parts[IP], cd->url, cd->protocol, stat, (long) cd->request_len, cd->ua, cd->hit);
   //botbanger_interface.add_log(cd->client_ip, time_str, cd->url, protocol, status, size, cd->ua, hit);
-  return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
-                    
 }
 
 

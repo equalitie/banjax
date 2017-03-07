@@ -330,13 +330,12 @@ bool ChallengeManager::replace(string &original, const string& from, const strin
   return true;
 }
 
-void ChallengeManager::generate_html(
+string ChallengeManager::generate_html(
              string ip,
              long t,
              string url,
              const TransactionParts& transaction_parts,
-             ChallengerExtendedResponse* response_info,
-             string& page)
+             ChallengerExtendedResponse* response_info)
 {
   if (ChallengeManager::is_captcha_url(url)) {
     unsigned char text[6];
@@ -359,8 +358,7 @@ void ChallengeManager::generate_html(
     header.append((char*)cookie);
     header.append("; path=/; HttpOnly");
     response_info->set_cookie_header.append(header.c_str());
-    page = std::string((const char*)gif, (int)gifsize);
-    return;
+    return std::string((const char*)gif, (int)gifsize);
   } else if (ChallengeManager::is_captcha_answer(url)) {
     response_info->response_code = 200;
     response_info->set_content_type("text/html");
@@ -369,7 +367,6 @@ void ChallengeManager::generate_html(
 
     std::string answer = url.substr(found + strlen("__validate/"));
     response_info->response_code = 403;
-    page = "X";
 
     if (ChallengeManager::check_cookie(answer, transaction_parts, *response_info->responding_challenge)) {
       response_info->response_code = 200;
@@ -381,23 +378,22 @@ void ChallengeManager::generate_html(
       header.append((char*)cookie);
       header.append("; path=/; HttpOnly");
       response_info->set_cookie_header.append(header.c_str());
-      page = "OK";
-      return;
+      return "OK";
     } else {
       //count it as a failure
       if (response_info->responding_challenge->fail_tolerance_threshold)
         response_info->banned_ip = report_failure(response_info->responding_challenge, transaction_parts);
 
       if (response_info->banned_ip)
-        page = "Too many failures";
+        return "Too many failures";
     }
 
-    return;
+    return "X";
   }
 
-  //if the challenge is solvig SHA inverse image or auth
-  //copy the template
-  page = response_info->responding_challenge->challenge_stream;
+  // If the challenge is solvig SHA inverse image or auth
+  // copy the template
+  string page = response_info->responding_challenge->challenge_stream;
   // generate the token
   uchar cookie[COOKIE_SIZE];
   GenerateCookie((uchar*)"", (uchar*)hashed_key, t, (uchar*)ip.c_str(), cookie);
@@ -413,6 +409,8 @@ void ChallengeManager::generate_html(
   replace(page, sub_url, url);
   // set the correct number of zeros
   replace(page, sub_zeros, to_string(number_of_trailing_zeros));
+
+  return page;
 }
 
 /**
@@ -451,7 +449,7 @@ bool ChallengeManager::url_contains_word(const std::string& url, const std::stri
    and if it fails ask for responding by the filter.
 */
 FilterResponse
-ChallengeManager::execute(const TransactionParts& transaction_parts)
+ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
 {
   // look up if this host is serving captcha's or not
   TSDebug(BANJAX_PLUGIN_NAME, "Host to be challenged %s", transaction_parts.at(TransactionMuncher::HOST).c_str());
@@ -594,16 +592,13 @@ std::string ChallengeManager::generate_response(const TransactionParts& transact
 
   string buf_str;
 
-  generate_html(transaction_parts.at(TransactionMuncher::IP),
-                time_validity,
-                extended_response->alternative_url.empty()
-                  ? transaction_parts.at(TransactionMuncher::URL_WITH_HOST)
-                  : extended_response->alternative_url,
-                transaction_parts,
-                extended_response,
-                buf_str);
-
-  return buf_str;
+  return generate_html(transaction_parts.at(TransactionMuncher::IP),
+                       time_validity,
+                       extended_response->alternative_url.empty()
+                         ? transaction_parts.at(TransactionMuncher::URL_WITH_HOST)
+                         : extended_response->alternative_url,
+                       transaction_parts,
+                       extended_response);
 }
 
 /**
@@ -634,7 +629,7 @@ ChallengeManager::report_failure(const std::shared_ptr<HostChallengeSpec>& faile
 
   if (cur_ip_state.second[0] >= failed_challenge->fail_tolerance_threshold) {
     banned = true;
-    TransactionParts ats_record_parts = (TransactionParts) transaction_parts;
+    TransactionParts ats_record_parts = transaction_parts;
 
     string banning_reason = "failed challenge " + failed_challenge->name + " for host " + failed_host  + " " + to_string(cur_ip_state.second[0]) + " times, " +
       encapsulate_in_quotes(ats_record_parts[TransactionMuncher::URL]) + ", " +
@@ -652,7 +647,6 @@ ChallengeManager::report_failure(const std::shared_ptr<HostChallengeSpec>& faile
   }
 
   return banned;
-
 }
 
 /**

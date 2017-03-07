@@ -153,7 +153,7 @@ BOOST_AUTO_TEST_CASE(match)
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
   mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
 
-  FilterResponse cur_filter_result = test.regex_manager->execute(mock_transaction);
+  FilterResponse cur_filter_result = test.regex_manager->on_http_request(mock_transaction);
 
   BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::I_RESPOND);
 }
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(match_blank)
   mock_transaction[TransactionMuncher::HOST] = "mywebsite.org";
   mock_transaction[TransactionMuncher::UA] = "";
 
-  FilterResponse cur_filter_result = test.regex_manager->execute(mock_transaction);
+  FilterResponse cur_filter_result = test.regex_manager->on_http_request(mock_transaction);
 
   BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::I_RESPOND);
 }
@@ -201,7 +201,7 @@ BOOST_AUTO_TEST_CASE(miss)
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
   mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
 
-  FilterResponse cur_filter_result = test.regex_manager->execute(mock_transaction);
+  FilterResponse cur_filter_result = test.regex_manager->on_http_request(mock_transaction);
 
   BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
 }
@@ -225,11 +225,11 @@ BOOST_AUTO_TEST_CASE(post_get_counter)
   FilterResponse cur_filter_result = FilterResponse::GO_AHEAD_NO_COMMENT;
 
   for ( int i=0; i<2; i++ ) {
-    cur_filter_result = test.regex_manager->execute(mock_transaction);
+    cur_filter_result = test.regex_manager->on_http_request(mock_transaction);
   }
 
   mock_transaction[TransactionMuncher::URL] = "http://flooding_diff_ban/";
-  cur_filter_result = test.regex_manager->execute(mock_transaction);
+  cur_filter_result = test.regex_manager->on_http_request(mock_transaction);
 
   BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
 }
@@ -250,7 +250,7 @@ BOOST_AUTO_TEST_CASE(match_special_chars)
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
   mock_transaction[TransactionMuncher::UA] = "\"[this is no simple]\" () * ... :; neverhood browsing and co";
 
-  FilterResponse cur_filter_result = test.regex_manager->execute(mock_transaction);
+  FilterResponse cur_filter_result = test.regex_manager->on_http_request(mock_transaction);
 
   BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::I_RESPOND);
 }
@@ -270,7 +270,7 @@ BOOST_AUTO_TEST_CASE(forbidden_response)
   mock_transaction[TransactionMuncher::HOST] = "neverhood.com";
   mock_transaction[TransactionMuncher::UA] = "neverhood browsing and co";
 
-  FilterResponse cur_filter_result = test.regex_manager->execute(mock_transaction);
+  FilterResponse cur_filter_result = test.regex_manager->on_http_request(mock_transaction);
 
   BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::I_RESPOND);
 
