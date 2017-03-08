@@ -5,6 +5,8 @@
 #include <cassert>
 #include "base64.h"
 
+using namespace std;
+
 const char Base64::b64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 const char Base64::reverse_table[128] = {
