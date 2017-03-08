@@ -122,11 +122,6 @@ protected:
   std::vector<std::string> challenged_hosts;
 
   std::string solver_page;
-  // substrings of the page that needs to be replaced
-  static std::string sub_token;	// token
-  static std::string sub_time;	// time until which the cookie is valid
-  static std::string sub_url;		// url that should be queried
-  static std::string sub_zeros;	// number of trailing zeros
 
   // base64 encoding functions
   static const char b64_table[65];
@@ -135,8 +130,6 @@ protected:
   bool is_captcha_url(const std::string& url);
   bool is_captcha_answer(const std::string& url);
 
-  //for auth challenge
-  bool url_contains_word(const std::string& url, const std::string& word) const;
   bool needs_authentication(const std::string& url, const HostChallengeSpec&) const;
 
   std::map<std::string, ChallengeDefinition::ChallengeType> challenge_type;

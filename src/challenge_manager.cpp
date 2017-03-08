@@ -49,10 +49,11 @@ using namespace std;
 const char* ChallengeDefinition::CHALLENGE_LIST[]      = {"sha_inverse", "captcha",      "auth"};
 const char* ChallengeDefinition::CHALLENGE_FILE_LIST[] = {"solver.html", "captcha.html", "auth.html"};
 
-std::string ChallengeManager::sub_token = "$token";
-std::string ChallengeManager::sub_time  = "$time";
-std::string ChallengeManager::sub_url   = "$url";
-std::string ChallengeManager::sub_zeros = "$zeros";
+// Substrings of the page that needs to be replaced.
+const std::string SUB_TOKEN = "$token";
+const std::string SUB_TIME  = "$time";
+const std::string SUB_URL   = "$url";
+const std::string SUB_ZEROS = "$zeros";
 
 template<class T>
 static set<T> vector2set(const vector<T>& source) {
@@ -398,13 +399,13 @@ string ChallengeManager::generate_html(
   TSDebug("banjax", "write cookie [%d]->[%s]", (int)COOKIE_SIZE, token.c_str());
   // replace the time
   string t_str = format_validity_time_for_cookie(t);
-  replace(page, sub_time, t_str);
+  replace(page, SUB_TIME, t_str);
   // replace the token
-  replace(page, sub_token, token);
+  replace(page, SUB_TOKEN, token);
   // replace the url
-  replace(page, sub_url, url);
+  replace(page, SUB_URL, url);
   // set the correct number of zeros
-  replace(page, sub_zeros, to_string(number_of_trailing_zeros));
+  replace(page, SUB_ZEROS, to_string(number_of_trailing_zeros));
 
   return page;
 }
@@ -432,11 +433,6 @@ bool ChallengeManager::is_captcha_url(const std::string& url) {
 }
 bool ChallengeManager::is_captcha_answer(const std::string& url) {
   size_t found = url.rfind("__validate/");
-  return found != std::string::npos;
-}
-
-bool ChallengeManager::url_contains_word(const std::string& url, const std::string& word) const {
-  size_t found = url.rfind(word);
   return found != std::string::npos;
 }
 
@@ -555,7 +551,7 @@ bool ChallengeManager::needs_authentication(const std::string& url, const HostCh
     bool is_protected = false;
 
     for (auto& word : challenge.magic_words) {
-        if (url_contains_word(url, word)) {
+        if (RE2::PartialMatch(url, word)) {
             is_protected = true;
             break;
         }
