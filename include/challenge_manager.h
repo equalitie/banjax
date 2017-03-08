@@ -82,15 +82,14 @@ class HostChallengeSpec {
 
 class ChallengerExtendedResponse : public FilterExtendedResponse
 {
- public:
+public:
   std::shared_ptr<HostChallengeSpec> responding_challenge;
   std::string alternative_url;
 
- ChallengerExtendedResponse(ResponseGenerator requested_response_generator = NULL, std::shared_ptr<HostChallengeSpec> cookied_challenge = nullptr)
-   :  FilterExtendedResponse(requested_response_generator),
+  ChallengerExtendedResponse(ResponseGenerator requested_response_generator, std::shared_ptr<HostChallengeSpec> cookied_challenge) :
+    FilterExtendedResponse(requested_response_generator),
     responding_challenge(cookied_challenge)
-    {};
-
+  {};
 };
 
 class ChallengeManager : public BanjaxFilter {
@@ -199,8 +198,7 @@ public:
     :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
     too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
     swabber_interface(global_swabber_interface),
-    challenger_resopnder(static_cast<ResponseGenerator>(&ChallengeManager::generate_response))
-
+    challenger_responder(static_cast<ResponseGenerator>(&ChallengeManager::generate_response))
   {
     queued_tasks[HTTP_REQUEST] = this;
 
@@ -212,7 +210,6 @@ public:
 
     ip_database = global_ip_database;
     load_config(banjax_dir);
-
   }
 
   /**
@@ -222,7 +219,7 @@ public:
 
     @param cfg the config node for "challenger"
   */
-  virtual void load_config(const std::string& banjax_dir);
+  void load_config(const std::string& banjax_dir);
   void load_config(YAML::Node& cfg, const std::string& banjax_dir);
 
   /**
@@ -260,7 +257,7 @@ public:
    */
   virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
   //and a pointer to it use later
-  ResponseGenerator challenger_resopnder;
+  ResponseGenerator challenger_responder;
 };
 
 #endif /* challenge_manager.h */

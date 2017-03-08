@@ -108,10 +108,10 @@ Banjax::filter_factory()
     }
   }
 
-  //Ask each filter what part of http transaction they are interested in
-  for(list<BanjaxFilter*>::iterator cur_filter = filters.begin(); cur_filter != filters.end(); cur_filter++) {
-    all_filters_requested_part |= (*cur_filter)->requested_info();
-    all_filters_response_part |= (*cur_filter)->response_info();
+  // Ask each filter what part of http transaction they are interested in
+  for(const auto& cur_filter : filters) {
+    all_filters_requested_part |= cur_filter->requested_info();
+    all_filters_response_part  |= cur_filter->response_info();
   }
 }
 

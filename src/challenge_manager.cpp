@@ -454,29 +454,31 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
   // look up if this host is serving captcha's or not
   TSDebug(BANJAX_PLUGIN_NAME, "Host to be challenged %s", transaction_parts.at(TransactionMuncher::HOST).c_str());
   auto challenges_it = host_challenges.find(transaction_parts.at(TransactionMuncher::HOST));
-  if (challenges_it == host_challenges.end())
-    //no challenge for this host
+
+  if (challenges_it == host_challenges.end()) {
+    // No challenge for this host
     return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+  }
 
   TSDebug(BANJAX_PLUGIN_NAME, "cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE).c_str());
-  //most likely success response is no comment but the filter like auth
-  //can change it
-  FilterResponse::ResponseType success_response = FilterResponse::GO_AHEAD_NO_COMMENT;
 
-  for(auto it=challenges_it->second.begin(); it != challenges_it->second.end(); it++) {
-    const auto& cur_challenge = *it;
+  auto custom_response = [=](const shared_ptr<HostChallengeSpec>& challenge) {
+    return FilterResponse(FilterResponse::I_RESPOND,
+        new ChallengerExtendedResponse(challenger_responder, challenge));
+  };
 
+  for(const auto& cur_challenge : challenges_it->second) {
     switch((unsigned int)(cur_challenge->challenge_type))
-      {
+    {
       case ChallengeDefinition::CHALLENGE_CAPTCHA:
         {
           TSDebug(BANJAX_PLUGIN_NAME, "captch url is %s", transaction_parts.at(TransactionMuncher::URL_WITH_HOST).c_str());
           if (ChallengeManager::is_captcha_url(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
           //FIXME: This opens the door to attack edge using the captcha url, we probably need to
           //count captcha urls as failures as well.
-            return FilterResponse(FilterResponse::I_RESPOND, new ChallengerExtendedResponse(challenger_resopnder, cur_challenge));
+            return custom_response(cur_challenge);
           } else if (is_captcha_answer(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
-            return FilterResponse(FilterResponse(FilterResponse::I_RESPOND, new ChallengerExtendedResponse(challenger_resopnder, cur_challenge)));
+            return custom_response(cur_challenge);
           }
 
           if (ChallengeManager::check_cookie("", transaction_parts, *cur_challenge)) {
@@ -485,7 +487,7 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
             continue;
           } else {
             //record challenge failure
-            FilterResponse failure_response(FilterResponse::I_RESPOND, new ChallengerExtendedResponse(challenger_resopnder, cur_challenge));
+            FilterResponse failure_response = custom_response(cur_challenge);
             if (cur_challenge->fail_tolerance_threshold)
               failure_response.response_data->banned_ip = report_failure(cur_challenge, transaction_parts);
 
@@ -500,7 +502,7 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
             TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, sending challenge");
 
             //record challenge failure
-            FilterResponse failure_response(FilterResponse::I_RESPOND, new ChallengerExtendedResponse(challenger_resopnder, cur_challenge));
+            FilterResponse failure_response = custom_response(cur_challenge);
 
             auto response_data = failure_response.response_data;
 
@@ -525,13 +527,10 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
           TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, looking for magic word");
 
           if (needs_authentication(transaction_parts.at(TransactionMuncher::URL_WITH_HOST), *cur_challenge)) {
-            FilterResponse failure_response(FilterResponse::I_RESPOND,
-                                            new ChallengerExtendedResponse(challenger_resopnder,
-                                                                           cur_challenge));
+            FilterResponse failure_response = custom_response(cur_challenge);
 
             if (cur_challenge->fail_tolerance_threshold) {
-              failure_response.response_data->banned_ip
-                  = report_failure(cur_challenge, transaction_parts);
+              failure_response.response_data->banned_ip = report_failure(cur_challenge, transaction_parts);
             }
 
             // We need to clear out the cookie here, to make sure switching from
@@ -546,11 +545,11 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
           }
         }
         break;
-      }
+    }
   }
 
   report_success(transaction_parts.at(TransactionMuncher::IP));
-  return FilterResponse(success_response);
+  return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
 }
 
 bool ChallengeManager::needs_authentication(const std::string& url, const HostChallengeSpec& challenge) const {
