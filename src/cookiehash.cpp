@@ -4,8 +4,8 @@
 #include <string.h>
 #include <string>
 
-#include "../include/cookiehash.h"
-#include "../include/base64.h"
+#include "cookiehash.h"
+#include "base64.h"
 
 // Generate a cookie hash over :
 // captcha, the captcha string, null terminated

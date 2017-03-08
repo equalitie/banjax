@@ -12,8 +12,7 @@ find_package(Threads)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -pthread -Wall -ggdb")
 
 include_directories(
-  "${Boost_INCLUDE_DIR}"
-  "${CMAKE_SOURCE_DIR}/include")
+  "${Boost_INCLUDE_DIR}")
 
 file(GLOB sources
   "${CMAKE_SOURCE_DIR}/src/*.cpp")
@@ -38,7 +37,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -pthread -ggdb")
 
 include_directories(
   "${Boost_INCLUDE_DIR}"
-  "${CMAKE_SOURCE_DIR}/include"
+  "${CMAKE_SOURCE_DIR}/src"
   "${CMAKE_SOURCE_DIR}/test")
 
 file(GLOB sources

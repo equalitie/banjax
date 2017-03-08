@@ -3,7 +3,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <cassert>
-#include "../include/base64.h"
+#include "base64.h"
 
 const char Base64::b64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
