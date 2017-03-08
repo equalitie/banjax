@@ -39,7 +39,6 @@ public:
 
   static const char* CHALLENGE_LIST[];
   static const char* CHALLENGE_FILE_LIST[];
-
 };
 
 class ChallengeSpec

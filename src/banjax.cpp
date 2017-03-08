@@ -437,5 +437,4 @@ void abort_traffic_server()
   TSError("Banjax was unable to start properly");
   TSError("preventing ATS to run cause quietly starting ats without banjax is worst possible combination");
   TSReleaseAssert(false);
-
 }

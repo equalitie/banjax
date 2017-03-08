@@ -36,6 +36,7 @@ using namespace std;
 #include "cookie_parser.h"
 #include "challenge_manager.h"
 #include "cookiehash.h"
+#include "print.h"
 
 #define COOKIE_SIZE 100
 
@@ -69,108 +70,106 @@ static set<T> vector2set(const vector<T>& source) {
 void
 ChallengeManager::load_config(const std::string& banjax_dir)
 {
-  load_config(cfg, banjax_dir);
-}
-
-void
-ChallengeManager::load_config(YAML::Node& cfg, const std::string& banjax_dir)
-{
   //TODO: we should read the auth password from config and store it somewhere
-   TSDebug(BANJAX_PLUGIN_NAME, "Loading challenger manager conf");
-   try
-   {
-     //now we compile all of them and store them for later use
-     for(YAML::const_iterator it=cfg["challenges"].begin();it!=cfg["challenges"].end();++it) {
-       auto host_challenge_spec = make_shared<HostChallengeSpec>();
+  print::debug("Loading challenger manager conf");
+  try
+  {
+    //now we compile all of them and store them for later use
+    for(YAML::const_iterator it=cfg["challenges"].begin();it!=cfg["challenges"].end();++it) {
+      auto host_challenge_spec = make_shared<HostChallengeSpec>();
 
-       host_challenge_spec->name = (*it)["name"].as<std::string>();
-       TSDebug(BANJAX_PLUGIN_NAME, "Loading conf for challenge %s", host_challenge_spec->name.c_str());
+      host_challenge_spec->name = (*it)["name"].as<std::string>();
+      print::debug("Loading conf for challenge ", host_challenge_spec->name);
 
-       //it is fundamental to establish what type of challenge we are dealing
-       //with
-       std::string requested_challenge_type = (*it)["challenge_type"].as<std::string>();
-       host_challenge_spec->challenge_type = challenge_type[requested_challenge_type];
+      //it is fundamental to establish what type of challenge we are dealing
+      //with
+      std::string requested_challenge_type = (*it)["challenge_type"].as<std::string>();
+      host_challenge_spec->challenge_type = challenge_type[requested_challenge_type];
 
-       host_challenge_spec->challenge_validity_period = (*it)["validity_period"].as<unsigned int>();
+      host_challenge_spec->challenge_validity_period = (*it)["validity_period"].as<unsigned int>();
 
-       //how much failure are we going to tolerate
-       //0 means infinite tolerance
-       if ((*it)["no_of_fails_to_ban"])
-         host_challenge_spec->fail_tolerance_threshold = (*it)["no_of_fails_to_ban"].as<unsigned int>();
-       // TODO(oschaaf): host name can be configured twice, and could except here
-       std::string challenge_file;
-       if ((*it)["challenge"])
-         challenge_file = (*it)["challenge"].as<std::string>();
+      //how much failure are we going to tolerate
+      //0 means infinite tolerance
+      if ((*it)["no_of_fails_to_ban"])
+        host_challenge_spec->fail_tolerance_threshold = (*it)["no_of_fails_to_ban"].as<unsigned int>();
+      // TODO(oschaaf): host name can be configured twice, and could except here
+      std::string challenge_file;
+      if ((*it)["challenge"])
+        challenge_file = (*it)["challenge"].as<std::string>();
 
-       // If no file is configured, default to hard coded solver_page.
-       if (challenge_file.size() == 0) {
-         challenge_file.append(challenge_specs[host_challenge_spec->challenge_type]->default_page_filename);
-       }
+      // If no file is configured, default to hard coded solver_page.
+      if (challenge_file.size() == 0) {
+        challenge_file.append(challenge_specs[host_challenge_spec->challenge_type]->default_page_filename);
+      }
 
-       std::string challenge_path = banjax_dir + "/" + challenge_file;
-       TSDebug(BANJAX_PLUGIN_NAME, "Challenge [%s] uses challenge file [%s]",
-               host_challenge_spec->name.c_str(), challenge_path.c_str());
+      std::string challenge_path = banjax_dir + "/" + challenge_file;
+      TSDebug(BANJAX_PLUGIN_NAME, "Challenge [%s] uses challenge file [%s]",
+              host_challenge_spec->name.c_str(), challenge_path.c_str());
 
-       ifstream ifs(challenge_path);
-       host_challenge_spec->challenge_stream.assign(istreambuf_iterator<char>(ifs), istreambuf_iterator<char>());
+      ifstream ifs(challenge_path);
+      host_challenge_spec->challenge_stream.assign(istreambuf_iterator<char>(ifs), istreambuf_iterator<char>());
 
-       if (host_challenge_spec->challenge_stream.size() == 0) {
-         TSDebug(BANJAX_PLUGIN_NAME, "Warning, [%s] looks empty", challenge_path.c_str());
-         TSError("Warning, [%s] looks empty", challenge_path.c_str());
-       } else {
-         TSDebug(BANJAX_PLUGIN_NAME, "Assigning %d bytes of html for [%s]",
-                 (int)host_challenge_spec->challenge_stream.size(), host_challenge_spec->name.c_str());
-       }
+      if (host_challenge_spec->challenge_stream.size() == 0) {
+        TSDebug(BANJAX_PLUGIN_NAME, "Warning, [%s] looks empty", challenge_path.c_str());
+        TSError("Warning, [%s] looks empty", challenge_path.c_str());
+      } else {
+        TSDebug(BANJAX_PLUGIN_NAME, "Assigning %d bytes of html for [%s]",
+                (int)host_challenge_spec->challenge_stream.size(), host_challenge_spec->name.c_str());
+      }
 
-       //Auth challenege specific data
-       if ((*it)["password_hash"])
-         host_challenge_spec->password_hash = (*it)["password_hash"].as<string>();
+      //Auth challenege specific data
+      if ((*it)["password_hash"])
+        host_challenge_spec->password_hash = (*it)["password_hash"].as<string>();
 
-       if ((*it)["magic_word"]) {
-         auto& mw = (*it)["magic_word"];
+      if ((*it)["magic_word"]) {
+        auto& mw = (*it)["magic_word"];
 
-         if (mw.IsSequence()) {
-           host_challenge_spec->magic_words = vector2set(mw.as<vector<string>>());
-         }
-         else {
-           host_challenge_spec->magic_words.insert(mw.as<string>());
-         }
-       }
+        if (mw.IsSequence()) {
+          host_challenge_spec->magic_words = vector2set(mw.as<vector<string>>());
+        }
+        else {
+          host_challenge_spec->magic_words.insert(mw.as<string>());
+        }
+      }
 
-       if ((*it)["magic_word_exceptions"]) {
-         host_challenge_spec->magic_word_exceptions = (*it)["magic_word_exceptions"].as<vector<string>>();
-       }
+      if ((*it)["magic_word_exceptions"]) {
+        auto exprs = (*it)["magic_word_exceptions"].as<vector<string>>();
 
-       //here we are updating the dictionary that relate each
-       //domain to many challenges
-       unsigned int domain_count = (*it)["domains"].size();
+        for (const auto& expr : exprs) {
+          host_challenge_spec->magic_word_exceptions.emplace_back(expr);
+        }
+      }
 
-       //now we compile all of them and store them for later use
-       for(unsigned int i = 0; i < domain_count; i++) {
-         string cur_domain = (*it)["domains"][i].as<std::string>();
-         host_challenges[cur_domain].push_back(host_challenge_spec);
-       }
-     }
+      //here we are updating the dictionary that relate each
+      //domain to many challenges
+      unsigned int domain_count = (*it)["domains"].size();
 
-     //we use SHA256 to generate a key from the user passphrase
-     //we will use half of the hash as we are using AES128
-     string challenger_key = cfg["key"].as<std::string>();
+      //now we compile all of them and store them for later use
+      for(unsigned int i = 0; i < domain_count; i++) {
+        string cur_domain = (*it)["domains"][i].as<std::string>();
+        host_challenges[cur_domain].push_back(host_challenge_spec);
+      }
+    }
 
-     SHA256((const unsigned char*)challenger_key.c_str(), challenger_key.length(), hashed_key);
+    //we use SHA256 to generate a key from the user passphrase
+    //we will use half of the hash as we are using AES128
+    string challenger_key = cfg["key"].as<std::string>();
 
-     number_of_trailing_zeros = cfg["difficulty"].as<unsigned int>();
-   }
-   catch(YAML::RepresentationException& e) {
-     TSDebug(BANJAX_PLUGIN_NAME, "Bad config for filter %s: %s", BANJAX_FILTER_NAME.c_str(), e.what());
-     throw;
-   }
+    SHA256((const unsigned char*)challenger_key.c_str(), challenger_key.length(), hashed_key);
 
-   TSDebug(BANJAX_PLUGIN_NAME, "Done loading challenger manager conf");
+    number_of_trailing_zeros = cfg["difficulty"].as<unsigned int>();
+  }
+  catch(YAML::RepresentationException& e) {
+    TSDebug(BANJAX_PLUGIN_NAME, "Bad config for filter %s: %s", BANJAX_FILTER_NAME.c_str(), e.what());
+    throw;
+  }
 
-   // load the page
-    //ifstream ifs("../challenger/solver.html");
-   //TODO: Should not re-read the fiel upon each request
-   //We need to read the whole string from the database infact
+  TSDebug(BANJAX_PLUGIN_NAME, "Done loading challenger manager conf");
+
+  // load the page
+  //ifstream ifs("../challenger/solver.html");
+  //TODO: Should not re-read the fiel upon each request
+  //We need to read the whole string from the database infact
   //  ifstream ifs(ChallengeManager::solver_page.c_str());
   //  solver_page.assign( (istreambuf_iterator<char>(ifs)), istreambuf_iterator<char>());
 
@@ -180,8 +179,6 @@ ChallengeManager::load_config(YAML::Node& cfg, const std::string& banjax_dir)
   // TSDebug(BANJAX_PLUGIN_NAME,
   //         "ChallengeManager::generate_html lookup for host [%s] found %d bytes of html.",
   //         host_header.c_str(), (int)page.size());
-
-
 }
 
 /**
