@@ -26,6 +26,7 @@
 #include <openssl/rand.h>
 
 #include <ts/ts.h>
+#include <re2/re2.h>
 
 #include <assert.h>
 #include "libcaptcha.c"
@@ -45,14 +46,12 @@ using namespace std;
 //FIXME: this is not the best practice, it is better to make
 //CHALLENGE_LIST an array of pairs of name and id
 //appears in ChallengType enum in challenge_manager.h
-const char* ChallengeDefinition::CHALLENGE_LIST[] = {"sha_inverse",
-                                                     "captcha", "auth"};
-const char* ChallengeDefinition::CHALLENGE_FILE_LIST[] = {"solver.html",
-                                                          "captcha.html", "auth.html"};
+const char* ChallengeDefinition::CHALLENGE_LIST[]      = {"sha_inverse", "captcha",      "auth"};
+const char* ChallengeDefinition::CHALLENGE_FILE_LIST[] = {"solver.html", "captcha.html", "auth.html"};
 
 std::string ChallengeManager::sub_token = "$token";
-std::string ChallengeManager::sub_time = "$time";
-std::string ChallengeManager::sub_url = "$url";
+std::string ChallengeManager::sub_time  = "$time";
+std::string ChallengeManager::sub_url   = "$url";
 std::string ChallengeManager::sub_zeros = "$zeros";
 
 template<class T>
@@ -461,7 +460,8 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
 
   auto custom_response = [=](const shared_ptr<HostChallengeSpec>& challenge) {
     return FilterResponse(FilterResponse::I_RESPOND,
-        new ChallengerExtendedResponse(challenger_responder, challenge));
+        new ChallengerExtendedResponse([&](auto... xs) { return this->generate_response(xs...); },
+                                       challenge));
   };
 
   for(const auto& cur_challenge : challenges_it->second) {
@@ -564,7 +564,7 @@ bool ChallengeManager::needs_authentication(const std::string& url, const HostCh
     if (!is_protected) return false;
 
     for (auto& unprotected : challenge.magic_word_exceptions) {
-        if (url_contains_word(url, unprotected)) {
+        if (RE2::FullMatch(url, unprotected)) {
             return false;
         }
     }

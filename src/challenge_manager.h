@@ -196,8 +196,7 @@ public:
  ChallengeManager(const std::string& banjax_dir, const FilterConfig& filter_config, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
     :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
     too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
-    swabber_interface(global_swabber_interface),
-    challenger_responder([&](auto ...xs) { return this->generate_response(xs...); })
+    swabber_interface(global_swabber_interface)
   {
     queued_tasks[HTTP_REQUEST] = this;
 
@@ -210,16 +209,6 @@ public:
     ip_database = global_ip_database;
     load_config(banjax_dir);
   }
-
-  /**
-    Overload of the load config
-    reads all the regular expressions from the database.
-    and compile them
-
-    @param cfg the config node for "challenger"
-  */
-  void load_config(const std::string& banjax_dir);
-  void load_config(YAML::Node& cfg, const std::string& banjax_dir);
 
   /**
      Overloaded to tell banjax that we need url, host
@@ -251,12 +240,10 @@ public:
   FilterResponse on_http_request(const TransactionParts& transaction_parts) override;
   void on_http_close(const TransactionParts& transaction_parts) override {}
 
-  /**
-     This basically calls the function to generate the html
-   */
+private:
   virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
-  //and a pointer to it use later
-  ResponseGenerator challenger_responder;
+
+  void load_config(const std::string& banjax_dir);
 };
 
 #endif /* challenge_manager.h */
