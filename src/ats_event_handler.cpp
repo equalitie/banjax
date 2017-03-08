@@ -176,7 +176,6 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
       case FilterResponse::I_RESPOND:
         // from here on, cur_filter_result is owned by the continuation data.
         cd->response_info = cur_filter_result;
-        cd->responding_filter = filter;
         // TODO(oschaaf): commented this. @vmon: we already hook this globally,
         // is there a reason we need to hook it again here?
         //TSHttpTxnHookAdd(cd->txnp, TS_HTTP_SEND_RESPONSE_HDR_HOOK, cd->contp);
@@ -207,7 +206,7 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
 
   if (cd->response_info.response_type == FilterResponse::I_RESPOND) {
     cd->transaction_muncher.set_status(TS_HTTP_STATUS_GATEWAY_TIMEOUT);
-    std::string buf = (cd->responding_filter->*(cd->response_info.response_data->response_generator))
+    std::string buf = cd->response_info.response_data->response_generator
                       (cd->transaction_muncher.retrieve_parts(banjax->all_filters_requested_part), cd->response_info);
 
     cd->transaction_muncher.set_status(

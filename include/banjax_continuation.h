@@ -18,9 +18,6 @@ public:
   TransactionMuncher transaction_muncher;
   FilterResponse response_info;
 
-  // The filter that genenates the response.
-  BanjaxFilter* responding_filter;
-
   ~BanjaxContinuation();
 
   /**

@@ -17,7 +17,7 @@
 class BanjaxFilter;
 class FilterResponse;
 
-typedef std::string (BanjaxFilter::*ResponseGenerator) (const TransactionParts& transactionp_parts, const FilterResponse& response_info);
+using ResponseGenerator = std::function<std::string(const TransactionParts&, const FilterResponse&)>;
 
 /** this is mainly created due to disablibity of yaml
     to merge nodes of the same name but also to manage
@@ -29,7 +29,6 @@ public:
   int priority;
 
  FilterConfig() : priority(0) {}
-
 };
 
 namespace YAML {
@@ -69,16 +68,16 @@ public:
   // ownership to the caller.
   char* get_and_release_content_type() {
     char * ct = content_type_;
-    content_type_ = NULL;
+    content_type_ = nullptr;
     return ct;
   }
 
   void set_content_type(const char* x) {
-    if (content_type_ != NULL) {
+    if (content_type_) {
       TSfree(content_type_);
-      content_type_ = NULL;
+      content_type_ = nullptr;
     }
-    if (x != NULL) {
+    if (x) {
       content_type_ = TSstrdup(x);
     }
   }
@@ -86,9 +85,9 @@ public:
   /**
      A constructor that optionally set the response_generator on creation
    */
-  FilterExtendedResponse(ResponseGenerator requested_response_generator = NULL) :
+  FilterExtendedResponse(ResponseGenerator requested_response_generator = nullptr) :
     response_generator(requested_response_generator),
-    content_type_(NULL),
+    content_type_(nullptr),
     banned_ip(false),
     response_code(403)
   {}

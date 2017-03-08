@@ -198,7 +198,7 @@ FilterResponse RegexManager::on_http_request(const TransactionParts& transaction
     string banning_reason = "matched regex rule " + result.second->rule_name + ", " + ats_rec_comma_sep;
 
     swabber_interface->ban(ats_record_parts[TransactionMuncher::IP], banning_reason);
-    return FilterResponse(static_cast<ResponseGenerator>(&RegexManager::generate_response));
+    return FilterResponse([&](auto... xs) { return this->generate_response(xs...); });
 
   } else if (result.first != REGEX_MISSED) {
     TSError("Regex failed with error: %d\n", result.first);

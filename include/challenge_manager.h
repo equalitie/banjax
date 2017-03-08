@@ -198,7 +198,7 @@ public:
     :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
     too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
     swabber_interface(global_swabber_interface),
-    challenger_responder(static_cast<ResponseGenerator>(&ChallengeManager::generate_response))
+    challenger_responder([&](auto ...xs) { return this->generate_response(xs...); })
   {
     queued_tasks[HTTP_REQUEST] = this;
 
