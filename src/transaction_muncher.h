@@ -62,6 +62,8 @@ class TransactionMuncher{
       PART_RETRIEVAL_ERROR
     };
 
+    TSHttpStatus get_response_status();
+
     /**
        provide the vessel to tell the fliters that  telling which parts has been 
        retrieved successfully

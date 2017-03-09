@@ -291,6 +291,11 @@ TransactionMuncher::retrieve_response_parts(uint64_t requested_log_parts)
 
 }
 
+TSHttpStatus TransactionMuncher::get_response_status() {
+  if (!response_header) retrieve_response_header();
+  return TSHttpHdrStatusGet(response_header, response_header_location);
+}
+
 void 
 TransactionMuncher::retrieve_response_header()
 {

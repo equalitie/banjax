@@ -118,8 +118,9 @@ ChallengeManager::load_config(const std::string& banjax_dir)
       }
 
       //Auth challenege specific data
-      if ((*it)["password_hash"])
+      if ((*it)["password_hash"]) {
         host_challenge_spec->password_hash = (*it)["password_hash"].as<string>();
+      }
 
       if ((*it)["magic_word"]) {
         auto& mw = (*it)["magic_word"];
