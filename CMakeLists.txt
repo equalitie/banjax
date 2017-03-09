@@ -17,13 +17,20 @@ include_directories(
 file(GLOB sources
   "${CMAKE_SOURCE_DIR}/src/*.cpp")
 
+set(BANJAX_LIB_DEPS
+  ssl
+  crypto
+  re2
+  zmq
+  yaml-cpp)
+
 add_library(banjax_static STATIC ${sources})
 set_target_properties(banjax_static PROPERTIES OUTPUT_NAME banjax)
-target_link_libraries(banjax_static ssl crypto re2 zmq yaml-cpp)
+target_link_libraries(banjax_static ${BANJAX_LIB_DEPS})
 
 add_library(banjax_module MODULE ${sources})
 set_target_properties(banjax_module PROPERTIES OUTPUT_NAME banjax)
-target_link_libraries(banjax_module ssl crypto re2 zmq yaml-cpp)
+target_link_libraries(banjax_module ${BANJAX_LIB_DEPS})
 set_target_properties(banjax_module PROPERTIES PREFIX "")
 
 
@@ -45,8 +52,7 @@ file(GLOB sources
   "${CMAKE_SOURCE_DIR}/test/challenge_manager_unittest.cpp"
   "${CMAKE_SOURCE_DIR}/test/regex_manager_unittest.cpp"
   "${CMAKE_SOURCE_DIR}/test/unittest_common.cpp"
-  "${CMAKE_SOURCE_DIR}/test/white_lister_unittest.cpp"
-)
+  "${CMAKE_SOURCE_DIR}/test/white_lister_unittest.cpp")
 
 add_executable(unit-tests ${sources})
 target_link_libraries(unit-tests banjax_static ${Boost_LIBRARIES})
