@@ -49,12 +49,12 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
     handle_txn_start((TSHttpTxn) edata);
     // handle_task_queue(HTTP_START, (BanjaxContinuation *) TSContDataGet(contp));
 
-    return 0;
+    return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_READ_REQUEST_HDR:
     if(contp != Banjax::global_contp)
       handle_request((BanjaxContinuation *) TSContDataGet(contp));
-    return 0;
+    return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_READ_CACHE_HDR:
     /* on hit we don't do anything for now
@@ -64,7 +64,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
        cd->hit = 1;
        }*/
     TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
-    return 0;
+    return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_SEND_REQUEST_HDR:
     TSDebug(BANJAX_PLUGIN_NAME, "miss");
@@ -73,7 +73,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
 	    cd->transaction_muncher.miss();
     }
     TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
-    return 0;
+    return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_SEND_RESPONSE_HDR:
     //TSDebug(BANJAX_PLUGIN_NAME, "response" );
@@ -81,7 +81,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
       cd = (BanjaxContinuation*) TSContDataGet(contp);
       handle_response(cd);
     }
-    return 0;
+    return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_TXN_CLOSE:
     TSDebug(BANJAX_PLUGIN_NAME, "txn close" );
@@ -124,7 +124,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
       break;
   }
 
-  return 0;
+  return TS_EVENT_NONE;
 }
 
 /**
