@@ -108,8 +108,6 @@ public:
         I_RESPOND,
         SERVE_IMMIDIATELY_DONT_CACHE,
         SERVE_FRESH,
-        CALL_OTHER_FILTERS,
-        CALL_ME_ON_RESPONSE
    };
 
   ResponseType response_type;
@@ -260,17 +258,6 @@ class BanjaxFilter
     (void) transaction_parts; (void) response_info;
     TSDebug(BANJAX_PLUGIN_NAME, "You shouldn't have called me at the first place.");
     assert(NULL);
-  }
-
-  /**
-     Overload if you want this filter be called during the response
-     the filter should return CALL_ME_ON_RESPONSE when it is executed
-     during request
-   */
-  virtual FilterResponse execute_on_response(const TransactionParts& transaction_parts)
-  {
-    (void) transaction_parts;
-    return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
   }
 };
 

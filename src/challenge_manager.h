@@ -73,10 +73,21 @@ class HostChallengeSpec {
   unsigned long challenge_validity_period; //how many second the challenge is valid for this host
   HostChallengeSpec()
     : fail_tolerance_threshold() {};
-  //needed by auth challeng
+
+  // SHA256 of client's password, needed for the auth challenge.
   std::string password_hash;
+
+  // A set of regular expressions, if at least one of them matches
+  // the requested URL, then the client shall be requested authorization
+  // before serving the content.
   std::set<std::string> magic_words;
+
   std::vector<std::string> magic_word_exceptions;
+
+  // These IPs will not need to participate in any challenge.
+  // The content (even if protected by magic_words) shall be
+  // served directly without being cached.
+  std::set<std::string> white_listed_ips;
 };
 
 class ChallengerExtendedResponse : public FilterExtendedResponse

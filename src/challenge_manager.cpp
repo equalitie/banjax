@@ -88,14 +88,17 @@ ChallengeManager::load_config(const std::string& banjax_dir)
 
       host_challenge_spec->challenge_validity_period = ch["validity_period"].as<unsigned int>();
 
-      //how much failure are we going to tolerate
-      //0 means infinite tolerance
-      if (ch["no_of_fails_to_ban"])
+      // How much failure are we going to tolerate 0 means infinite tolerance
+      if (ch["no_of_fails_to_ban"]) {
         host_challenge_spec->fail_tolerance_threshold = ch["no_of_fails_to_ban"].as<unsigned int>();
+      }
+
       // TODO(oschaaf): host name can be configured twice, and could except here
       std::string challenge_file;
-      if (ch["challenge"])
+
+      if (ch["challenge"]) {
         challenge_file = ch["challenge"].as<std::string>();
+      }
 
       // If no file is configured, default to hard coded solver_page.
       if (challenge_file.size() == 0) {
@@ -139,6 +142,11 @@ ChallengeManager::load_config(const std::string& banjax_dir)
         for (const auto& expr : exprs) {
           host_challenge_spec->magic_word_exceptions.emplace_back(expr);
         }
+      }
+
+      if (ch["white_listed_ips"]) {
+        auto& ips = ch["white_listed_ips"];
+        host_challenge_spec->white_listed_ips = vector2set(ips.as<vector<string>>());
       }
 
       //here we are updating the dictionary that relate each
@@ -462,7 +470,15 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
   };
 
   for(const auto& cur_challenge : challenges_it->second) {
-    switch((unsigned int)(cur_challenge->challenge_type))
+
+    auto ip = transaction_parts.at(TransactionMuncher::IP);
+
+    if (cur_challenge->white_listed_ips.count(ip)) {
+      print::debug("Challenge ", cur_challenge->name, " bypassed for ip: ", ip);
+      return FilterResponse(FilterResponse::SERVE_IMMIDIATELY_DONT_CACHE);
+    }
+
+    switch(cur_challenge->challenge_type)
     {
       case ChallengeDefinition::CHALLENGE_CAPTCHA:
         {
