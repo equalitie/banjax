@@ -73,25 +73,27 @@ void
 Banjax::filter_factory()
 {
   BanjaxFilter* cur_filter;
-  for (map<int,string>::iterator cur_filter_name_it = priority_map.begin(); cur_filter_name_it != priority_map.end();cur_filter_name_it++) {
-    FilterConfig& cur_config = filter_config_map[cur_filter_name_it->second];
+
+  for (const pair<int,string>& cur_filter_name : priority_map) {
+    FilterConfig& cur_config = filter_config_map[cur_filter_name.second];
+
     try {
-      if (cur_filter_name_it->second == REGEX_BANNER_FILTER_NAME) {
+      if (cur_filter_name.second == REGEX_BANNER_FILTER_NAME) {
         cur_filter = new RegexManager(banjax_config_dir, cur_config, &ip_database, &swabber_interface);
-      } else if (cur_filter_name_it->second == CHALLENGER_FILTER_NAME){
+      } else if (cur_filter_name.second == CHALLENGER_FILTER_NAME){
         cur_filter = new ChallengeManager(banjax_config_dir, cur_config, &ip_database, &swabber_interface);
-      } else if (cur_filter_name_it->second == WHITE_LISTER_FILTER_NAME){
+      } else if (cur_filter_name.second == WHITE_LISTER_FILTER_NAME){
         cur_filter = new WhiteLister(banjax_config_dir, cur_config);
-      } else if (cur_filter_name_it->second == BOT_SNIFFER_FILTER_NAME){
+      } else if (cur_filter_name.second == BOT_SNIFFER_FILTER_NAME){
         cur_filter = new BotSniffer(banjax_config_dir, cur_config);
-      } else if (cur_filter_name_it->second == DENIALATOR_FILTER_NAME){
+      } else if (cur_filter_name.second == DENIALATOR_FILTER_NAME){
         cur_filter = new Denialator(banjax_config_dir, cur_config, &ip_database, &swabber_interface);
       } else {
-        TSError(("don't know how to construct requested filter " + cur_filter_name_it->second).c_str());
+        TSError(("don't know how to construct requested filter " + cur_filter_name.second).c_str());
         abort_traffic_server();
       }
-    }catch(YAML::Exception& e) {
-      TSError(("error in intializing filter " + cur_filter_name_it->second).c_str());
+    } catch (YAML::Exception& e) {
+      TSError(("error in intializing filter " + cur_filter_name.second).c_str());
       abort_traffic_server();
     }
 
@@ -261,26 +263,24 @@ Banjax::read_configuration()
 
       if ((*it).second.as<int>() < min_priority)
         min_priority = (*it).second.as<int>();
-
     }
   }
 
   //now either replace priorities or add them up
-  for(std::map<std::string, FilterConfig>::iterator it = filter_config_map.begin(); it != filter_config_map.end(); it++) {
-    if (priorities[it->first]) {
-      it->second.priority = priorities[it->first].as<int>();
+  for(pair<const std::string, FilterConfig>& p : filter_config_map) {
+    if (priorities[p.first]) {
+      p.second.priority = priorities[p.first].as<int>();
     }
     else {
-      it->second.priority += max_priority+1;
+      p.second.priority += max_priority + 1;
     }
-    if (priority_map.find(it->second.priority) != priority_map.end())
-      {
-        TSError(("Priority " + to_string(it->second.priority) + " has been doubly assigned").c_str());
-        abort_traffic_server();
-      }
 
-    priority_map[it->second.priority] = it->first;
+    if (priority_map.count(p.second.priority)) {
+      TSError(("Priority " + to_string(p.second.priority) + " has been doubly assigned").c_str());
+      abort_traffic_server();
+    }
 
+    priority_map[p.second.priority] = p.first;
   }
 
   //(re)set swabber configuration if there is no swabber node
@@ -288,7 +288,6 @@ Banjax::read_configuration()
   swabber_interface.load_config(swabber_conf);
   //now we can make the filters
   filter_factory();
-
 }
 
 
@@ -299,9 +298,9 @@ Banjax::process_config(const YAML::Node& cfg)
 {
   static const  string sep = "/";
 
-  for (YAML::const_iterator it=cfg.begin();it!=cfg.end();++it) {
+  for (YAML::const_iterator it = cfg.begin(); it != cfg.end(); ++it) {
     try {
-      std::string node_name = (*it).first.as<std::string>();
+      std::string node_name = it->first.as<std::string>();
       if (std::find(all_filters_names.begin(), all_filters_names.end(), node_name)!=all_filters_names.end()) {
 
         // If it's a filter see if it is already in the list
@@ -331,13 +330,12 @@ Banjax::process_config(const YAML::Node& cfg)
         priorities = Clone(it->second);
 
       } else if (node_name == "include") {
-        for(YAML::const_iterator sub_it=it->second.begin();sub_it!=it->second.end();++sub_it ) {
-          string inc_loc = banjax_config_dir + sep + (*sub_it).as<std::string>();
+        for(const auto& sub : it->second) {
+          string inc_loc = banjax_config_dir + sep + sub.as<std::string>();
           TSDebug(BANJAX_PLUGIN_NAME, "Reading configuration from [%s]", inc_loc.c_str());
           try {
             YAML::Node sub_cfg = YAML::LoadFile(inc_loc);
             process_config(sub_cfg);
-
           }
           catch(YAML::BadFile& e) {
             TSError("I/O error while reading config file [%s]: [%s]. Make sure that file exists.", inc_loc.c_str(), e.what());
@@ -355,13 +353,9 @@ Banjax::process_config(const YAML::Node& cfg)
     } catch( YAML::RepresentationException &e ) {
       TSError(("bad config format " +  (string)e.what()).c_str());
       abort_traffic_server();
-
     }
-
   } //for all nodes
-
 };
-
 
 /* Global pointer that keep track of banjax global object */
 Banjax* p_banjax_plugin;

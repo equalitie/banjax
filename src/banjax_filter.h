@@ -28,7 +28,7 @@ public:
   std::list<YAML::const_iterator> config_node_list;
   int priority;
 
- FilterConfig() : priority(0) {}
+  FilterConfig() : priority(0) {}
 };
 
 namespace YAML {
@@ -204,9 +204,9 @@ class BanjaxFilter
       queued_tasks[i] = nullptr;
     }
 
-    for(std::list<YAML::const_iterator>::const_iterator cur_node = filter_config.config_node_list.begin(); cur_node != filter_config.config_node_list.end(); cur_node++)
+    for(const auto& cur_node : filter_config.config_node_list)
     {
-      cfg = cfg | (*cur_node)->second;
+      cfg = cfg | cur_node->second;
     }
   }
 

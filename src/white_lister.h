@@ -13,16 +13,15 @@
 
 class WhiteLister : public BanjaxFilter
 {
- protected:
+protected:
   //list of previlaged ips that don't need to go through
   //the banjax filtering process
   std::list<SubnetRange> white_list;
 
- public:
+public:
   /**
      receives the config object need to read the ip list,
      subsequently it reads all the ips
-
   */
   WhiteLister(const std::string& banjax_dir, const FilterConfig& filter_config) :
     BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME)
@@ -31,20 +30,14 @@ class WhiteLister : public BanjaxFilter
   }
 
   /**
-    Overload of the load config
-    reads all the regular expressions from the database.
-    and compile them
-  */
-  virtual void load_config();
-
-  /**
      Overloaded to tell banjax that we need url, host, ua and ip
      for banning
      At this point we only asks for url, host and user agent
      later we can ask more if it is needed
    */
-  uint64_t requested_info() { return 
-      TransactionMuncher::IP;}    
+  uint64_t requested_info() override {
+    return TransactionMuncher::IP;
+  }
 
   /**
      overloaded execute to execute the filter, it assemble the
@@ -53,10 +46,8 @@ class WhiteLister : public BanjaxFilter
   FilterResponse on_http_request(const TransactionParts& transaction_parts) override;
   void on_http_close(const TransactionParts& transaction_parts) override {};
 
-  /**
-     we do not overload generate_respons cause we have no response to generate
-  */
-
+private:
+  void load_config();
 };
-  
+
 #endif /* white_lister.h */

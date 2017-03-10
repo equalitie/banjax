@@ -75,27 +75,27 @@ ChallengeManager::load_config(const std::string& banjax_dir)
   try
   {
     //now we compile all of them and store them for later use
-    for(YAML::const_iterator it=cfg["challenges"].begin();it!=cfg["challenges"].end();++it) {
+    for(const auto& ch : cfg["challenges"]) {
       auto host_challenge_spec = make_shared<HostChallengeSpec>();
 
-      host_challenge_spec->name = (*it)["name"].as<std::string>();
+      host_challenge_spec->name = ch["name"].as<std::string>();
       print::debug("Loading conf for challenge ", host_challenge_spec->name);
 
       //it is fundamental to establish what type of challenge we are dealing
       //with
-      std::string requested_challenge_type = (*it)["challenge_type"].as<std::string>();
+      std::string requested_challenge_type = ch["challenge_type"].as<std::string>();
       host_challenge_spec->challenge_type = challenge_type[requested_challenge_type];
 
-      host_challenge_spec->challenge_validity_period = (*it)["validity_period"].as<unsigned int>();
+      host_challenge_spec->challenge_validity_period = ch["validity_period"].as<unsigned int>();
 
       //how much failure are we going to tolerate
       //0 means infinite tolerance
-      if ((*it)["no_of_fails_to_ban"])
-        host_challenge_spec->fail_tolerance_threshold = (*it)["no_of_fails_to_ban"].as<unsigned int>();
+      if (ch["no_of_fails_to_ban"])
+        host_challenge_spec->fail_tolerance_threshold = ch["no_of_fails_to_ban"].as<unsigned int>();
       // TODO(oschaaf): host name can be configured twice, and could except here
       std::string challenge_file;
-      if ((*it)["challenge"])
-        challenge_file = (*it)["challenge"].as<std::string>();
+      if (ch["challenge"])
+        challenge_file = ch["challenge"].as<std::string>();
 
       // If no file is configured, default to hard coded solver_page.
       if (challenge_file.size() == 0) {
@@ -118,12 +118,12 @@ ChallengeManager::load_config(const std::string& banjax_dir)
       }
 
       //Auth challenege specific data
-      if ((*it)["password_hash"]) {
-        host_challenge_spec->password_hash = (*it)["password_hash"].as<string>();
+      if (ch["password_hash"]) {
+        host_challenge_spec->password_hash = ch["password_hash"].as<string>();
       }
 
-      if ((*it)["magic_word"]) {
-        auto& mw = (*it)["magic_word"];
+      if (ch["magic_word"]) {
+        auto& mw = ch["magic_word"];
 
         if (mw.IsSequence()) {
           host_challenge_spec->magic_words = vector2set(mw.as<vector<string>>());
@@ -133,8 +133,8 @@ ChallengeManager::load_config(const std::string& banjax_dir)
         }
       }
 
-      if ((*it)["magic_word_exceptions"]) {
-        auto exprs = (*it)["magic_word_exceptions"].as<vector<string>>();
+      if (ch["magic_word_exceptions"]) {
+        auto exprs = ch["magic_word_exceptions"].as<vector<string>>();
 
         for (const auto& expr : exprs) {
           host_challenge_spec->magic_word_exceptions.emplace_back(expr);
@@ -143,11 +143,11 @@ ChallengeManager::load_config(const std::string& banjax_dir)
 
       //here we are updating the dictionary that relate each
       //domain to many challenges
-      unsigned int domain_count = (*it)["domains"].size();
+      unsigned int domain_count = ch["domains"].size();
 
       //now we compile all of them and store them for later use
       for(unsigned int i = 0; i < domain_count; i++) {
-        string cur_domain = (*it)["domains"][i].as<std::string>();
+        string cur_domain = ch["domains"][i].as<std::string>();
         host_challenges[cur_domain].push_back(host_challenge_spec);
       }
     }
