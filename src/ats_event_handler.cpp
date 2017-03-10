@@ -246,7 +246,11 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
     set_error_body(buf);
     TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_CONTINUE);
   }
-  else if (status != TS_HTTP_STATUS_OK) {
+  else if (status == 110 /* = ERR_CONNECT_FAIL */) {
+    // There was a ticket that some origins responded with this error.
+    // Standard errors are handled nicely by TS but this one caused
+    // TS to halt for approx 1 minute causing confusion about whether
+    // the error was at TS side or at origin.
     string error_body = str(
       "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\"\n"
       "        \"http://www.w3.org/TR/html4/strict.dtd\">\n"
@@ -258,9 +262,7 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
       "    <body>\n"
       "        <h1>Error response</h1>\n"
       "        <p>Error code: ", status,"</p>\n"
-      // TODO(inetic): Provide a bit more info.
-      //"        <p>Message: File not found.</p>\n"
-      //"        <p>Error code explanation: HTTPStatus.NOT_FOUND - Nothing matches the given URI.</p>\n"
+      "        <p>Error code explanation: ERR_CONNECT_FAIL</p>\n"
       "    </body>\n"
       "</html>\n");
 
