@@ -12,7 +12,7 @@ dependencies:
     - cd ../trafficserver-6.0.0 && ./configure --prefix=`pwd`/../ts && make -j`nproc` && make install
     - find ../ts
     - echo "banjax/banjax.so $HOME/ts/libexec/trafficserver/banjax/" >> ../ts/etc/trafficserver/plugin.config
-    - echo "regex_map http://^localhost:8080$/ http://127.0.0.1:8000/" >> ../ts/etc/trafficserver/remap.config
+    - echo "regex_map http://^127.0.0.1:8080$/ http://127.0.0.1:8000/" >> ../ts/etc/trafficserver/remap.config
     - perl -pi -e 's/CONFIG proxy.config.http.cache.required_headers INT .+/CONFIG proxy.config.http.cache.required_headers INT 0/g' ../ts/etc/trafficserver/records.config
     - cat ../ts/etc/trafficserver/records.config
     - mkdir build
@@ -25,4 +25,4 @@ dependencies:
 test:
   override:
     - ./build/unit-tests
-    - (cd ../http && nohup python -m SimpleHTTPServer 8000 2>/dev/null >/dev/null &) && python ./test/banjax_behavior_test.py --banjax-dir=`pwd`/../ts/libexec/trafficserver/banjax --banjax-test-dir=`pwd`/test --ats-bin-dir=../ts/bin --http-doc-root=`pwd`/../http
+    - python ./test/banjax_behavior_test.py --banjax-dir=`pwd`/../ts/libexec/trafficserver/banjax --banjax-test-dir=`pwd`/test --ats-bin-dir=../ts/bin --http-doc-root=`pwd`/../http
