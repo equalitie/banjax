@@ -26,6 +26,7 @@ public:
   WhiteLister(const std::string& banjax_dir, const FilterConfig& filter_config) :
     BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME)
   {
+    queued_tasks[HTTP_REQUEST] = this;
     load_config();
   }
 
