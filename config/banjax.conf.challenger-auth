@@ -1,0 +1,23 @@
+challenger:
+    difficulty: 0
+    key: 'allwearesayingisgivewarachance'
+    challenges:
+      - name: 'example auth'
+        domains:
+         - '127.0.0.1:8080'
+        challenge_type: 'auth'
+        challenge: 'auth.html'
+
+        # SHA256 of 'howisbabbyformed?'
+        password_hash: 'BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM='
+
+        # Partially matched regular expression.
+        magic_word: 'wp-admin'
+
+        # This by default does a FULL regex match. It would be a huge
+        # security risk to do only partial match.
+        magic_word_exceptions: ['(https?://)?[^/]+/+wp-admin/+admin.ajax.php.*']
+
+        validity_period: 120
+        no_of_fails_to_ban: 10
+

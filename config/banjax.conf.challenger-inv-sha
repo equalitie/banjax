@@ -1,0 +1,16 @@
+challenger:
+    difficulty: 8
+    key: 'allwearesayingisgivewarachance'
+    challenges:
+      - name: 'example.co_auth'
+        domains:
+         - 'localhost:8080'
+        challenge_type: 'auth'
+        challenge: 'auth.html'
+        password_hash: 'BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM='
+        # sha256('howisbabbyformed?')
+        magic_word: 'wp-admin'
+        magic_word_exceptions: ['wp-admin/admin.ajax.php']
+        validity_period: 120
+        no_of_fails_to_ban: 10
+
