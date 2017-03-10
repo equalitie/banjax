@@ -7,9 +7,9 @@ dependencies:
     - ls; pwd; nproc
     - cd ..; git clone git@github.com:google/re2.git && cd re2; make && sudo make install
     - sudo cp ~/re2/obj/so/lib* /lib/
-    - cd ..; wget http://tux.rainside.sk/apache/trafficserver/trafficserver-6.0.0.tar.bz2
-    - cd ..; tar xf trafficserver-6.0.0.tar.bz2
-    - cd ../trafficserver-6.0.0 && ./configure --prefix=`pwd`/../ts && make -j`nproc` && make install
+    - cd ..; wget http://tux.rainside.sk/apache/trafficserver/trafficserver-7.0.0.tar.bz2
+    - cd ..; tar xf trafficserver-7.0.0.tar.bz2
+    - cd ../trafficserver-7.0.0 && ./configure --prefix=`pwd`/../ts && make -j`nproc` && make install
     - find ../ts
     - echo "banjax/banjax.so $HOME/ts/libexec/trafficserver/banjax/" >> ../ts/etc/trafficserver/plugin.config
     - echo "regex_map http://^127.0.0.1:8080$/ http://127.0.0.1:8000/" >> ../ts/etc/trafficserver/remap.config
@@ -25,4 +25,4 @@ dependencies:
 test:
   override:
     - ./build/unit-tests
-    - python ./test/banjax_behavior_test.py --banjax-dir=`pwd`/../ts/libexec/trafficserver/banjax --banjax-test-dir=`pwd`/test --ats-bin-dir=../ts/bin --http-doc-root=`pwd`/../http
+    - python ./test/banjax_behavior_test.py --ts-prefix=`pwd`/../ts --ts-layout="standard"

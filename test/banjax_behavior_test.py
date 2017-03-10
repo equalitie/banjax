@@ -89,10 +89,24 @@ class Test(unittest.TestCase):
 
     ATS_INIT_DELAY = 6
 
-    banjax_dir      = "/usr/local/trafficserver/modules/banjax"
-    banjax_test_dir = "/root/dev/banjax/test"
-    ats_bin_dir     = "/usr/local/trafficserver/bin"
-    http_doc_root   = "/var/www"
+    ats_layout     = "apache" # or "standard"
+    ats_prefix_dir = ""
+    ats_bin_dir    = "/usr/local/trafficserver/bin"
+
+    def banjax_module_dir(self):
+        options = { "standard": Test.ats_prefix_dir + "/libexec/trafficserver/banjax"
+                  , "apache":   Test.ats_prefix_dir + "/modules/banjax" }
+
+        return options[Test.ats_layout]
+
+    def ats_bin_dir(self):
+        options = { "standard": Test.ats_prefix_dir + "/bin"
+                  , "apache":   Test.ats_prefix_dir + "/bin" }
+
+        return options[Test.ats_layout]
+
+    def banjax_test_dir(self):
+        return os.path.dirname(os.path.realpath(__file__))
 
     AUTH_CHALLENGE_CONFIG = (
         "challenger:\n"
@@ -112,19 +126,19 @@ class Test(unittest.TestCase):
         "        no_of_fails_to_ban: 10\n");
 
     def print_debug(self):
-        subprocess.Popen(["tail", "-f", self.ats_bin_dir + "/../logs/traffic.out"]);
+        subprocess.Popen(["tail", "-f", self.ats_bin_dir() + "/../logs/traffic.out"]);
 
     # Auxilary functions
     def read_page(self, page_filename):
-        page_file  = open(Test.banjax_test_dir + "/"+ page_filename, 'rb')
+        page_file  = open(self.banjax_test_dir() + "/"+ page_filename, 'rb')
         return page_file.read()
 
     def read_solver_body(self):
-        solver_body = open(Test.banjax_dir + "/solver.html")
+        solver_body = open(self.banjax_module_dir() + "/solver.html")
         self.SOLVER_PAGE_PREFIX = solver_body.read(self.SOLVER_PAGE_PREFIX_LEN)
 
     def restart_traffic_server(self):
-        traffic_proc = subprocess.Popen([Test.ats_bin_dir + "/trafficserver", "restart"],
+        traffic_proc = subprocess.Popen([self.ats_bin_dir() + "/trafficserver", "restart"],
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
@@ -134,7 +148,7 @@ class Test(unittest.TestCase):
         return traffic_proc.stdout.read()
 
     def stop_traffic_server(self):
-        traffic_proc = subprocess.Popen([Test.ats_bin_dir + "/trafficserver", "stop"],
+        traffic_proc = subprocess.Popen([self.ats_bin_dir() + "/trafficserver", "stop"],
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
@@ -142,7 +156,7 @@ class Test(unittest.TestCase):
 
     def clear_cache(self):
         self.stop_traffic_server();
-        proc = subprocess.Popen([Test.ats_bin_dir + "/traffic_server", "-K"],
+        proc = subprocess.Popen([self.ats_bin_dir() + "/traffic_server", "-K"],
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
@@ -151,7 +165,7 @@ class Test(unittest.TestCase):
 
     def replace_config2(self, config_string):
         self.clear_cache()
-        config_path = Test.banjax_dir + "/banjax.conf"
+        config_path = self.banjax_module_dir() + "/banjax.conf"
         config = open(config_path, 'w')
         config.write(config_string)
         config.close()
@@ -168,7 +182,10 @@ class Test(unittest.TestCase):
         return curl_proc.stdout.read()
 
     def set_banjax_config(self, name, value):
-        subprocess.call([Test.ats_bin_dir + "/traffic_line", "-s", name, "-v", value])
+        # When using TS 6.0
+        #subprocess.call([self.ats_bin_dir() + "/traffic_line", "-s", name, "-v", value])
+        # When using TS 7.0
+        subprocess.call([self.ats_bin_dir() + "/traffic_ctl", "config", "set", name, value])
 
     def setUp(self):
         self.read_solver_body()
@@ -293,17 +310,13 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--banjax-dir', default=Test.banjax_dir)
-    parser.add_argument('--banjax-test-dir', default=os.getcwd())
-    parser.add_argument('--ats-bin-dir', default=Test.ats_bin_dir)
-    parser.add_argument('--http-doc-root', default=Test.http_doc_root)
+    parser.add_argument('--ts-layout', default=Test.ats_layout)
+    parser.add_argument('--ts-prefix', default=Test.ats_prefix_dir)
     parser.add_argument('unittest_args', nargs='*')
 
     args = parser.parse_args()
-    Test.banjax_dir      = args.banjax_dir
-    Test.banjax_test_dir = args.banjax_test_dir
-    Test.http_doc_root   = args.http_doc_root
-    Test.ats_bin_dir     = args.ats_bin_dir
+    Test.ats_layout     = args.ts_layout
+    Test.ats_prefix_dir = args.ts_prefix
 
     # Now set the sys.argv to the unittest_args (leaving sys.argv[0] alone)
     sys.argv[1:] = args.unittest_args
