@@ -33,6 +33,7 @@ using namespace std;
 #include "challenge_manager.h"
 #include "swabber_interface.h"
 #include "ats_event_handler.h"
+#include "util.h"
 
 //extern TSMutex Banjax::regex_mutex;
 
@@ -84,7 +85,7 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
     return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_TXN_CLOSE:
-    TSDebug(BANJAX_PLUGIN_NAME, "txn close" );
+    TSDebug(BANJAX_PLUGIN_NAME, "txn close");
     if (contp != Banjax::global_contp) {
       cd = (BanjaxContinuation *) TSContDataGet(contp);
       handle_http_close(banjax->task_queues[BanjaxFilter::HTTP_CLOSE], cd);
@@ -201,8 +202,22 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
 void
 ATSEventHandler::handle_response(BanjaxContinuation* cd)
 {
+  auto status = cd->transaction_muncher.get_response_status();
+
   //we need to retrieve response parts for any filter who requested it.
   cd->transaction_muncher.retrieve_response_parts(banjax->which_response_parts_are_requested());
+
+  auto set_error_body = [&](const string&  buf) {
+    char* b = (char*) TSmalloc(buf.size());
+    memcpy(b, buf.data(), buf.size());
+
+    auto* rd = cd->response_info.response_data;
+
+    char* content_type = rd ? rd->get_and_release_content_type()
+                            : nullptr;
+
+    TSHttpTxnErrorBodySet(cd->txnp, b, buf.size(), content_type);
+  };
 
   if (cd->response_info.response_type == FilterResponse::I_RESPOND) {
     cd->transaction_muncher.set_status(TS_HTTP_STATUS_GATEWAY_TIMEOUT);
@@ -227,13 +242,34 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
       // Insert one, to prevent triggering an assert in TSHttpTxnErrorBodySet
       buf.append("Not authorized");
     }
-    char* b = (char*) TSmalloc(buf.size());
-    memcpy(b, buf.data(), buf.size());
-    TSHttpTxnErrorBodySet(cd->txnp, b, buf.size(),
-                          cd->response_info.response_data->get_and_release_content_type());
-  }
 
-  TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_CONTINUE);
+    set_error_body(buf);
+    TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_CONTINUE);
+  }
+  else if (status != TS_HTTP_STATUS_OK) {
+    string error_body = str(
+      "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\"\n"
+      "        \"http://www.w3.org/TR/html4/strict.dtd\">\n"
+      "<html>\n"
+      "    <head>\n"
+      "        <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\">\n"
+      "        <title>Error response</title>\n"
+      "    </head>\n"
+      "    <body>\n"
+      "        <h1>Error response</h1>\n"
+      "        <p>Error code: ", status,"</p>\n"
+      // TODO(inetic): Provide a bit more info.
+      //"        <p>Message: File not found.</p>\n"
+      //"        <p>Error code explanation: HTTPStatus.NOT_FOUND - Nothing matches the given URI.</p>\n"
+      "    </body>\n"
+      "</html>\n");
+
+    set_error_body(error_body);
+    TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_ERROR);
+  }
+  else {
+    TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_CONTINUE);
+  }
 }
 
 /**

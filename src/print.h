@@ -74,7 +74,7 @@ std::ostream& operator<<(std::ostream& os, ts_http_status s) {
     case TS_HTTP_STATUS_LOOP_DETECTED:                   os << "TS_HTTP_STATUS_LOOP_DETECTED"; break;
     case TS_HTTP_STATUS_NOT_EXTENDED:                    os << "TS_HTTP_STATUS_NOT_EXTENDED"; break;
     case TS_HTTP_STATUS_NETWORK_AUTHENTICATION_REQUIRED: os << "TS_HTTP_STATUS_NETWORK_AUTHENTICATION_REQUIRED"; break;
-    default:                                             os << "UNKNOWN_TS_HTTP_STATUS";
+    default:                                             os << "TS_HTTP_STATUS(" << s.status << ")";
   }
   return os;
 }
