@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(white_listed_ip)
 
   FilterResponse cur_filter_result = test->on_http_request(mock_transaction);
 
-  BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
+  BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::SERVE_IMMIDIATELY_DONT_CACHE);
 }
 
 BOOST_AUTO_TEST_CASE(white_listed_ip2)
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(white_listed_ip2)
 
   FilterResponse cur_filter_result = test->on_http_request(mock_transaction);
 
-  BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
+  BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::SERVE_IMMIDIATELY_DONT_CACHE);
 }
 
 /**
@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(invalid_white_ip)
 
   FilterResponse cur_filter_result = test->on_http_request(mock_transaction);
 
-  BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
+  BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::SERVE_IMMIDIATELY_DONT_CACHE);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -14,8 +14,8 @@
 class WhiteLister : public BanjaxFilter
 {
 protected:
-  //list of previlaged ips that don't need to go through
-  //the banjax filtering process
+  // List of previleged IPs that don't need to go through
+  // other filters.
   std::list<SubnetRange> white_list;
 
 public:
@@ -30,20 +30,10 @@ public:
     load_config();
   }
 
-  /**
-     Overloaded to tell banjax that we need url, host, ua and ip
-     for banning
-     At this point we only asks for url, host and user agent
-     later we can ask more if it is needed
-   */
   uint64_t requested_info() override {
     return TransactionMuncher::IP;
   }
 
-  /**
-     overloaded execute to execute the filter, it assemble the
-     parts to make ats record and then call the parse log
-   */
   FilterResponse on_http_request(const TransactionParts& transaction_parts) override;
   void on_http_close(const TransactionParts& transaction_parts) override {};
 

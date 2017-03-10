@@ -49,15 +49,17 @@ WhiteLister::load_config()
 
 FilterResponse WhiteLister::on_http_request(const TransactionParts& transaction_parts)
 {
-  //for(list<SubnetRange>::iterator it= white_list.begin(); it != white_list.end(); it++)
   for (const auto& subnet_range : white_list)
   {
     auto ip = transaction_parts.at(TransactionMuncher::IP);
 
     if (is_match(ip, subnet_range))
     {
-      TSDebug(BANJAX_PLUGIN_NAME, "white listed ip: %s in range %X", transaction_parts.at(TransactionMuncher::IP).c_str(), subnet_range.first);
-      return FilterResponse(FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY);
+      TSDebug(BANJAX_PLUGIN_NAME, "white listed ip: %s in range %X",
+          ip.c_str(),
+          subnet_range.first);
+
+      return FilterResponse(FilterResponse::SERVE_IMMIDIATELY_DONT_CACHE);
     }
   }
 

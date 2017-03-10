@@ -126,7 +126,7 @@ class Test(unittest.TestCase):
         "        no_of_fails_to_ban: 10\n");
 
     def print_debug(self):
-        subprocess.Popen(["tail", "-f", self.ats_bin_dir() + "/../logs/traffic.out"]);
+        subprocess.Popen(["tail", "-f", self.ats_bin_dir() + "/../var/log/trafficserver/traffic.out"]);
 
     # Auxilary functions
     def read_page(self, page_filename):
@@ -304,6 +304,41 @@ class Test(unittest.TestCase):
         dms = DeadManSwitch(5)
         result = self.do_curl(Test.ATS_HOST + "/" + Test.CACHED_PAGE)
         dms.stop()
+
+    def test_white_listed_magic_must_not_be_cached(self):
+        """
+        White listed IPs don't need to go through authorization when
+        on a page marked with MAGIC_WORD. We must make sure that such
+        pages don't go to cache otherwise other white listed users
+        may see them.
+        """
+        config = ("priority:\n"
+                  "  white_lister: 1\n"
+                  "  challenger: 2\n"
+                  "\n"
+                  "white_lister:\n"
+                  "    white_listed_ips:\n"
+                  "      - 127.0.0.1\n"
+                  "\n")
+
+        config += self.AUTH_CHALLENGE_CONFIG
+
+        self.replace_config2(config)
+
+        # Tell TS to start caching.
+        self.set_banjax_config("proxy.config.http.cache.http", "1")
+        self.set_banjax_config("proxy.config.http.cache.required_headers", "0")
+
+        def get(page):
+            return self.do_curl(Test.ATS_HOST + "/" + page)
+
+        self.server.body = "page0"
+        result = get(Test.MAGIC_WORD)
+        self.assertEqual(result, self.server.body)
+
+        self.server.body = "page1"
+        result = get(Test.MAGIC_WORD)
+        self.assertEqual(result, self.server.body)
 
 if __name__ == '__main__':
     from unittest import main

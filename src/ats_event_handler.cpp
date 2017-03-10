@@ -160,8 +160,12 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
       case FilterResponse::GO_AHEAD_NO_COMMENT:
         continue;
 
-      case FilterResponse::NO_WORRIES_SERVE_IMMIDIATELY:
+      case FilterResponse::SERVE_IMMIDIATELY_DONT_CACHE:
         //This is when the requester is white listed
+        if (TSHttpTxnServerRespNoStoreSet(cd->txnp, true) != TS_SUCCESS) {
+          TSDebug(BANJAX_PLUGIN_NAME, "Unable to make the response uncachable" );
+        }
+
         continue_filtering = false;
         break;
 
