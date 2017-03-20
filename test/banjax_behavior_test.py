@@ -388,6 +388,9 @@ class Test(unittest.TestCase):
         #self.print_debug();
 
         config = (
+            "priority:\n"
+            "    challenger: 1\n"
+            "    white_lister: 2\n"
             "white_lister:\n"
             "    white_listed_ips:\n"
             "      - 127.0.0.1\n"
@@ -421,6 +424,9 @@ class Test(unittest.TestCase):
 
     def test_global_white_list_wont_skip_auth(self):
         config = (
+            "priority:\n"
+            "    challenger: 1\n"
+            "    white_lister: 2\n"
             "white_lister:\n"
             "    white_listed_ips:\n"
             "      - 127.0.0.1\n"
