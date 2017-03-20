@@ -8,6 +8,6 @@
 * Add CircleCI automated builds.
 * `magic_words` now uses partial regex.
 * `magic_words_exceptions` now uses full regex.
-* Change integration tests to work with TS 7.0.0 (was 6.0.0).
+* Change integration tests to work with TS 7.0.0 (as well as 6.0.0).
 * Disable caching for pages displayed to white listed IPs ([6053](https://redmine.equalit.ie/issues/6053)).
 * Enable white listing of IPs per host in the challenger filter ([6053](https://redmine.equalit.ie/issues/6053).

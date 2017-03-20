@@ -7,22 +7,37 @@ dependencies:
     - ls; pwd; nproc
     - cd ..; git clone git@github.com:google/re2.git && cd re2; make && sudo make install
     - sudo cp ~/re2/obj/so/lib* /lib/
+    # Traffic server 6.0.0
+    - cd ..; wget http://tux.rainside.sk/apache/trafficserver/trafficserver-6.0.0.tar.bz2
+    - cd ..; tar xf trafficserver-6.0.0.tar.bz2
+    - cd ../trafficserver-6.0.0 && ./configure --prefix=`pwd`/../ts6 && make -j`nproc` && make install
+    - echo "banjax/banjax.so $HOME/ts6/libexec/trafficserver/banjax/" >> ../ts6/etc/trafficserver/plugin.config
+    - echo "regex_map http://^127.0.0.1:8080$/ http://127.0.0.1:8000/" >> ../ts6/etc/trafficserver/remap.config
+    - perl -pi -e 's/CONFIG proxy.config.http.cache.required_headers INT .+/CONFIG proxy.config.http.cache.required_headers INT 0/g' ../ts6/etc/trafficserver/records.config
+    - cat ../ts6/etc/trafficserver/records.config
+    - mkdir build6
+    - cd build6 && cmake ../ -DCMAKE_CXX_FLAGS="-I$HOME/ts6/include"
+    - cd build6 && make -j`nproc`
+    - mkdir ../ts6/libexec/trafficserver/banjax
+    - cp config/{auth,solver}.html ../ts6/libexec/trafficserver/banjax/
+    - cp build6/banjax.so ../ts6/libexec/trafficserver/banjax/
+    # Traffic server 7.0.0
     - cd ..; wget http://tux.rainside.sk/apache/trafficserver/trafficserver-7.0.0.tar.bz2
     - cd ..; tar xf trafficserver-7.0.0.tar.bz2
-    - cd ../trafficserver-7.0.0 && ./configure --prefix=`pwd`/../ts && make -j`nproc` && make install
-    - find ../ts
-    - echo "banjax/banjax.so $HOME/ts/libexec/trafficserver/banjax/" >> ../ts/etc/trafficserver/plugin.config
-    - echo "regex_map http://^127.0.0.1:8080$/ http://127.0.0.1:8000/" >> ../ts/etc/trafficserver/remap.config
-    - perl -pi -e 's/CONFIG proxy.config.http.cache.required_headers INT .+/CONFIG proxy.config.http.cache.required_headers INT 0/g' ../ts/etc/trafficserver/records.config
-    - cat ../ts/etc/trafficserver/records.config
-    - mkdir build
-    - cd build && cmake ../ -DCMAKE_CXX_FLAGS="-I$HOME/ts/include"
-    - cd build && make -j`nproc`
-    - mkdir -p ../http
-    - mkdir ../ts/libexec/trafficserver/banjax
-    - cp config/{auth,solver}.html ../ts/libexec/trafficserver/banjax/
-    - cp build/banjax.so ../ts/libexec/trafficserver/banjax/
+    - cd ../trafficserver-7.0.0 && ./configure --prefix=`pwd`/../ts7 && make -j`nproc` && make install
+    - echo "banjax/banjax.so $HOME/ts7/libexec/trafficserver/banjax/" >> ../ts7/etc/trafficserver/plugin.config
+    - echo "regex_map http://^127.0.0.1:8080$/ http://127.0.0.1:8000/" >> ../ts7/etc/trafficserver/remap.config
+    - perl -pi -e 's/CONFIG proxy.config.http.cache.required_headers INT .+/CONFIG proxy.config.http.cache.required_headers INT 0/g' ../ts7/etc/trafficserver/records.config
+    - cat ../ts7/etc/trafficserver/records.config
+    - mkdir build7
+    - cd build7 && cmake ../ -DCMAKE_CXX_FLAGS="-I$HOME/ts7/include"
+    - cd build7 && make -j`nproc`
+    - mkdir ../ts7/libexec/trafficserver/banjax
+    - cp config/{auth,solver}.html ../ts7/libexec/trafficserver/banjax/
+    - cp build7/banjax.so ../ts7/libexec/trafficserver/banjax/
 test:
   override:
-    - ./build/unit-tests
-    - python ./test/banjax_behavior_test.py --ts-prefix=`pwd`/../ts --ts-layout="standard"
+    - ./build6/unit-tests
+    - python ./test/banjax_behavior_test.py --ts-prefix=`pwd`/../ts6 --ts-layout="standard"
+    - ./build7/unit-tests
+    - python ./test/banjax_behavior_test.py --ts-prefix=`pwd`/../ts7 --ts-layout="standard"

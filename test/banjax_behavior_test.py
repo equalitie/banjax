@@ -303,6 +303,7 @@ class Test(unittest.TestCase):
 
         dms = DeadManSwitch(5)
         result = self.do_curl(Test.ATS_HOST + "/" + Test.CACHED_PAGE)
+        # TODO: Test we really receive the error code.
         dms.stop()
 
     def test_white_listed_magic_must_not_be_cached(self):
