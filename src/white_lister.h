@@ -10,21 +10,24 @@
 #include <yaml-cpp/yaml.h>
 #include "banjax_filter.h"
 #include "util.h"
+#include "global_white_list.h"
 
 class WhiteLister : public BanjaxFilter
 {
 protected:
-  // List of previleged IPs that don't need to go through
-  // other filters.
-  std::list<SubnetRange> white_list;
+  // List of privileged IPs.
+  GlobalWhiteList& white_list;
 
 public:
   /**
      receives the config object need to read the ip list,
      subsequently it reads all the ips
   */
-  WhiteLister(const std::string& banjax_dir, const FilterConfig& filter_config) :
-    BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME)
+  WhiteLister(const std::string& banjax_dir,
+              const FilterConfig& filter_config,
+              GlobalWhiteList& white_list) :
+    BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME),
+    white_list(white_list)
   {
     queued_tasks[HTTP_REQUEST] = this;
     load_config();

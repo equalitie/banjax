@@ -54,13 +54,14 @@
 #include "banjax.h"
 #include "unittest_common.h"
 #include "white_lister.h"
+#include "global_white_list.h"
 
 BOOST_AUTO_TEST_SUITE(WhiteListerManagerUnitTests)
 using namespace std;
 
 string TEMP_DIR = "/tmp";
 
-static std::unique_ptr<BanjaxFilter> open_config(std::string config)
+static std::unique_ptr<BanjaxFilter> open_config(GlobalWhiteList& db, std::string config)
 {
   YAML::Node cfg = YAML::Load(config);
 
@@ -78,7 +79,7 @@ static std::unique_ptr<BanjaxFilter> open_config(std::string config)
     BOOST_REQUIRE(false);
   }
 
-  return unique_ptr<WhiteLister>(new WhiteLister(TEMP_DIR, filter_config));
+  return unique_ptr<WhiteLister>(new WhiteLister(TEMP_DIR, filter_config, db));
 }
 
 /**
@@ -86,7 +87,9 @@ static std::unique_ptr<BanjaxFilter> open_config(std::string config)
  */
 BOOST_AUTO_TEST_CASE(white_listed_ip)
 {
-  auto test = open_config("white_lister:\n"
+  GlobalWhiteList db;
+  auto test = open_config(db,
+                          "white_lister:\n"
                           "  white_listed_ips: \n"
                           "    - 127.0.0.1\n");
 
@@ -101,7 +104,9 @@ BOOST_AUTO_TEST_CASE(white_listed_ip)
 
 BOOST_AUTO_TEST_CASE(white_listed_ip2)
 {
-  auto test = open_config("white_lister:\n"
+  GlobalWhiteList db;
+  auto test = open_config(db,
+                          "white_lister:\n"
                           "  white_listed_ips: \n"
                           "    - 11.22.33.44\n"
                           "    - 127.0.0.1\n");
@@ -120,7 +125,9 @@ BOOST_AUTO_TEST_CASE(white_listed_ip2)
  */
 BOOST_AUTO_TEST_CASE(ordinary_ip)
 {
-  auto test = open_config("white_lister:\n"
+  GlobalWhiteList db;
+  auto test = open_config(db,
+                          "white_lister:\n"
                           "  white_listed_ips: \n"
                           "    - x.y.y.z\n"
                           "    - 127.0.0.1\n");
@@ -140,7 +147,9 @@ BOOST_AUTO_TEST_CASE(ordinary_ip)
  */
 BOOST_AUTO_TEST_CASE(invalid_white_ip)
 {
-  auto test = open_config("white_lister:\n"
+  GlobalWhiteList db;
+  auto test = open_config(db,
+                          "white_lister:\n"
                           "  white_listed_ips: \n"
                           "    - x.y.y.z\n"
                           "    - 127.0.0.1\n");

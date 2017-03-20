@@ -445,6 +445,11 @@ bool ChallengeManager::is_captcha_answer(const std::string& url) {
   return found != std::string::npos;
 }
 
+bool ChallengeManager::is_globally_white_listed(const std::string& ip) const {
+  if (!global_white_list) return false;
+  return bool(global_white_list->is_white_listed(ip));
+}
+
 /**
    overloaded execute to execute the filter, It calls cookie checker
    and if it fails ask for responding by the filter.
@@ -469,9 +474,9 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
                                        challenge));
   };
 
-  for(const auto& cur_challenge : challenges_it->second) {
+  const auto ip = transaction_parts.at(TransactionMuncher::IP);
 
-    auto ip = transaction_parts.at(TransactionMuncher::IP);
+  for(const auto& cur_challenge : challenges_it->second) {
 
     if (cur_challenge->white_listed_ips.count(ip)) {
       print::debug("Challenge ", cur_challenge->name, " bypassed for ip: ", ip);
@@ -482,6 +487,10 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
     {
       case ChallengeDefinition::CHALLENGE_CAPTCHA:
         {
+          if (is_globally_white_listed(ip)) {
+            break;
+          }
+
           TSDebug(BANJAX_PLUGIN_NAME, "captch url is %s", transaction_parts.at(TransactionMuncher::URL_WITH_HOST).c_str());
           if (ChallengeManager::is_captcha_url(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
           //FIXME: This opens the door to attack edge using the captcha url, we probably need to
@@ -492,7 +501,7 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
           }
 
           if (ChallengeManager::check_cookie("", transaction_parts, *cur_challenge)) {
-            report_success(transaction_parts.at(TransactionMuncher::IP));
+            report_success(ip);
             //rather go to next challenge
             continue;
           } else {
@@ -507,6 +516,10 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
       }
 
       case ChallengeDefinition::CHALLENGE_SHA_INVERSE:
+        if (is_globally_white_listed(ip)) {
+          break;
+        }
+
         if(!ChallengeManager::check_cookie("", transaction_parts, *cur_challenge))
           {
             TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, sending challenge");
@@ -530,7 +543,7 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
       case ChallengeDefinition::CHALLENGE_AUTH:
         if(ChallengeManager::check_cookie("", transaction_parts, *cur_challenge)) {
           // Success response in auth means don't serve
-          report_success(transaction_parts.at(TransactionMuncher::IP));
+          report_success(ip);
           return FilterResponse(FilterResponse::SERVE_FRESH);
         }
         else {
@@ -558,7 +571,7 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
     }
   }
 
-  report_success(transaction_parts.at(TransactionMuncher::IP));
+  report_success(ip);
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
 }
 

@@ -15,6 +15,7 @@
 
 #include "swabber_interface.h"
 #include "banjax_filter.h"
+#include "global_white_list.h"
 
 const size_t AES_KEY_LENGTH = 16;
 //const size_t AES_BLOCK_SIZE;
@@ -156,6 +157,8 @@ protected:
 
   SwabberInterface* swabber_interface;
 
+  const GlobalWhiteList* global_white_list;
+
   /**
    * Should be called upon failure of providing solution. Checks the ip_database
    * for current number of failure of solution for an ip, increament and store it
@@ -190,6 +193,9 @@ protected:
      understandable point in time
    */
   std::string format_validity_time_for_cookie(long validity_time);
+
+  bool is_globally_white_listed(const std::string& ip) const;
+
 public:
   /**
      construtor which receives the config object, set the filter
@@ -197,10 +203,15 @@ public:
 
      @param main_root the root of the configuration structure
   */
- ChallengeManager(const std::string& banjax_dir, const FilterConfig& filter_config, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
+ ChallengeManager(const std::string& banjax_dir,
+                  const FilterConfig& filter_config,
+                  IPDatabase* global_ip_database,
+                  SwabberInterface* global_swabber_interface,
+                  const GlobalWhiteList* global_white_list)
     :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
     too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
-    swabber_interface(global_swabber_interface)
+    swabber_interface(global_swabber_interface),
+    global_white_list(global_white_list)
   {
     queued_tasks[HTTP_REQUEST] = this;
 

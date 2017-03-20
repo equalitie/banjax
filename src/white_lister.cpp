@@ -30,7 +30,7 @@ WhiteLister::load_config()
 
     for(unsigned int i = 0; i < count; i++) {
       SubnetRange cur_range = make_mask_for_range(white_listed_ips[i].as<std::string>());
-      white_list.push_back(cur_range);
+      white_list.insert(cur_range);
 
       TSDebug(BANJAX_PLUGIN_NAME, "White listing ip range: %s as %x, %x",
           white_listed_ips[i].as<std::string>().c_str(),
@@ -49,18 +49,14 @@ WhiteLister::load_config()
 
 FilterResponse WhiteLister::on_http_request(const TransactionParts& transaction_parts)
 {
-  for (const auto& subnet_range : white_list)
-  {
-    auto ip = transaction_parts.at(TransactionMuncher::IP);
+  auto ip = transaction_parts.at(TransactionMuncher::IP);
 
-    if (is_match(ip, subnet_range))
-    {
-      TSDebug(BANJAX_PLUGIN_NAME, "white listed ip: %s in range %X",
-          ip.c_str(),
-          subnet_range.first);
+  if (auto hit_range = white_list.is_white_listed(ip)) {
+    TSDebug(BANJAX_PLUGIN_NAME, "white listed ip: %s in range %X",
+        ip.c_str(),
+        hit_range->first);
 
-      return FilterResponse(FilterResponse::SERVE_IMMIDIATELY_DONT_CACHE);
-    }
+    return FilterResponse(FilterResponse::SERVE_IMMIDIATELY_DONT_CACHE);
   }
 
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);

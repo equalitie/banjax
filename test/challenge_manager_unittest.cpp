@@ -56,6 +56,7 @@
 #include "banjax.h"
 #include "unittest_common.h"
 #include "challenge_manager.h"
+#include "global_white_list.h"
 
 using namespace std;
 
@@ -77,7 +78,7 @@ unique_ptr<ChallengeManager> open_config(const std::string& config)
   }
 
   return unique_ptr<ChallengeManager>(
-      new ChallengeManager(TEMP_DIR, filter_config, nullptr, nullptr));
+      new ChallengeManager(TEMP_DIR, filter_config, nullptr, nullptr, nullptr));
 }
 
 BOOST_AUTO_TEST_CASE(load_config1) {

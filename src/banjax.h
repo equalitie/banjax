@@ -17,6 +17,7 @@ class BanjaxFilter;
 #include "swabber_interface.h"
 #include "transaction_muncher.h"
 #include "banjax_filter.h"
+#include "global_white_list.h"
 
 //Everything is static in ATSEventHandler so the only reason
 //we have to create this object is to set the static reference to banjax into 
@@ -53,6 +54,9 @@ protected:
 
   // Ordering and accessing filters by priority.
   std::map<int, std::string> priority_map;
+
+  // List of privileged IPs.
+  GlobalWhiteList global_ip_white_list;
 
   friend class ATSEventHandler;
 

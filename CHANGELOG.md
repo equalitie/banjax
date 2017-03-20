@@ -1,5 +1,6 @@
 ## Not yet released
 
+* Challenger now skips globally white listed IPs (unless the challenge is 'auth').
 * Show error to client without delay when `ERR_CONNECT_FAIL` (non standard HTTP error) is received from origin.
 * Difficulty of inverse SHA is no longer limited to multiples of 4 bits.
 * Cleanup of unused files.

@@ -379,6 +379,73 @@ class Test(unittest.TestCase):
         result = get(Test.MAGIC_WORD)
         self.assertEqual(result, self.server.body)
 
+    def test_global_white_list_skip_inv_sha_challenge(self):
+        config = (
+            "white_lister:\n"
+            "    white_listed_ips:\n"
+            "      - 127.0.0.1\n"
+            "challenger:\n"
+            "    difficulty: 30\n"
+            "    key: 'allwearesayingisgivewarachance'\n"
+            "    challenges:\n"
+            "      - name: 'example.co_auth'\n"
+            "        domains:\n"
+            "         - '"+Test.ATS_HOST+"'\n"
+            "        challenge_type: 'sha_inverse'\n"
+            "        challenge: '"+Test.AUTH_PAGE+"'\n"
+            "        # sha256('howisbabbyformed?')\n"
+            "        password_hash: 'BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM='\n"
+            "        magic_word: '"+Test.MAGIC_WORD+"'\n"
+            "        validity_period: 120\n");
+
+        self.replace_config2(config)
+
+        # Tell TS to disable caching
+        self.set_banjax_config("proxy.config.http.cache.http", "0")
+
+        def get(page):
+            return self.do_curl(Test.ATS_HOST + "/" + page)
+
+        # Accessing the secret page must work without a valid cookie because
+        # We're white listed.
+        self.server.body = "secret page"
+        result = get(Test.MAGIC_WORD)
+        self.assertEqual(result, self.server.body);
+
+    def test_global_white_list_wont_skip_auth(self):
+        config = (
+            "white_lister:\n"
+            "    white_listed_ips:\n"
+            "      - 127.0.0.1\n"
+            "challenger:\n"
+            "    difficulty: 30\n"
+            "    key: 'allwearesayingisgivewarachance'\n"
+            "    challenges:\n"
+            "      - name: 'example.co_auth'\n"
+            "        domains:\n"
+            "         - '"+Test.ATS_HOST+"'\n"
+            "        challenge_type: 'auth'\n"
+            "        challenge: '"+Test.AUTH_PAGE+"'\n"
+            "        # sha256('howisbabbyformed?')\n"
+            "        password_hash: 'BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM='\n"
+            "        magic_word: '"+Test.MAGIC_WORD+"'\n"
+            "        validity_period: 120\n");
+
+        self.replace_config2(config)
+
+        # Tell TS to disable caching
+        self.set_banjax_config("proxy.config.http.cache.http", "0")
+
+        def get(page):
+            return self.do_curl(Test.ATS_HOST + "/" + page)
+
+        # Accessing the secret page must work without a valid cookie because
+        # We're white listed.
+        self.server.body = "secret page"
+        result = get(Test.MAGIC_WORD)
+        self.assertEqual(result[:Test.COMP_LEN], self.read_page(Test.AUTH_PAGE)[:Test.COMP_LEN]);
+
+
 if __name__ == '__main__':
     from unittest import main
     import argparse
