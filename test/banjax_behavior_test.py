@@ -126,7 +126,10 @@ class Test(unittest.TestCase):
         "        no_of_fails_to_ban: 10\n");
 
     def print_debug(self):
-        subprocess.Popen(["tail", "-f", self.ats_bin_dir() + "/../var/log/trafficserver/traffic.out"]);
+        opts = { "standard": self.ats_bin_dir() +  "/../var/log/trafficserver/traffic.out"
+               , "apache":   self.ats_prefix_dir + "/logs/traffic.out" }
+
+        subprocess.Popen(["tail", "-f", opts[Test.ats_layout]]);
 
     # Auxilary functions
     def read_page(self, page_filename):
@@ -188,12 +191,14 @@ class Test(unittest.TestCase):
         subprocess.call([self.ats_bin_dir() + "/traffic_ctl", "config", "set", name, value])
 
     def setUp(self):
+        print "setUp: ", self._testMethodName
         self.read_solver_body()
         self.server = Server()
 
     def tearDown(self):
         self.stop_traffic_server()
         self.server.stop()
+        print "tearDown: ", self._testMethodName
 
     def ntest_request_banned_url(self):
         self.replace_config("banned_url_test.conf")
@@ -380,6 +385,8 @@ class Test(unittest.TestCase):
         self.assertEqual(result, self.server.body)
 
     def test_global_white_list_skip_inv_sha_challenge(self):
+        #self.print_debug();
+
         config = (
             "white_lister:\n"
             "    white_listed_ips:\n"
