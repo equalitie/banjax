@@ -20,15 +20,20 @@ using namespace std;
 
 #include "denialator.h"
 #include "ip_database.h"
+#include "global_white_list.h"
 
 /*
  * checks if the ip has been reported to swabber and denial
  */
 FilterResponse Denialator::on_http_request(const TransactionParts& transaction_parts)
 {
-
   std::string cur_ip = transaction_parts.at(TransactionMuncher::IP);
-  std::pair<bool,FilterState> cur_ip_state(ip_database->get_ip_state(cur_ip, SWABBER_INTERFACE_ID));
+
+  if (global_white_list && global_white_list->is_white_listed(cur_ip)) {
+    return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+  }
+
+  std::pair<bool,FilterState> cur_ip_state = ip_database->get_ip_state(cur_ip, SWABBER_INTERFACE_ID);
 
   /* If we failed to query the database then just don't report to swabber */
   if (cur_ip_state.first == false) {
@@ -57,5 +62,5 @@ FilterResponse Denialator::on_http_request(const TransactionParts& transaction_p
 std::string Denialator::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
 {
   (void)transaction_parts; (void)response_info;
-  return forbidden_message;
+  return "<html><header></header><body>504 Gateway Timeout</body></html>";
 }

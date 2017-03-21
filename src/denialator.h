@@ -11,14 +11,14 @@
 #include "swabber_interface.h"
 #include "banjax_filter.h"
 
+class GlobalWhiteList;
+
 class Denialator : public BanjaxFilter
 {
  protected:
-  const std::string forbidden_message;
-  const size_t forbidden_message_length;
-
   //swabber object used for banning bots after grace period is finished
   SwabberInterface* swabber_interface;
+  GlobalWhiteList* global_white_list;
 
   long banning_grace_period = 0;
 
@@ -28,11 +28,17 @@ class Denialator : public BanjaxFilter
      subsequently it reads all the ips
 
   */
- Denialator(const std::string& banjax_dir, const FilterConfig& filter_config, IPDatabase* global_ip_database, SwabberInterface* global_swabber_interface)
-   :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, DENIALATOR_FILTER_ID, DENIALATOR_FILTER_NAME),
-    forbidden_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
-    forbidden_message_length(forbidden_message.length()),
-    swabber_interface(global_swabber_interface)
+ Denialator(const std::string& banjax_dir,
+            const FilterConfig& filter_config,
+            IPDatabase* global_ip_database,
+            SwabberInterface* global_swabber_interface,
+            GlobalWhiteList* global_white_list)
+   : BanjaxFilter(banjax_dir,
+                  filter_config,
+                  DENIALATOR_FILTER_ID,
+                  DENIALATOR_FILTER_NAME),
+     swabber_interface(global_swabber_interface),
+     global_white_list(global_white_list)
   {
     queued_tasks[HTTP_REQUEST] = this;
     ip_database = global_ip_database;

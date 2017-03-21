@@ -87,7 +87,7 @@ Banjax::filter_factory()
       } else if (cur_filter_name.second == BOT_SNIFFER_FILTER_NAME){
         cur_filter = new BotSniffer(banjax_config_dir, cur_config);
       } else if (cur_filter_name.second == DENIALATOR_FILTER_NAME){
-        cur_filter = new Denialator(banjax_config_dir, cur_config, &ip_database, &swabber_interface);
+        cur_filter = new Denialator(banjax_config_dir, cur_config, &ip_database, &swabber_interface, &global_ip_white_list);
       } else {
         TSError(("don't know how to construct requested filter " + cur_filter_name.second).c_str());
         abort_traffic_server();
@@ -257,12 +257,12 @@ Banjax::read_configuration()
       abort_traffic_server();
     }
 
-    for(YAML::const_iterator it=priorities.begin();it!=priorities.end();++it ) {
-      if ((*it).second.as<int>() > max_priority)
-        max_priority = (*it).second.as<int>();
+    for (const auto& p : priorities) {
+      if (p.second.as<int>() > max_priority)
+        max_priority = p.second.as<int>();
 
-      if ((*it).second.as<int>() < min_priority)
-        min_priority = (*it).second.as<int>();
+      if (p.second.as<int>() < min_priority)
+        min_priority = p.second.as<int>();
     }
   }
 
