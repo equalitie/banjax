@@ -1,9 +1,8 @@
 priority:
-  white_lister: 1
-  denialator: 2
-  auth: 3
-  challenger: 4
-  regex_banner: 5
+  denialator: 1
+  challenger: 2
+  white_lister: 3
+  regex_banner: 4
 
 swabber:
   server: 127.0.0.1
@@ -33,4 +32,3 @@ regex_banner:
 bot_sniffer :
   botbanger_port: 22620
   key: "72fromMemphistoChattanooga"
- 
