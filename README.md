@@ -83,37 +83,13 @@ Clone banjax repo
 
 Move to the banjax folder
 
-    cd banjax
+    cd <where you want banjax to be built>
 
 invoke following sequences of command
 
-    ./autogen.sh
-    ./configure --libdir=/usr/local/trafficserver/modules
+    cmake <banjax directory>
     make
-    make install
-
-If you get the following error:
-
-    configure: error: Package requirements (yaml-cpp >= 0.5.1) were not met
-
-it might be because the yaml-cpp package in your distribution is old. You need to downolad and make a newer version:
-
-   apt-get install libboost-dev cmake
-   cd ..
-   wget https://github.com/jbeder/yaml-cpp/archive/release-0.5.2.tar.gz
-   tar xvfz release-0.5.2.tar.gz
-   cd yaml-cpp-release-0.5.2
-   mkdir build
-   cd build
-   cmake ..
-   make
-   make install
-
-HACK:
-if configure complains that libre2 isn't there but you are sure
-you have already installed it, then
-
-    cp libre2.pc /usr/lib/pkgconfig/
+    cp libbanjax.a /usr/local/trafficserver/modules/
 
 Testing:
 --------
@@ -149,11 +125,6 @@ optional arguments:
 cd test
 python banjax_behavior_test
 ```
-
-Debugging
-----------
-If you would like to debug banjax in gdb you need to configure it as follow:
-       ./configure --libdir=/usr/local/trafficserver/modules CXXFLAGS="-g2 -O0"
 
 Available Filters
 =================
@@ -260,7 +231,7 @@ Sample Attacks:
 ---------------
     challenger:
       key : "thisisakey"
-      difficulty : 4 #only multiple of 4 is allowed
+      difficulty : 4 # Number of leading bits in the inverse sha challenge to be zero
       challenges:
         - name : "www.equalit.ie_captcha"
           domains:
@@ -284,8 +255,14 @@ Sample Attacks:
            challenge_type : "auth"
            challenge : "auth.html"
            password_hash : "BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM="
+           # This can either be a single entry or a list of entries
+           # Any URL that matches this regular expression will be protected by authorization.
            magic_word : "iec1OoghAogh0ionieJaot4p"
-	   validity_period : 1200
+           # As a list of entries
+           #magic_word :
+           #  - "foo"
+           #  - "bar"
+           validity_period : 1200
            no_of_fails_to_ban : 10
 
 
