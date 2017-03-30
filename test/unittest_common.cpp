@@ -54,6 +54,7 @@ void TSError(const char* fmt, ...)
   va_start(arglist, fmt);
   vprintf(fmt, arglist);
   va_end(arglist);
+  printf("\n");
 }
 
 void _TSfree(void*) {

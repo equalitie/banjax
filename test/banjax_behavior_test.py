@@ -458,6 +458,54 @@ class Test(unittest.TestCase):
         result = get(Test.MAGIC_WORD)
         self.assertEqual(result[:Test.COMP_LEN], self.read_page(Test.AUTH_PAGE)[:Test.COMP_LEN]);
 
+    def test_magic_words_regexp_and_substr(self):
+        config = (
+            "challenger:\n"
+            "    difficulty: 30\n"
+            "    key: 'allwearesayingisgivewarachance'\n"
+            "    challenges:\n"
+            "      - name: 'example.co_auth'\n"
+            "        domains:\n"
+            "         - '"+Test.ATS_HOST+"'\n"
+            "        challenge_type: 'auth'\n"
+            "        challenge: '"+Test.AUTH_PAGE+"'\n"
+            "        # sha256('howisbabbyformed?')\n"
+            "        password_hash: 'BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM='\n"
+            "        magic_word:\n"
+            "          - 'wp-login0.php'\n"
+            "          - ['substr', 'wp-login1.php']\n"
+            "          - ['regexp', 'wp-login2.php']\n"
+            "        validity_period: 120\n");
+
+        self.replace_config2(config)
+
+        # Tell TS to disable caching
+        self.set_banjax_config("proxy.config.http.cache.http", "0")
+
+        def get(page):
+            return self.do_curl(Test.ATS_HOST + "/" + page)
+
+        def expect_secret(page):
+            self.server.body = "secret"
+            result = get(page)
+            self.assertEqual(result[:Test.COMP_LEN], self.read_page(Test.AUTH_PAGE)[:Test.COMP_LEN]);
+
+        def expect_public(page):
+            self.server.body = "not secret"
+            result = get(page)
+            self.assertEqual(result, self.server.body);
+
+        expect_public('foobar')
+
+        expect_secret('wp-login0.php')
+        expect_public('wp-login0-php')
+
+        expect_secret('wp-login1.php')
+        expect_public('wp-login1-php')
+
+        expect_secret('wp-login2.php')
+        expect_secret('wp-login2-php')
+
 
 if __name__ == '__main__':
     from unittest import main

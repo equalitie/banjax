@@ -60,7 +60,30 @@ public:
    the specification of the challenge for each host
  */
 class HostChallengeSpec {
- public:
+private:
+  friend class ChallengeManager;
+
+  struct MagicWord {
+    enum Type { substr, regexp };
+    Type type;
+    std::string magic_word;
+
+    static MagicWord make_substr(const std::string& s) { return MagicWord{Type::substr, s}; }
+    static MagicWord make_regexp(const std::string& s) { return MagicWord{Type::regexp, s}; }
+
+    bool is_match(const std::string&) const;
+
+    bool operator<(const MagicWord& other) const {
+      return std::tie(type, magic_word)
+           < std::tie(other.type, other.magic_word);
+    }
+
+    bool operator==(const MagicWord& other) const {
+      return std::tie(type, magic_word)
+          == std::tie(other.type, other.magic_word);
+    }
+  };
+public:
   //Challenge Types
 
   std::string name; //this is actually redundant as we are indexing by hostname
@@ -81,7 +104,7 @@ class HostChallengeSpec {
   // A set of regular expressions, if at least one of them matches
   // the requested URL, then the client shall be requested authorization
   // before serving the content.
-  std::set<std::string> magic_words;
+  std::set<MagicWord> magic_words;
 
   std::vector<std::string> magic_word_exceptions;
 

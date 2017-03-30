@@ -51,6 +51,7 @@
 #include <ts/ts.h>
 
 #define protected public
+#define private public
 
 #include "util.h"
 #include "banjax.h"
@@ -59,6 +60,7 @@
 #include "global_white_list.h"
 
 using namespace std;
+using MW = HostChallengeSpec::MagicWord;
 
 static string TEMP_DIR = "/tmp";
 
@@ -106,7 +108,7 @@ BOOST_AUTO_TEST_CASE(load_config1) {
   auto challenges = mgr->host_challenges.at("example.co");
   BOOST_CHECK_EQUAL(challenges.size(), 1);
 
-  set<string> expected({"old_style_back_compat"});
+  set<MW> expected({MW::make_substr("old_style_back_compat")});
 
   auto magic_words = challenges.front()->magic_words;
 
@@ -140,7 +142,8 @@ BOOST_AUTO_TEST_CASE(load_config2) {
   auto challenges = mgr->host_challenges.at("example.co");
   BOOST_CHECK_EQUAL(challenges.size(), 1);
 
-  set<string> expected({"wp-admin", "wp-login.php"});
+  set<MW> expected({MW::make_substr("wp-admin"),
+                    MW::make_substr("wp-login.php")});
 
   auto magic_words = challenges.front()->magic_words;
 
@@ -172,7 +175,45 @@ BOOST_AUTO_TEST_CASE(load_config3) {
   auto challenges = mgr->host_challenges.at("example.co");
   BOOST_CHECK_EQUAL(challenges.size(), 1);
 
-  set<string> expected({"wp-admin", "wp-login.php"});
+  set<MW> expected({MW::make_substr("wp-admin"),
+                    MW::make_substr("wp-login.php")});
+
+  auto magic_words = challenges.front()->magic_words;
+
+  BOOST_CHECK(magic_words == expected);
+}
+
+BOOST_AUTO_TEST_CASE(challenger_magic_word_mixed) {
+  std::string config =
+    "challenger:\n"
+    "  difficulty: 0 \n"
+    "  key: \"foobar-key\" \n"
+    "  challenges:\n"
+    "    - name: \"example.co_auth\" \n"
+    "      domains:\n"
+    "       - \"example.co\" \n"
+    "       - \"www.example.co\" \n"
+    "      challenge_type: \"auth\" \n"
+    "      challenge: \"auth.html\" \n"
+    "      password_hash: \"BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM=\" \n"
+    "      # sha256(\"howisbabbyformed?\")\n"
+    "      magic_word:\n"
+    "        - 'wp-login0.php'\n"
+    "        - ['substr', 'wp-login1.php']\n"
+    "        - ['regexp', 'wp-login2.php']\n"
+    "      magic_word_exceptions:\n"
+    "        - \"wp-admin/admin.ajax.php\" \n"
+    "        - \"wp-admin/another_script.php\" \n"
+    "      validity_period: 360000\n"
+    "      no_of_fails_to_ban: 10\n";
+
+  auto mgr = open_config(config);
+  auto challenges = mgr->host_challenges.at("example.co");
+  BOOST_CHECK_EQUAL(challenges.size(), 1);
+
+  set<MW> expected({MW::make_substr("wp-login0.php"),
+                    MW::make_substr("wp-login1.php"),
+                    MW::make_regexp("wp-login2.php")});
 
   auto magic_words = challenges.front()->magic_words;
 

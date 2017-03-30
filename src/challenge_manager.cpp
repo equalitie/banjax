@@ -126,13 +126,36 @@ ChallengeManager::load_config(const std::string& banjax_dir)
       }
 
       if (ch["magic_word"]) {
+        using MagicWord = HostChallengeSpec::MagicWord;
+
         auto& mw = ch["magic_word"];
+        auto& storage = host_challenge_spec->magic_words;
 
         if (mw.IsSequence()) {
-          host_challenge_spec->magic_words = vector2set(mw.as<vector<string>>());
+          for (auto& entry : mw) {
+            if (entry.IsSequence()) {
+              auto type = entry[0].as<string>();
+              auto word = entry[1].as<string>();
+
+              if (type == "regexp") {
+                storage.insert(MagicWord::make_regexp(word));
+              }
+              else if (type == "substr") {
+                storage.insert(MagicWord::make_substr(word));
+              }
+              else {
+                // TODO: In newest versions of YAML we can get
+                // the mark from the node.
+                throw YAML::Exception(YAML::Mark::null_mark(), "Invalid type for magic word");
+              }
+            }
+            else {
+              storage.insert(MagicWord::make_substr(entry.as<string>()));
+            }
+          }
         }
         else {
-          host_challenge_spec->magic_words.insert(mw.as<string>());
+          storage.insert(MagicWord::make_substr(mw.as<string>()));
         }
       }
 
@@ -575,24 +598,34 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
 }
 
+bool HostChallengeSpec::MagicWord::is_match(const std::string& url) const {
+  switch(type) {
+    case HostChallengeSpec::MagicWord::regexp:
+      return RE2::PartialMatch(url, magic_word);
+    case HostChallengeSpec::MagicWord::substr:
+      return url.find(magic_word) != std::string::npos;
+  }
+  return false;
+}
+
 bool ChallengeManager::needs_authentication(const std::string& url, const HostChallengeSpec& challenge) const {
     // If the url of the content contains 'magic_word', then the content is protected
     // unless the url also contains a word from 'magic_word_exceptions'.
     bool is_protected = false;
 
     for (auto& word : challenge.magic_words) {
-        if (RE2::PartialMatch(url, word)) {
-            is_protected = true;
-            break;
-        }
+      if (word.is_match(url)) {
+        is_protected = true;
+        break;
+      }
     }
 
     if (!is_protected) return false;
 
     for (auto& unprotected : challenge.magic_word_exceptions) {
-        if (RE2::FullMatch(url, unprotected)) {
-            return false;
-        }
+      if (RE2::FullMatch(url, unprotected)) {
+        return false;
+      }
     }
 
     return true;
