@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.8)
 ################################################################################
 set(CMAKE_BUILD_TYPE Debug)
-set(GLOB BOOST_VERSION 1.58)
+set(GLOB BOOST_VERSION 1.55)
 
 ################################################################################
 project (banjax)
