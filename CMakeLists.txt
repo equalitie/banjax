@@ -2,7 +2,16 @@ cmake_minimum_required (VERSION 2.8)
 ################################################################################
 set(CMAKE_BUILD_TYPE Debug)
 set(GLOB BOOST_VERSION 1.55)
+include(ExternalProject)
 
+externalproject_add(yaml
+    URL https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.5.3.tar.gz
+    CMAKE_ARGS -DCMAKE_CXX_FLAGS=-fPIC
+    UPDATE_COMMAND ""
+    INSTALL_COMMAND ""
+    PREFIX "yaml")
+
+set(YAML_DIR "${CMAKE_BINARY_DIR}/yaml/src")
 ################################################################################
 project (banjax)
 
@@ -12,7 +21,8 @@ find_package(Threads)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pthread -Wall -ggdb")
 
 include_directories(
-  "${Boost_INCLUDE_DIR}")
+  "${Boost_INCLUDE_DIR}"
+  "${YAML_DIR}/yaml/include")
 
 file(GLOB sources
   "${CMAKE_SOURCE_DIR}/src/*.cpp")
@@ -22,7 +32,7 @@ set(BANJAX_LIB_DEPS
   crypto
   re2
   zmq
-  yaml-cpp)
+  ${YAML_DIR}/yaml-build/libyaml-cpp.a)
 
 add_library(banjax_static STATIC ${sources})
 set_target_properties(banjax_static PROPERTIES OUTPUT_NAME banjax)
@@ -33,6 +43,8 @@ set_target_properties(banjax_module PROPERTIES OUTPUT_NAME banjax)
 target_link_libraries(banjax_module ${BANJAX_LIB_DEPS})
 set_target_properties(banjax_module PROPERTIES PREFIX "")
 
+add_dependencies(banjax_static yaml)
+add_dependencies(banjax_module yaml)
 
 ################################################################################
 project (unit-tests)
