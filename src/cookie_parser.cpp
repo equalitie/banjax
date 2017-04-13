@@ -21,8 +21,6 @@
 const char*
 CookieParser::parse_a_cookie(const char *cookie_str)
 {
-  using std::experimental::string_view;
-
   name  = string_view();
   value = string_view();
 

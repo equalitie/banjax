@@ -493,7 +493,7 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
 
   auto custom_response = [=](const shared_ptr<HostChallengeSpec>& challenge) {
     return FilterResponse(FilterResponse::I_RESPOND,
-        new ChallengerExtendedResponse([&](auto... xs) { return this->generate_response(xs...); },
+        new ChallengerExtendedResponse([&](const TransactionParts& a, const FilterResponse& b) { return this->generate_response(a,b); },
                                        challenge));
   };
 

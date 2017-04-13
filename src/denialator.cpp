@@ -53,7 +53,7 @@ FilterResponse Denialator::on_http_request(const TransactionParts& transaction_p
 
     TSDebug(BANJAX_PLUGIN_NAME, "denialotr denying access to tagged ip: %s ",cur_ip.c_str());
     //recording the first request for banning
-    return FilterResponse([&](auto... xs) { return this->generate_response(xs...); });
+    return FilterResponse([&](const TransactionParts& a, const FilterResponse& b) { return this->generate_response(a,b); });
   }
 
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);

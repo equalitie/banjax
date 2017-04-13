@@ -18,7 +18,7 @@ project (banjax)
 find_package(Boost ${BOOST_VERSION} COMPONENTS REQUIRED)
 find_package(Threads)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pthread -Wall -ggdb")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread -Wall -ggdb")
 
 include_directories(
   "${Boost_INCLUDE_DIR}"
@@ -52,7 +52,7 @@ project (unit-tests)
 find_package(Boost ${BOOST_VERSION} COMPONENTS system unit_test_framework REQUIRED)
 find_package(Threads)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -pthread -ggdb")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread -ggdb")
 
 include_directories(
   "${Boost_INCLUDE_DIR}"
