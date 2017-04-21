@@ -105,4 +105,11 @@ inline void debug(const Args&...args)
   TSDebug(BANJAX_PLUGIN_NAME, "%s", str(args...).c_str());
 }
 
-} // out namespace
+} // print namespace
+
+#if PRINT_DEBUG
+# define DEBUG(...) print::debug(__VA_ARGS__)
+#else
+# define DEBUG(...) do {} while(false)
+#endif
+

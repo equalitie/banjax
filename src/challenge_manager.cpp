@@ -71,7 +71,7 @@ void
 ChallengeManager::load_config(const std::string& banjax_dir)
 {
   //TODO: we should read the auth password from config and store it somewhere
-  print::debug("Loading challenger manager conf");
+  DEBUG("Loading challenger manager conf");
   try
   {
     //now we compile all of them and store them for later use
@@ -79,7 +79,7 @@ ChallengeManager::load_config(const std::string& banjax_dir)
       auto host_challenge_spec = make_shared<HostChallengeSpec>();
 
       host_challenge_spec->name = ch["name"].as<std::string>();
-      print::debug("Loading conf for challenge ", host_challenge_spec->name);
+      DEBUG("Loading conf for challenge ", host_challenge_spec->name);
 
       //it is fundamental to establish what type of challenge we are dealing
       //with
@@ -306,6 +306,8 @@ bool ChallengeManager::check_cookie(string answer, const TransactionParts& trans
   string cookie_jar = transaction_parts.at(TransactionMuncher::COOKIE);
   string ip         = transaction_parts.at(TransactionMuncher::IP);
 
+  DEBUG("ChallengeManager::check_cookie: cookie_jar = ", cookie_jar);
+
   CookieParser cookie_parser;
   const char* next_cookie = cookie_jar.c_str();
 
@@ -342,6 +344,7 @@ bool ChallengeManager::check_cookie(string answer, const TransactionParts& trans
     }
   }
 
+  DEBUG("ChallengeManager::check_cookie: 'deflect' cookie not found");
   return false;
 }
 
@@ -485,11 +488,12 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
   auto challenges_it = host_challenges.find(transaction_parts.at(TransactionMuncher::HOST));
 
   if (challenges_it == host_challenges.end()) {
+    DEBUG("No challenge for host: ", transaction_parts.at(TransactionMuncher::HOST));
     // No challenge for this host
     return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
   }
 
-  TSDebug(BANJAX_PLUGIN_NAME, "cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE).c_str());
+  DEBUG("cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE));
 
   auto custom_response = [=](const shared_ptr<HostChallengeSpec>& challenge) {
     return FilterResponse(FilterResponse::I_RESPOND,
@@ -499,16 +503,20 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
 
   const auto ip = transaction_parts.at(TransactionMuncher::IP);
 
+  DEBUG(">>> Num challenges ", challenges_it->second.size());
+
   for(const auto& cur_challenge : challenges_it->second) {
 
+
     if (cur_challenge->white_listed_ips.count(ip)) {
-      print::debug("Challenge ", cur_challenge->name, " bypassed for ip: ", ip);
+      DEBUG("Challenge ", cur_challenge->name, " bypassed for ip: ", ip);
       return FilterResponse(FilterResponse::SERVE_IMMIDIATELY_DONT_CACHE);
     }
 
     switch(cur_challenge->challenge_type)
     {
       case ChallengeDefinition::CHALLENGE_CAPTCHA:
+        DEBUG(">>> Running challenge CHALLENGE_CAPTCHA");
         {
           if (is_globally_white_listed(ip)) {
             break;
@@ -539,6 +547,7 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
       }
 
       case ChallengeDefinition::CHALLENGE_SHA_INVERSE:
+        DEBUG(">>> Running challenge SHA_INVERSE");
         if (is_globally_white_listed(ip)) {
           break;
         }
@@ -564,6 +573,7 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
         break;
 
       case ChallengeDefinition::CHALLENGE_AUTH:
+        DEBUG(">>> Running challenge CHALLENGE_AUTH");
         if(ChallengeManager::check_cookie("", transaction_parts, *cur_challenge)) {
           // Success response in auth means don't serve
           report_success(ip);

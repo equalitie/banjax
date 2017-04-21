@@ -34,9 +34,15 @@ set(BANJAX_LIB_DEPS
   zmq
   ${YAML_DIR}/yaml-build/libyaml-cpp.a)
 
+if(NOT DEFINED PRINT_DEBUG)
+  set(PRINT_DEBUG false)
+endif()
+add_definitions(-DPRINT_DEBUG=${PRINT_DEBUG})
+
 add_library(banjax_static STATIC ${sources})
 set_target_properties(banjax_static PROPERTIES OUTPUT_NAME banjax)
 target_link_libraries(banjax_static ${BANJAX_LIB_DEPS})
+
 
 add_library(banjax_module MODULE ${sources})
 set_target_properties(banjax_module PROPERTIES OUTPUT_NAME banjax)
