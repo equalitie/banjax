@@ -18,7 +18,11 @@ project (banjax)
 find_package(Boost ${BOOST_VERSION} COMPONENTS REQUIRED)
 find_package(Threads)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread -Wall -ggdb")
+# TODO: yaml uses deprecated auto_ptr and this gives me a lot of warnings
+# when compiling banjax. That caused me to miss some important warnings in
+# banjax so the yaml warnings are currently disabled. Fixing yaml to not
+# use auto_ptr would be preferred.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread -Wall -ggdb -Wno-deprecated-declarations")
 
 include_directories(
   "${Boost_INCLUDE_DIR}"
