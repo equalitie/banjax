@@ -18,6 +18,7 @@ struct string_view {
       if (s[i] == '\0') return false;
       if (s[i] != start[i]) return false;
     }
+    return true;
   }
 
   const char* start;
