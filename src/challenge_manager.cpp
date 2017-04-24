@@ -632,8 +632,16 @@ bool ChallengeManager::needs_authentication(const std::string& url, const HostCh
 
     if (!is_protected) return false;
 
+    auto end = url.end();
+    auto query_start = url.find('?');
+
+    if (query_start != std::string::npos) {
+      end = url.begin() + query_start;
+    }
+
     for (auto& unprotected : challenge.magic_word_exceptions) {
-      if (RE2::FullMatch(url, unprotected)) {
+      if (std::search(url.begin(), end,
+            unprotected.begin(), unprotected.end()) != end) {
         return false;
       }
     }

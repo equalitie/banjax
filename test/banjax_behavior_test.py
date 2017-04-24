@@ -506,6 +506,49 @@ class Test(unittest.TestCase):
         expect_secret('wp-login2.php')
         expect_secret('wp-login2-php')
 
+    def test_magic_word_exceptions(self):
+        config = (
+            "challenger:\n"
+            "    difficulty: 30\n"
+            "    key: 'allwearesayingisgivewarachance'\n"
+            "    challenges:\n"
+            "      - name: 'example.co_auth'\n"
+            "        domains:\n"
+            "         - '"+Test.ATS_HOST+"'\n"
+            "        challenge_type: 'auth'\n"
+            "        challenge: '"+Test.AUTH_PAGE+"'\n"
+            "        # sha256('howisbabbyformed?')\n"
+            "        password_hash: 'BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM='\n"
+            "        magic_word:\n"
+            "          - 'protected'\n"
+            "        magic_word_exceptions:\n"
+            "          - exception\n"
+            "        validity_period: 120\n");
+
+        self.replace_config2(config)
+
+        # Tell TS to disable caching
+        self.set_banjax_config("proxy.config.http.cache.http", "0")
+
+        def get(page):
+            return self.do_curl(Test.ATS_HOST + "/" + page)
+
+        def expect_secret(page):
+            self.server.body = "secret"
+            result = get(page)
+            self.assertEqual(result[:Test.COMP_LEN], self.read_page(Test.AUTH_PAGE)[:Test.COMP_LEN]);
+
+        def expect_public(page):
+            self.server.body = "not secret"
+            result = get(page)
+            self.assertEqual(result, self.server.body);
+
+        expect_public('foobar')
+
+        expect_secret('protected')
+        expect_public('protected/exception')
+        expect_secret('protected?foo=exception')
+
 
 if __name__ == '__main__':
     from unittest import main
