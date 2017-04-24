@@ -258,6 +258,7 @@ class BanjaxFilter
     (void) transaction_parts; (void) response_info;
     TSDebug(BANJAX_PLUGIN_NAME, "You shouldn't have called me at the first place.");
     assert(NULL);
+    return "";
   }
 };
 

@@ -64,6 +64,7 @@ void _TSfree(void*) {
 char* _TSstrdup(const char *str, int64_t length, const char *path) {
   (void) str; (void) length; (void) path;
   assert(0);
+  return (char*) "";
 }
 
 tsapi TSMutex TSMutexCreate(void)
