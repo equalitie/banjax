@@ -73,6 +73,17 @@ define(function(){return w}):"undefined"!==typeof exports?("undefined"!==typeof 
 
     <script type="text/javascript">
       'use strict';
+      function has_expected_zeros(nibbles, zero_count) {
+        var c = 0;
+        for (var i in nibbles) {
+          var dec = '0123456789abcdef'.indexOf(nibbles[i]);
+          if ((dec & 1) == 0) c++; else break;
+          if ((dec & 2) == 0) c++; else break;
+          if ((dec & 4) == 0) c++; else break;
+          if ((dec & 8) == 0) c++; else break;
+        }
+        return c >= zero_count;
+      }
       function challenge_solver() {
         try {
           var zero_count = "$zeros";
@@ -80,17 +91,6 @@ define(function(){return w}):"undefined"!==typeof exports?("undefined"!==typeof 
           var expiration = "$time";
           var i = 0;
           var hash_value = 1;
-          function has_expected_zeros(nibbles) {
-            var c = 0;
-            for (var i in nibbles) {
-              var dec = '0123456789abcdef'.indexOf(nibbles[i]);
-              if ((dec & 1) == 0) c++; else break;
-              if ((dec & 2) == 0) c++; else break;
-              if ((dec & 4) == 0) c++; else break;
-              if ((dec & 8) == 0) c++; else break;
-            }
-            return c >= zero_count;
-          }
           do {
             i++;
             var rand_add = btoa(i);
@@ -98,7 +98,7 @@ define(function(){return w}):"undefined"!==typeof exports?("undefined"!==typeof 
             var hash_obj = new jsSHA("SHA-256", "TEXT");
             hash_obj.update(solution);
             hash_value = hash_obj.getHash("HEX");
-          } while(!has_expected_zeros(hash_value));
+          } while(!has_expected_zeros(hash_value, zero_count));
           //alert(hash_value);
           //alert(solution);
           document.cookie="deflect" + "=" + solution+  "; expires="+expiration+"; path=/";
