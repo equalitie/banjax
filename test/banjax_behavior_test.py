@@ -384,6 +384,48 @@ class Test(unittest.TestCase):
         result = get(Test.MAGIC_WORD)
         self.assertEqual(result, self.server.body)
 
+    def test_bypass_subnet_range_per_host(self):
+        """
+        Same as the above 'test_bypass_ips_per_host' test, but instead of the
+        white listed IP use an IP range.
+        """
+        config = (
+            "challenger:\n"
+            "    difficulty: 30\n"
+            "    key: 'allwearesayingisgivewarachance'\n"
+            "    challenges:\n"
+            "      - name: 'example.co_auth'\n"
+            "        domains:\n"
+            "         - '"+Test.ATS_HOST+"'\n"
+            "        white_listed_ips:\n"
+            "         - 127.0.0.0/24\n"
+            "        challenge_type: 'auth'\n"
+            "        challenge: '"+Test.AUTH_PAGE+"'\n"
+            "        # sha256('howisbabbyformed?')\n"
+            "        password_hash: 'BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM='\n"
+            "        magic_word: '"+Test.MAGIC_WORD+"'\n"
+            "        validity_period: 120\n");
+
+        self.replace_config2(config)
+
+        # Tell TS to start caching.
+        self.set_banjax_config("proxy.config.http.cache.http", "1")
+        self.set_banjax_config("proxy.config.http.cache.required_headers", "0")
+
+        def get(page):
+            return self.do_curl(Test.ATS_HOST + "/" + page)
+
+        # Accessing the secret page must work without a valid cookie because
+        # We're white listed.
+        self.server.body = "secret page"
+        result = get(Test.MAGIC_WORD)
+        self.assertEqual(result, self.server.body)
+
+        # Make sure it is not cached.
+        self.server.body = "secret page new"
+        result = get(Test.MAGIC_WORD)
+        self.assertEqual(result, self.server.body)
+
     def test_global_white_list_skip_inv_sha_challenge(self):
         #self.print_debug();
 

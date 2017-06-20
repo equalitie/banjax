@@ -168,8 +168,11 @@ ChallengeManager::load_config(const std::string& banjax_dir)
       }
 
       if (ch["white_listed_ips"]) {
-        auto& ips = ch["white_listed_ips"];
-        host_challenge_spec->white_listed_ips = vector2set(ips.as<vector<string>>());
+        auto& white_list = host_challenge_spec->white_listed_ips;
+
+        for (auto ipr : ch["white_listed_ips"].as<vector<string>>()) {
+          white_list.insert(make_mask_for_range(ipr));
+        }
       }
 
       //here we are updating the dictionary that relate each
@@ -508,9 +511,11 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
   for(const auto& cur_challenge : challenges_it->second) {
 
 
-    if (cur_challenge->white_listed_ips.count(ip)) {
-      DEBUG("Challenge ", cur_challenge->name, " bypassed for ip: ", ip);
-      return FilterResponse(FilterResponse::SERVE_IMMIDIATELY_DONT_CACHE);
+    for (const auto& ipr : cur_challenge->white_listed_ips) {
+      if (is_match(ip, ipr)) {
+        DEBUG("Challenge ", cur_challenge->name, " bypassed for ip: ", ip);
+        return FilterResponse(FilterResponse::SERVE_IMMIDIATELY_DONT_CACHE);
+      }
     }
 
     switch(cur_challenge->challenge_type)

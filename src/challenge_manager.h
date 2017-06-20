@@ -111,7 +111,7 @@ public:
   // These IPs will not need to participate in any challenge.
   // The content (even if protected by magic_words) shall be
   // served directly without being cached.
-  std::set<std::string> white_listed_ips;
+  std::set<SubnetRange> white_listed_ips;
 };
 
 class ChallengerExtendedResponse : public FilterExtendedResponse
