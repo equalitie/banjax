@@ -34,7 +34,8 @@ public:
   }
 
   uint64_t requested_info() override {
-    return TransactionMuncher::IP;
+    return TransactionMuncher::IP |
+           TransactionMuncher::HOST;
   }
 
   FilterResponse on_http_request(const TransactionParts& transaction_parts) override;

@@ -34,6 +34,7 @@ using namespace std;
 #include "swabber_interface.h"
 #include "ats_event_handler.h"
 #include "util.h"
+#include "print.h"
 
 //extern TSMutex Banjax::regex_mutex;
 
@@ -255,7 +256,7 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
     // Standard errors are handled nicely by TS but this one caused
     // TS to halt for approx 1 minute causing confusion about whether
     // the error was at TS side or at origin.
-    string error_body = str(
+    string error_body = print::str(
       "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\"\n"
       "        \"http://www.w3.org/TR/html4/strict.dtd\">\n"
       "<html>\n"

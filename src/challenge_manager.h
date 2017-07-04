@@ -262,7 +262,8 @@ public:
       TransactionMuncher::HOST          |
       TransactionMuncher::UA            |
       TransactionMuncher::URL_WITH_HOST |
-      TransactionMuncher::COOKIE;}
+      TransactionMuncher::COOKIE;
+  }
 
   /**
      needs to be overriden by the filter

@@ -486,12 +486,15 @@ bool ChallengeManager::is_globally_white_listed(const std::string& ip) const {
 FilterResponse
 ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
 {
+  const auto& host = transaction_parts.at(TransactionMuncher::HOST);
+
   // look up if this host is serving captcha's or not
-  TSDebug(BANJAX_PLUGIN_NAME, "Host to be challenged %s", transaction_parts.at(TransactionMuncher::HOST).c_str());
-  auto challenges_it = host_challenges.find(transaction_parts.at(TransactionMuncher::HOST));
+  TSDebug(BANJAX_PLUGIN_NAME, "Host to be challenged %s", host.c_str());
+
+  auto challenges_it = host_challenges.find(host);
 
   if (challenges_it == host_challenges.end()) {
-    DEBUG("No challenge for host: ", transaction_parts.at(TransactionMuncher::HOST));
+    DEBUG("No challenge for host: ", host);
     // No challenge for this host
     return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
   }
@@ -509,7 +512,6 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
   DEBUG(">>> Num challenges ", challenges_it->second.size());
 
   for(const auto& cur_challenge : challenges_it->second) {
-
 
     for (const auto& ipr : cur_challenge->white_listed_ips) {
       if (is_match(ip, ipr)) {

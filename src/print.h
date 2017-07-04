@@ -99,6 +99,36 @@ std::ostream& operator<<(std::ostream& os, ts_event e) {
   return os;
 }
 
+inline
+std::ostream& operator<<(std::ostream& os, const SubnetRange& r) {
+  char str[INET_ADDRSTRLEN];
+  auto tmp = htonl(r.first);
+  inet_ntop(AF_INET, &tmp, str, INET_ADDRSTRLEN);
+  os << str << "/" << std::hex << r.second << std::dec;
+  return os;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+inline
+std::string str_impl(std::stringstream& ss) {
+    return ss.str();
+}
+
+template<class Arg, class... Args>
+inline
+std::string str_impl(std::stringstream& ss, Arg&& arg, Args&&... args) {
+    ss << arg;
+    return str_impl(ss, std::forward<Args>(args)...);
+}
+
+template<class... Args>
+inline
+std::string str(Args&&... args) {
+    std::stringstream ss;
+    return str_impl(ss, std::forward<Args>(args)...);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 template<class... Args>
 inline void debug(const Args&...args)
 {

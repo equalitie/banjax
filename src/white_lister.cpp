@@ -13,6 +13,7 @@
 using namespace std;
 #include "util.h"
 #include "white_lister.h"
+#include "print.h"
 
 /**
   reads all the regular expressions from the database.
@@ -22,20 +23,28 @@ void
 WhiteLister::load_config()
 {
   TSDebug(BANJAX_PLUGIN_NAME, "Loading white lister manager conf");
+
   try
   {
     YAML::Node white_listed_ips = cfg["white_listed_ips"];
 
-    unsigned int count = white_listed_ips.size();
+    for (auto entry : white_listed_ips) {
 
-    for(unsigned int i = 0; i < count; i++) {
-      SubnetRange cur_range = make_mask_for_range(white_listed_ips[i].as<std::string>());
-      white_list.insert(cur_range);
+      if (entry.IsMap()) {
+        auto host  = entry["host"].as<std::string>();
+        auto range = make_mask_for_range(entry["ip_range"].as<std::string>());
 
-      TSDebug(BANJAX_PLUGIN_NAME, "White listing ip range: %s as %x, %x",
-          white_listed_ips[i].as<std::string>().c_str(),
-          cur_range.first,
-          cur_range.second);
+        white_list.insert(host, range);
+
+        DEBUG("White listing ip range: ", range, " for ", host);
+      }
+      else {
+        SubnetRange range = make_mask_for_range(entry.as<std::string>());
+
+        white_list.insert(range);
+
+        DEBUG("White listing ip range: ", range);
+      }
     }
   }
   catch(std::exception& e)
@@ -49,9 +58,10 @@ WhiteLister::load_config()
 
 FilterResponse WhiteLister::on_http_request(const TransactionParts& transaction_parts)
 {
-  auto ip = transaction_parts.at(TransactionMuncher::IP);
+  const auto& ip   = transaction_parts.at(TransactionMuncher::IP);
+  const auto& host = transaction_parts.at(TransactionMuncher::HOST);
 
-  if (auto hit_range = white_list.is_white_listed(ip)) {
+  if (auto hit_range = white_list.is_white_listed(host, ip)) {
     TSDebug(BANJAX_PLUGIN_NAME, "white listed ip: %s in range %X",
         ip.c_str(),
         hit_range->first);

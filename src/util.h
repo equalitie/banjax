@@ -39,52 +39,6 @@ unsigned int const c_max_enc_length = INT_MAX;
 int check_ts_version(const char*);
 
 ///////////////////////////////////////////////////////////////////////////////
-inline
-std::string str_impl(std::stringstream& ss) {
-    return ss.str();
-}
-
-template<class Arg, class... Args>
-inline
-std::string str_impl(std::stringstream& ss, Arg&& arg, Args&&... args) {
-    ss << arg;
-    return str_impl(ss, std::forward<Args>(args)...);
-}
-
-template<class... Args>
-inline
-std::string str(Args&&... args) {
-    std::stringstream ss;
-    return str_impl(ss, std::forward<Args>(args)...);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-template<class F>
-struct Defer {
-    F on_destruct;
-    ~Defer() { on_destruct(); }
-};
-
-template<class F>
-inline
-Defer<F> defer(F&& f) { return Defer<F>{std::forward<F>(f)}; }
-
-///////////////////////////////////////////////////////////////////////////////
-struct InOut {
-    std::string message;
-
-    template<class... Args> InOut(Args&&... args)
-        : message(str(std::forward<Args>(args)...))
-    {
-        std::cout << "IN:  " << message << std::endl;
-    }
-
-    ~InOut() {
-        std::cout << "OUT: " << message << std::endl;
-    }
-};
-
-///////////////////////////////////////////////////////////////////////////////
 
 /**
  * gets an ascii (not unicode) string and return std::string representing its lower case

@@ -96,6 +96,7 @@ BOOST_AUTO_TEST_CASE(white_listed_ip)
   //first we make a mock up request
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::IP] = "127.0.0.1";
+  mock_transaction[TransactionMuncher::HOST] = "localhost";
 
   FilterResponse cur_filter_result = test->on_http_request(mock_transaction);
 
@@ -114,6 +115,7 @@ BOOST_AUTO_TEST_CASE(white_listed_ip2)
   //first we make a mock up request
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::IP] = "127.0.0.1";
+  mock_transaction[TransactionMuncher::HOST] = "localhost";
 
   FilterResponse cur_filter_result = test->on_http_request(mock_transaction);
 
@@ -135,6 +137,7 @@ BOOST_AUTO_TEST_CASE(ordinary_ip)
   //first we make a mock up request
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::IP] = "123.124.125.126";
+  mock_transaction[TransactionMuncher::HOST] = "localhost";
 
   FilterResponse cur_filter_result = test->on_http_request(mock_transaction);
 
@@ -157,6 +160,7 @@ BOOST_AUTO_TEST_CASE(invalid_white_ip)
   //first we make a mock up request
   TransactionParts mock_transaction;
   mock_transaction[TransactionMuncher::IP] = "x.y.z.w";
+  mock_transaction[TransactionMuncher::HOST] = "localhost";
 
   FilterResponse cur_filter_result = test->on_http_request(mock_transaction);
 

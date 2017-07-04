@@ -346,6 +346,49 @@ class Test(unittest.TestCase):
         result = get(Test.MAGIC_WORD)
         self.assertEqual(result, self.server.body)
 
+    def test_white_list_per_host(self):
+        """
+        White listed IPs don't need to go through authorization when
+        on a page marked with MAGIC_WORD.
+        """
+        config = ("priority:\n"
+                  "  white_lister: 1\n"
+                  "  challenger: 2\n"
+                  "\n"
+                  "white_lister:\n"
+                  "    white_listed_ips:\n"
+                  "      - host: "+Test.ATS_HOST+"\n"
+                  "        ip_range: 127.0.0.1\n"
+                  "challenger:\n"
+                  "    difficulty: 30\n"
+                  "    key: 'allwearesayingisgivewarachance'\n"
+                  "    challenges:\n"
+                  "      - name: 'example.co_auth'\n"
+                  "        domains:\n"
+                  "         - '"+Test.ATS_HOST+"'\n"
+                  "        challenge_type: 'auth'\n"
+                  "        challenge: '"+Test.AUTH_PAGE+"'\n"
+                  "        # sha256('howisbabbyformed?')\n"
+                  "        password_hash: 'BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM='\n"
+                  "        magic_word: '"+Test.MAGIC_WORD+"'\n"
+                  "        validity_period: 120\n"
+                  "\n")
+
+        config += self.AUTH_CHALLENGE_CONFIG
+
+        self.replace_config2(config)
+
+        # Tell TS to start caching.
+        self.set_banjax_config("proxy.config.http.cache.http", "1")
+        self.set_banjax_config("proxy.config.http.cache.required_headers", "0")
+
+        def get(page):
+            return self.do_curl(Test.ATS_HOST + "/" + page)
+
+        self.server.body = "page0"
+        result = get(Test.MAGIC_WORD)
+        self.assertEqual(result, self.server.body)
+
     def test_bypass_ips_per_host(self):
         config = (
             "challenger:\n"
