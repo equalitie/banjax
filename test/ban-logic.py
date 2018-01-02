@@ -30,15 +30,15 @@ def handle_request(state, cur_time):
         state.begin = cur_time
 
     #
-    #       time_window_movement
-    #            <----->
-    #            |     |
-    #            |     |                    cur_time
-    # ... -------<-----x----------------------->
-    #            |   begin                     |
-    #            |                             |
-    #            |      state.interval         |
-    #            <----------------------------->
+    #         time_window_movement
+    #         <----->
+    #         |     |
+    #         |     |                       cur_time
+    # ... ----x-----<-------------------------->
+    #       begin   |                          |
+    #               |                          |
+    #               |      state.interval      |
+    #               <-------------------------->
     #
     time_window_movement = cur_time - state.begin - state.interval
 
