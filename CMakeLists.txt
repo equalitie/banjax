@@ -56,6 +56,12 @@ set_target_properties(banjax_module PROPERTIES PREFIX "")
 add_dependencies(banjax_static yaml)
 add_dependencies(banjax_module yaml)
 
+install(TARGETS banjax_static DESTINATION /usr/local/trafficserver/modules/)
+
+set(CPACK_GENERATOR "DEB")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Joe Landers") #required
+include(CPack)
+
 ################################################################################
 project (unit-tests)
 

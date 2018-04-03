@@ -25,6 +25,12 @@ along with this program.  If not, see `<http://www.gnu.org/licenses/>`.
 Installation
 ============
 
+To generate a .deb
+------------------
+We can use CPack (part of CMake).
+    cmake .
+    make package
+
 Installation from so file
 -------------------------
 Requirements:
