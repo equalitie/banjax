@@ -8,9 +8,9 @@ dependencies:
     - cd ..; git clone git@github.com:google/re2.git && cd re2; make && sudo make install
     - sudo cp ~/re2/obj/so/lib* /lib/
     # Traffic server 6.2.1
-    - cd ..; wget http://tux.rainside.sk/apache/trafficserver/trafficserver-6.2.1.tar.bz2
-    - cd ..; tar xf trafficserver-6.2.1.tar.bz2
-    - cd ../trafficserver-6.2.1 && ./configure --prefix=`pwd`/../ts6 && make -j`nproc` && make install
+    - cd ..; wget http://tux.rainside.sk/apache/trafficserver/trafficserver-7.1.8.tar.bz2
+    - cd ..; tar xf trafficserver-7.1.8.tar.bz2
+    - cd ../trafficserver-7.1.8 && ./configure --prefix=`pwd`/../ts6 && make -j`nproc` && make install
     - echo "banjax/banjax.so $HOME/ts6/libexec/trafficserver/banjax/" >> ../ts6/etc/trafficserver/plugin.config
     - echo "regex_map http://^127.0.0.1:8080$/ http://127.0.0.1:8000/" >> ../ts6/etc/trafficserver/remap.config
     - perl -pi -e 's/CONFIG proxy.config.http.cache.required_headers INT .+/CONFIG proxy.config.http.cache.required_headers INT 0/g' ../ts6/etc/trafficserver/records.config
