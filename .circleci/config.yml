@@ -54,8 +54,8 @@ jobs:
     - run: sudo apt-get install g++-5 tcl-dev libyaml-cpp-dev libzmq-dev libboost-dev libconfig++-dev libssl-dev libboost-system-dev libboost-test-dev
     - run: sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 1
     - run: ls; pwd; nproc
-    - run: cd ..; git clone git@github.com:google/re2.git && cd re2; make && sudo make install
-    - run: sudo cp re2/obj/so/lib* /lib/
+    - run: cd ~/; git clone git@github.com:google/re2.git && cd re2; make && sudo make install
+    - run: sudo cp ~/re2/obj/so/lib* /lib/
     - run: cd ..; wget http://tux.rainside.sk/apache/trafficserver/trafficserver-6.2.1.tar.bz2
     - run: cd ..; tar xf trafficserver-6.2.1.tar.bz2
     - run: cd ../trafficserver-6.2.1 && ./configure --prefix=`pwd`/../ts6 && make -j`nproc` && make install
