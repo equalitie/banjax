@@ -71,7 +71,7 @@ jobs:
     - run: cp build6/banjax.so ~/ts6/libexec/trafficserver/banjax/
     - run: cd ~/; wget http://tux.rainside.sk/apache/trafficserver/trafficserver-7.1.8.tar.bz2
     - run: cd ~/; tar xf trafficserver-7.1.8.tar.bz2
-    - run: cd ~/trafficserver-7.0.0 && ./configure --prefix=`pwd`/../ts7 && make -j`nproc` && make install
+    - run: cd ~/trafficserver-7.1.8 && ./configure --prefix=`pwd`/../ts7 && make -j`nproc` && make install
     - run: echo "banjax/banjax.so $HOME/ts7/libexec/trafficserver/banjax/" >> ~/ts7/etc/trafficserver/plugin.config
     - run: echo "regex_map http://^127.0.0.1:8080$/ http://127.0.0.1:8000/" >> ~/ts7/etc/trafficserver/remap.config
     - run: perl -pi -e 's/CONFIG proxy.config.http.cache.required_headers INT .+/CONFIG proxy.config.http.cache.required_headers INT 0/g' ~/ts7/etc/trafficserver/records.config
