@@ -30,14 +30,6 @@ protected:
 
 public:
   /**
-     called always when the transaction starts
-     The global continuation is a protected static member of
-     banjax so it can always be accessed by ATSEventHandler
-     methods
-   */
-  static void handle_txn_start(TSHttpTxn txnp);
-
-  /**
      runs all filters to make decsion based on request header
      
      @param cd   Banjax continuation which include Banjax main object 

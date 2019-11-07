@@ -45,14 +45,6 @@ ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *e
   BanjaxContinuation *cd;
 
   switch (event) {
-  case TS_EVENT_HTTP_TXN_START:
-    //If we are here it means this is the global continuation
-    //we never subscribe subsequent continuations to this event
-    handle_txn_start((TSHttpTxn) edata);
-    // handle_task_queue(HTTP_START, (BanjaxContinuation *) TSContDataGet(contp));
-
-    return TS_EVENT_NONE;
-
   case TS_EVENT_HTTP_READ_REQUEST_HDR:
     if(contp != Banjax::global_contp)
       handle_request((BanjaxContinuation *) TSContDataGet(contp));
@@ -277,36 +269,6 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
   else {
     TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_CONTINUE);
   }
-}
-
-/**
-   @param global_contp contains the global continuation and is sent here
-   , so the new continuation gets the main banjax object
- */
-void
-ATSEventHandler::handle_txn_start(TSHttpTxn txnp)
-{
-  TSDebug(BANJAX_PLUGIN_NAME, "txn start" );
-
-  TSCont txn_contp;
-  BanjaxContinuation *cd;
-
-  //retreive the banjax obej
-  txn_contp = TSContCreate((TSEventFunc) banjax_global_eventhandler, TSMutexCreate());
-  /* create the data that'll be associated with the continuation */
-  cd = (BanjaxContinuation *) TSmalloc(sizeof(BanjaxContinuation));
-  cd = new(cd) BanjaxContinuation(txnp);
-  //TSDebug(BANJAX_PLUGIN_NAME, "New continuation data at %lu", (unsigned long)cd);
-  TSContDataSet(txn_contp, cd);
-
-  cd->contp = txn_contp;
-
-  TSHttpTxnHookAdd(txnp, TS_HTTP_READ_REQUEST_HDR_HOOK, txn_contp);
-  TSHttpTxnHookAdd(txnp, TS_HTTP_SEND_REQUEST_HDR_HOOK, txn_contp);
-  TSHttpTxnHookAdd(txnp, TS_HTTP_SEND_RESPONSE_HDR_HOOK, txn_contp);
-  TSHttpTxnHookAdd(txnp, TS_HTTP_TXN_CLOSE_HOOK, txn_contp);
-
-  TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
 }
 
 void

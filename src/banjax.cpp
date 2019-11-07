@@ -164,6 +164,39 @@ void Banjax::reload_config() {
 
 }
 
+static
+int
+handle_transaction_start(TSCont contp, TSEvent event, void *edata)
+{
+  if (event != TS_EVENT_HTTP_TXN_START) {
+    TSDebug(BANJAX_PLUGIN_NAME, "txn unexpected event" );
+    return TS_EVENT_NONE;
+  }
+
+  TSHttpTxn txnp = (TSHttpTxn) edata;
+
+  TSDebug(BANJAX_PLUGIN_NAME, "txn start");
+
+  TSCont txn_contp;
+  BanjaxContinuation *cd;
+
+  txn_contp = TSContCreate((TSEventFunc) ATSEventHandler::banjax_global_eventhandler, TSMutexCreate());
+  /* create the data that'll be associated with the continuation */
+  cd = (BanjaxContinuation *) TSmalloc(sizeof(BanjaxContinuation));
+  cd = new(cd) BanjaxContinuation(txnp);
+  TSContDataSet(txn_contp, cd);
+
+  cd->contp = txn_contp;
+
+  TSHttpTxnHookAdd(txnp, TS_HTTP_READ_REQUEST_HDR_HOOK, txn_contp);
+  TSHttpTxnHookAdd(txnp, TS_HTTP_SEND_REQUEST_HDR_HOOK, txn_contp);
+  TSHttpTxnHookAdd(txnp, TS_HTTP_SEND_RESPONSE_HDR_HOOK, txn_contp);
+  TSHttpTxnHookAdd(txnp, TS_HTTP_TXN_CLOSE_HOOK, txn_contp);
+
+  TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
+
+  return TS_EVENT_NONE;
+}
 
 /**
    Constructor
@@ -194,7 +227,7 @@ Banjax::Banjax(const string& banjax_config_dir)
 
   TSDebug(BANJAX_PLUGIN_NAME, "in the beginning");
 
-  global_contp = TSContCreate(ATSEventHandler::banjax_global_eventhandler, ip_database.db_mutex);
+  global_contp = TSContCreate(handle_transaction_start, ip_database.db_mutex);
 
   BanjaxContinuation* cd = (BanjaxContinuation *) TSmalloc(sizeof(BanjaxContinuation));
   cd = new(cd) BanjaxContinuation(NULL); //no transaction attached to this cont
