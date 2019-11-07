@@ -12,6 +12,11 @@ externalproject_add(yaml
     PREFIX "yaml")
 
 set(YAML_DIR "${CMAKE_BINARY_DIR}/yaml/src")
+
+option(WITH_ASAN "Build with Address sanitizer" OFF)
+if (WITH_ASAN)
+    add_compile_options("-fsanitize=address" "-fno-omit-frame-pointer")
+endif()
 ################################################################################
 project (banjax)
 
@@ -56,6 +61,19 @@ set_target_properties(banjax_module PROPERTIES PREFIX "")
 add_dependencies(banjax_static yaml)
 add_dependencies(banjax_module yaml)
 
+if (WITH_ASAN)
+    # NOTE1: https://stackoverflow.com/a/50163972
+    target_link_libraries(banjax_static INTERFACE -fsanitize=address)
+
+    # NOTE: When we enable ASAN for the module, the ATS needs to be
+    # started with LD_PRELOAD set to path to libasan.so.X. E.g.
+    # ```
+    # $ LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libasan.so.4 ./traffic_server ...
+    # ```
+    # To find the path to libasan.so do `ldd banjax.so | grep libasan`
+    target_link_libraries(banjax_module PUBLIC -fsanitize=address)
+endif()
+
 ################################################################################
 project (unit-tests)
 
@@ -79,6 +97,12 @@ file(GLOB sources
 )
 
 add_executable(unit-tests ${sources})
-target_link_libraries(unit-tests banjax_static ${Boost_LIBRARIES})
+
+if (WITH_ASAN)
+    # NOTE: https://stackoverflow.com/a/50163972
+    target_link_libraries(unit-tests banjax_static ${Boost_LIBRARIES} -fsanitize=address)
+else()
+    target_link_libraries(unit-tests banjax_static ${Boost_LIBRARIES})
+endif()
 
 ################################################################################
