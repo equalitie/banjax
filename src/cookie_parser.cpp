@@ -5,6 +5,12 @@
 
 #include "cookie_parser.h"
 
+static const char* skip_space(const char* cur_str)
+{
+  while (isspace(*cur_str)) cur_str++;
+  return cur_str;
+}
+
 const char*
 CookieParser::parse_a_cookie(const char *cookie_str)
 {

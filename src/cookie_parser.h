@@ -1,21 +1,9 @@
 #ifndef COOKIES_PARSER_H
 #define COOKIES_PARSER_H
 
-#include <list>
 #include <boost/utility/string_view.hpp>
 
 class CookieParser {
-protected:
-  /**
-     move the pointer to the first non-space char in string
-     TODO it shouldn't be defined here.
-  */
-  inline const char* skip_space(const char* cur_str)
-  {
-    while (isspace(*cur_str)) cur_str++;
-    return cur_str;
-  }
-
 public:
   boost::string_view name;
   boost::string_view value;
