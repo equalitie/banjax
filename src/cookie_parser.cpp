@@ -5,22 +5,11 @@
 
 #include "cookie_parser.h"
 
-/* static inline void */
-/* debug_cookie_parser(struct cookie_str *cstr, unsigned char *pos, int ws, int eq) */
-/* { */
-/* 	int namelen = int_max(cstr->nam_end - cstr->str, 0); */
-/* 	int valuelen = int_max(cstr->val_end - cstr->val_start, 0); */
-
-/* 	printf("[%.*s] :: (%.*s) :: %d,%d [%s] %d\n", */
-/* 	       namelen, cstr->str, */
-/* 	       valuelen, cstr->val_start, */
-/* 	       ws, eq, pos, cstr->nam_end - cstr->str); */
-/* } */
-
-
 const char*
 CookieParser::parse_a_cookie(const char *cookie_str)
 {
+  using boost::string_view;
+
   name  = string_view();
   value = string_view();
 

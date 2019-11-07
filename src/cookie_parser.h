@@ -2,28 +2,7 @@
 #define COOKIES_PARSER_H
 
 #include <list>
-
-//#include <experimental/string_view>
-struct string_view {
-  string_view() : start(nullptr), count(0) {}
-  string_view(const string_view& other) : start(other.start), count(other.count) {}
-  string_view(const char* s, size_t count) : start(s), count(count) {}
-  string_view(const char* s) : start(s), count(strlen(s)) {}
-
-  const char* begin() const { return start; }
-  const char* end() const { return start + count; }
-
-  bool operator==(const char* s) const {
-    for (size_t i = 0; i < count; ++i) {
-      if (s[i] == '\0') return false;
-      if (s[i] != start[i]) return false;
-    }
-    return true;
-  }
-
-  const char* start;
-  size_t count;
-};
+#include <boost/utility/string_view.hpp>
 
 class CookieParser {
 protected:
@@ -38,8 +17,8 @@ protected:
   }
 
 public:
-  string_view name;
-  string_view value;
+  boost::string_view name;
+  boost::string_view value;
 
   /**
    * This function parses the starting name/value pair from the cookie string.
