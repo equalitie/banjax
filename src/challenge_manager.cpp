@@ -311,13 +311,12 @@ bool ChallengeManager::check_cookie(string answer, const TransactionParts& trans
 
   DEBUG("ChallengeManager::check_cookie: cookie_jar = ", cookie_jar);
 
-  Cookie cookie_parser;
-  const char* next_cookie = cookie_jar.c_str();
+  boost::string_view cookie_jar_s = cookie_jar;
 
-  while((next_cookie = cookie_parser.parse_a_cookie(next_cookie)) != NULL) {
-    if (cookie_parser.name == "deflect") {
+  while(boost::optional<Cookie> cookie = Cookie::consume(cookie_jar_s)) {
+    if (cookie->name == "deflect") {
       // TODO(inetic): No need to actually make a copy.
-      std::string captcha_cookie(cookie_parser.value.begin(), cookie_parser.value.end());
+      std::string captcha_cookie(cookie->value.begin(), cookie->value.end());
 
       //Here we check the challenge specific requirement of the cookie
       bool challenge_prevailed;

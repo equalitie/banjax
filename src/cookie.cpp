@@ -2,68 +2,104 @@
 //#include <stdio.h>
 #include <ctype.h>
 #include <string.h>
+#include <iostream>
 
 #include "cookie.h"
 
-static const char* skip_space(const char* cur_str)
+using boost::string_view;
+
+static string_view trim_space_prefix(string_view s)
 {
-  while (isspace(*cur_str)) cur_str++;
-  return cur_str;
+  while (!s.empty() && isspace(s[0])) s.remove_prefix(1);
+  return s;
 }
 
-const char*
-Cookie::parse_a_cookie(const char *cookie_str)
+static string_view trim_space_suffix(string_view s)
 {
-  using boost::string_view;
+  while (!s.empty() && isspace(s.back())) s.remove_suffix(1);
+  return s;
+}
 
-  name  = string_view();
-  value = string_view();
+static bool is_eol_at(string_view s, size_t pos) {
+  if (s.size() < pos + 1) return false;
+  s.remove_prefix(pos);
+  return s.starts_with("\r\n");
+}
 
-  const char* name_begin = cookie_str;
+/* static */
+boost::optional<Cookie>
+Cookie::consume(boost::string_view& cookie_s)
+{
+  Cookie c;
 
-  /* Parse name token */
-  while (*cookie_str != ';' && *cookie_str != '=' && !isspace(*cookie_str) && *cookie_str && (!(*cookie_str == '\r' && *(cookie_str+1) == '\n')))
-    cookie_str++;
+  size_t name_end = 0;
+
+  cookie_s = trim_space_prefix(cookie_s);
+
+  if (cookie_s.empty()) return boost::none;
+
+  /* Find end of the name token */
+  while (name_end < cookie_s.size()
+      && cookie_s[name_end] != ';'
+      && cookie_s[name_end] != '='
+      && !isspace(cookie_s[name_end])
+      && cookie_s[name_end])
+    name_end++;
 
   /* Bail out if name token is empty */
-  if (cookie_str == name_begin) return NULL;
+  if (name_end == 0 && cookie_s.front() != '=') {
+    if (cookie_s.front() == ';') {
+      cookie_s.remove_prefix(1);
+      return c;
+    }
+    return boost::none;
+  }
 
-  name = string_view(name_begin, cookie_str - name_begin);
+  c.name = cookie_s.substr(0, name_end);
 
-  cookie_str = skip_space(cookie_str);
+  if (name_end == cookie_s.size()) return c;
 
-  switch (*cookie_str) {
+  cookie_s = trim_space_prefix(cookie_s.substr(name_end));
+
+  if (cookie_s.empty()) return c;
+
+  switch (cookie_s[0]) {
   case '\0':
   case ';':
+    cookie_s.remove_prefix(1);
     /* No value token, so just set to empty value */
-    value = string_view(cookie_str, 0);
-    return cookie_str;
+    return c;
 
   case '=':
     /* Map 'a===b' to 'a=b' */
-    do cookie_str++; while (*cookie_str == '=');
+    do cookie_s.remove_prefix(1); while (cookie_s[0] == '=');
     break;
 
   default:
     /* No spaces in the name token is allowed */
-    return NULL;
+    return boost::none;
   }
 
-  cookie_str = skip_space(cookie_str);
+  cookie_s = trim_space_prefix(cookie_s);
 
   /* Parse value token */
 
   /* Start with empty value, so even 'a=' will work */
-  const char* val_start = cookie_str;
-  const char* val_end   = cookie_str;
+  size_t val_end = 0;
 
-  for (; *cookie_str != ';' && *cookie_str && (!(*cookie_str == '\r' && *(cookie_str+1) == '\n')); cookie_str++) {
-    /* Allow spaces in the value but leave out ending spaces */
-    if (!isspace(*cookie_str))
-      val_end = cookie_str + 1;
+  while (val_end < cookie_s.size()
+      && cookie_s[val_end] != ';'
+      && cookie_s[val_end]
+      && !is_eol_at(cookie_s, val_end))
+  {
+    ++val_end;
   }
 
-  value = string_view(val_start, val_end - val_start);
+  c.value = trim_space_suffix(cookie_s.substr(0, val_end));
 
-  return skip_space(++cookie_str);
+  cookie_s.remove_prefix(val_end);
+
+  if (cookie_s.starts_with(';')) cookie_s.remove_prefix(1);
+
+  return c;
 }

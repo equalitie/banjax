@@ -74,7 +74,9 @@ file(GLOB sources
   "${CMAKE_SOURCE_DIR}/test/challenge_manager_unittest.cpp"
   "${CMAKE_SOURCE_DIR}/test/regex_manager_unittest.cpp"
   "${CMAKE_SOURCE_DIR}/test/unittest_common.cpp"
-  "${CMAKE_SOURCE_DIR}/test/white_lister_unittest.cpp")
+  "${CMAKE_SOURCE_DIR}/test/white_lister_unittest.cpp"
+  "${CMAKE_SOURCE_DIR}/test/cookie_unittest.cpp"
+)
 
 add_executable(unit-tests ${sources})
 target_link_libraries(unit-tests banjax_static ${Boost_LIBRARIES})
