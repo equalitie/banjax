@@ -34,7 +34,7 @@ using namespace std;
 
 #include "util.h"
 #include "base64.h"
-#include "cookie_parser.h"
+#include "cookie.h"
 #include "challenge_manager.h"
 #include "cookiehash.h"
 #include "print.h"
@@ -311,7 +311,7 @@ bool ChallengeManager::check_cookie(string answer, const TransactionParts& trans
 
   DEBUG("ChallengeManager::check_cookie: cookie_jar = ", cookie_jar);
 
-  CookieParser cookie_parser;
+  Cookie cookie_parser;
   const char* next_cookie = cookie_jar.c_str();
 
   while((next_cookie = cookie_parser.parse_a_cookie(next_cookie)) != NULL) {

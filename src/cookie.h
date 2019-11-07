@@ -1,9 +1,9 @@
-#ifndef COOKIES_PARSER_H
-#define COOKIES_PARSER_H
+#ifndef BANJAX_COOKIE_H
+#define BANJAX_COOKIE_H
 
 #include <boost/utility/string_view.hpp>
 
-class CookieParser {
+class Cookie {
 public:
   boost::string_view name;
   boost::string_view value;
@@ -24,4 +24,4 @@ public:
   */
 };
 
-#endif
+#endif // BANJAX_COOKIE_H

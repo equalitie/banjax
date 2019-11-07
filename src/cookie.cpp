@@ -3,7 +3,7 @@
 #include <ctype.h>
 #include <string.h>
 
-#include "cookie_parser.h"
+#include "cookie.h"
 
 static const char* skip_space(const char* cur_str)
 {
@@ -12,7 +12,7 @@ static const char* skip_space(const char* cur_str)
 }
 
 const char*
-CookieParser::parse_a_cookie(const char *cookie_str)
+Cookie::parse_a_cookie(const char *cookie_str)
 {
   using boost::string_view;
 
