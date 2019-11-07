@@ -20,13 +20,7 @@ class ATSEventHandler
 {
   friend class Banjax;
 protected:
-  static Banjax* banjax; //As we only have one banjax main object it
-  //make sense to have it as an static member. In fact there is no 
-  //fundamental different between ATSEventHandler and Banjax,
-  //It is just that Banjax is taking care of more high level tasks
-  //And ATSEventHandler talks to ATS. that is why they are both
-  //friend of each other
-  static TSCont global_contp;
+  static Banjax* banjax;
 
 public:
   /**
