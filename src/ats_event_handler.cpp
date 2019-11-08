@@ -39,7 +39,7 @@ using namespace std;
 //extern TSMutex Banjax::regex_mutex;
 
 int
-ATSEventHandler::banjax_global_eventhandler(TSCont contp, TSEvent event, void *edata)
+ATSEventHandler::handle_transaction_change(TSCont contp, TSEvent event, void *edata)
 {
   TSHttpTxn txnp = (TSHttpTxn) edata;
   BanjaxContinuation *cd;

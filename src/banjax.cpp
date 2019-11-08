@@ -180,7 +180,7 @@ handle_transaction_start(TSCont contp, TSEvent event, void *edata)
   TSCont txn_contp;
   BanjaxContinuation *cd;
 
-  txn_contp = TSContCreate((TSEventFunc) ATSEventHandler::banjax_global_eventhandler, TSMutexCreate());
+  txn_contp = TSContCreate((TSEventFunc) ATSEventHandler::handle_transaction_change, TSMutexCreate());
   /* create the data that'll be associated with the continuation */
   cd = (BanjaxContinuation *) TSmalloc(sizeof(BanjaxContinuation));
   cd = new(cd) BanjaxContinuation(txnp);

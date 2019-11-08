@@ -38,7 +38,7 @@ public:
   */
   static void handle_response(BanjaxContinuation* cd);
 
-  static int  banjax_global_eventhandler(TSCont contp, TSEvent event, void *edata);
+  static int  handle_transaction_change(TSCont contp, TSEvent event, void *edata);
 
 
   /**
