@@ -76,7 +76,7 @@ void RegexManager::load_config()
   @return: 1 match 0 not match < 0 error.
 */
 pair<RegexManager::RegexResult,RatedRegex*>
-RegexManager::parse_request(string ip, string ats_record)
+RegexManager::parse_request(string ip, string ats_record) const
 {
   std::pair<bool, FilterState> cur_ip_state;
 

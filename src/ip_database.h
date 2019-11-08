@@ -68,7 +68,7 @@ public:
      check if  the ip is in the db, if not store it and updates its states
      related to that filter
    */
-  bool set_ip_state(std::string& ip, FilterIDType filter_id, FilterState state);
+  bool set_ip_state(const std::string& ip, FilterIDType filter_id, FilterState state);
 
   /**
      check if  the ip is in the db, if not store it, with default state 0

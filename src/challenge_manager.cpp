@@ -234,7 +234,7 @@ vector<string> ChallengeManager::split(const string &s, char delim) {
  * @param  cookie the value of the cookie
  * @return        true if the SHA256 of the cookie verifies the challenge
  */
-bool ChallengeManager::check_sha(const char* cookiestr){
+bool ChallengeManager::check_sha(const char* cookiestr) const {
 
   unsigned char hash[SHA256_DIGEST_LENGTH];
   SHA256_CTX sha256;
@@ -305,7 +305,7 @@ bool ChallengeManager::check_auth_validity(const char* cookiestr, const std::str
  * @param  ip     the client ip
  * @return        true if the cookie is valid
  */
-bool ChallengeManager::check_cookie(string answer, const TransactionParts& transaction_parts, const HostChallengeSpec& cookied_challenge) {
+bool ChallengeManager::check_cookie(string answer, const TransactionParts& transaction_parts, const HostChallengeSpec& cookied_challenge) const {
   string cookie_jar = transaction_parts.at(TransactionMuncher::COOKIE);
   string ip         = transaction_parts.at(TransactionMuncher::IP);
 
@@ -356,6 +356,7 @@ bool ChallengeManager::check_cookie(string answer, const TransactionParts& trans
  * @param from     substing to be replaced
  * @param to       what to replace by
  */
+/* static */
 bool ChallengeManager::replace(string &original, const string& from, const string& to){
   size_t start_pos = original.find(from);
   if(start_pos == string::npos)
@@ -451,6 +452,7 @@ string ChallengeManager::generate_html(
  * gets a time in long format in future and turn it into browser and human
  * understandable point in time
  */
+/* static */
 string
 ChallengeManager::format_validity_time_for_cookie(long validity_time)
 {
@@ -464,10 +466,12 @@ ChallengeManager::format_validity_time_for_cookie(long validity_time)
   return string(buffer);
 }
 
+/* static */
 bool ChallengeManager::is_captcha_url(const std::string& url) {
   size_t found = url.rfind("__captcha");
   return found != std::string::npos;
 }
+/* static */
 bool ChallengeManager::is_captcha_answer(const std::string& url) {
   size_t found = url.rfind("__validate/");
   return found != std::string::npos;

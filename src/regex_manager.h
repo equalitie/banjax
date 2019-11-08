@@ -78,7 +78,7 @@ protected:
     @return: pair of 1 match 0 not match < 0 error and
              the matched regex (for loging) or NULL in miss
   */
-  std::pair<RegexResult,RatedRegex*> parse_request(std::string ip, std::string ats_record);
+  std::pair<RegexResult,RatedRegex*> parse_request(std::string ip, std::string ats_record) const;
 
 public:
   /**
@@ -117,7 +117,7 @@ public:
   FilterResponse on_http_request(const TransactionParts& transaction_parts) override;
   void on_http_close(const TransactionParts& transaction_parts) override {}
 
-  virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
+  std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info) override;
 
 private:
   void load_config();
