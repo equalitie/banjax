@@ -11,8 +11,6 @@
  */
 
 #include <ts/ts.h>
-//NULL not defined in c++
-#include <cstddef>
 #include <string>
 #include <vector>
 #include <list>
@@ -21,7 +19,6 @@
 
 //check if the banjax.conf folder exists and is a folder indeed
 #include <sys/stat.h>
-//#include <libexplain/stat.h>
 
 using namespace std;
 
@@ -382,11 +379,11 @@ TSPluginInit(int argc, const char *argv[])
   atexit(reset_g_banjax_current);
 
   // Start handling transactions
-  TSCont contp = TSContCreate(handle_transaction_start, NULL);
+  TSCont contp = TSContCreate(handle_transaction_start, nullptr);
   TSHttpHookAdd(TS_HTTP_TXN_START_HOOK, contp);
 
   // Handle reload by traffic_line -x
-  TSCont management_contp = TSContCreate(handle_management, NULL);
+  TSCont management_contp = TSContCreate(handle_management, nullptr);
   TSMgmtUpdateRegister(management_contp, BANJAX_PLUGIN_NAME);
 }
 
