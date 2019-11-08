@@ -36,8 +36,6 @@ using namespace std;
 #include "util.h"
 #include "print.h"
 
-//extern TSMutex Banjax::regex_mutex;
-
 int
 ATSEventHandler::handle_transaction_change(TSCont contp, TSEvent event, void *edata)
 {
@@ -51,12 +49,6 @@ ATSEventHandler::handle_transaction_change(TSCont contp, TSEvent event, void *ed
     return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_READ_CACHE_HDR:
-    /* on hit we don't do anything for now
-       lack of miss means hit to me
-       if (contp != Banjax::global_contp) {
-       cd = (BanjaxContinuation *) TSContDataGet(contp);
-       cd->hit = 1;
-       }*/
     TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
     return TS_EVENT_NONE;
 
@@ -70,7 +62,6 @@ ATSEventHandler::handle_transaction_change(TSCont contp, TSEvent event, void *ed
     return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_SEND_RESPONSE_HDR:
-    //TSDebug(BANJAX_PLUGIN_NAME, "response" );
     if (contp != Banjax::global_contp) {
       cd = (BanjaxContinuation*) TSContDataGet(contp);
       handle_response(cd);
@@ -91,31 +82,11 @@ ATSEventHandler::handle_transaction_change(TSCont contp, TSEvent event, void *ed
     break;
 
   case TS_EVENT_TIMEOUT:
-    //TODO: This code does not make sense and needs to be revisited
     TSDebug("banjaxtimeout", "timeout" );
-    /* when mutex lock is not acquired and continuation is rescheduled,
-       the plugin is called back with TS_EVENT_TIMEOUT with a NULL
-       edata. We need to decide, in which function did the MutexLock
-       failed and call that function again */
-    /*if (contp != Banjax::global_contp) {
-      cd = (BanjaxContinuation *) TSContDataGet(contp);
-      switch (cd->cf) {
-        case BanjaxContinuation::HANDLE_REQUEST:
-          handle_request(cd);
-          return 0;
-        default:
-          TSDebug(BANJAX_PLUGIN_NAME, "This event was unexpected: %d\n", event);
-          break;
-	  }
-    } else {
-      //regardless, it even doesn't make sense to read the list here
-      //read_regex_list(contp);
-      return 0;
-      }*/
 
-    default:
-      TSDebug(BANJAX_PLUGIN_NAME, "Unsolicitated event call?" );
-      break;
+  default:
+    TSDebug(BANJAX_PLUGIN_NAME, "Unsolicitated event call?" );
+    break;
   }
 
   return TS_EVENT_NONE;
