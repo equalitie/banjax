@@ -63,7 +63,7 @@ ATSEventHandler::handle_transaction_change(TSCont contp, TSEvent event, void *ed
 
   case TS_EVENT_HTTP_TXN_CLOSE:
     TSDebug(BANJAX_PLUGIN_NAME, "txn close");
-    handle_http_close(banjax->task_queues[BanjaxFilter::HTTP_CLOSE], cd);
+    handle_http_close(cd->banjax->task_queues[BanjaxFilter::HTTP_CLOSE], cd);
     cd->~TransactionData();
     TSfree(cd);
     TSContDestroy(contp);
@@ -85,11 +85,11 @@ void
 ATSEventHandler::handle_request(TransactionData* cd)
 {
   // Retreiving part of header requested by the filters
-  const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(banjax->which_parts_are_requested());
+  const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(cd->banjax->which_parts_are_requested());
 
   bool continue_filtering = true;
 
-  auto& http_request_filters = banjax->task_queues[BanjaxFilter::HTTP_REQUEST];
+  auto& http_request_filters = cd->banjax->task_queues[BanjaxFilter::HTTP_REQUEST];
 
   for (auto filter : http_request_filters) {
     FilterResponse cur_filter_result = filter->on_http_request(cur_trans_parts);
@@ -143,7 +143,7 @@ ATSEventHandler::handle_response(TransactionData* cd)
   auto status = cd->transaction_muncher.get_response_status();
 
   //we need to retrieve response parts for any filter who requested it.
-  cd->transaction_muncher.retrieve_response_parts(banjax->which_response_parts_are_requested());
+  cd->transaction_muncher.retrieve_response_parts(cd->banjax->which_response_parts_are_requested());
 
   auto set_error_body = [&](const string&  buf) {
     char* b = (char*) TSmalloc(buf.size());
@@ -160,7 +160,7 @@ ATSEventHandler::handle_response(TransactionData* cd)
   if (cd->response_info.response_type == FilterResponse::I_RESPOND) {
     cd->transaction_muncher.set_status(TS_HTTP_STATUS_GATEWAY_TIMEOUT);
     std::string buf = cd->response_info.response_data->response_generator
-                      (cd->transaction_muncher.retrieve_parts(banjax->all_filters_requested_part), cd->response_info);
+                      (cd->transaction_muncher.retrieve_parts(cd->banjax->all_filters_requested_part), cd->response_info);
 
     cd->transaction_muncher.set_status(
         (TSHttpStatus) cd->response_info.response_data->response_code);
@@ -215,7 +215,7 @@ ATSEventHandler::handle_response(TransactionData* cd)
 void
 ATSEventHandler::handle_http_close(Banjax::TaskQueue& current_queue, TransactionData* cd)
 {
-  const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(banjax->which_parts_are_requested());
+  const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(cd->banjax->which_parts_are_requested());
 
   for(auto cur_task : current_queue) {
     cur_task->on_http_close(cur_trans_parts);

@@ -19,8 +19,6 @@ class Banjax;
 class ATSEventHandler
 {
 public:
-  static Banjax* banjax;
-
   /**
      runs all filters to make decsion based on request header
      

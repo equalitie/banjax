@@ -32,9 +32,6 @@ protected:
   uint64_t all_filters_requested_part;
   uint64_t all_filters_response_part;
 
-  //configuration
-  TSMutex config_mutex; //prevent too many traffic_line -x at the time
-
   std::string banjax_config_dir; //this keeps the folder contains banjax.conf and banjax.d folder
   static const std::string CONFIG_FILENAME;
 

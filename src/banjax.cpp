@@ -48,9 +48,9 @@ using namespace std;
 #define TSError TSErrorAlternative
 #endif
 
-extern const string Banjax::CONFIG_FILENAME = "banjax.conf";
+std::shared_ptr<Banjax> g_banjax_current;
 
-extern Banjax* ATSEventHandler::banjax;
+extern const string Banjax::CONFIG_FILENAME = "banjax.conf";
 
 void TSErrorAlternative(const char* fmt, ...)
 {
@@ -115,49 +115,6 @@ Banjax::filter_factory()
   }
 }
 
-/**
-   reload config and remake filters when traffic_line -x is executed
-   the ip databes will stay untouched so banning states should
-   be stay steady
-*/
-void Banjax::reload_config() {
-    //all we need is
-    // - to empty the queuse
-    // - delete the filters
-    // - re-read the config
-    // - call filter factory
-
-  //we need to lock this other wise somebody is deleting filter and somebody making them
-  TSMutexLock(config_mutex);
-  TSDebug(BANJAX_PLUGIN_NAME, "locked config lock");
-    //empty all queues
-  for(unsigned int i = BanjaxFilter::HTTP_START; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++)
-    task_queues[i].clear();
-
-  //delete all filters
-  filters.clear();
-
-  //reset the ip_database
-  ip_database.drop_everything();
-
-  //re-load config
-  //reset config variables
-  filter_config_map.clear();
-  priority_map.clear();
-
-  priorities = YAML::Node();
-
-  current_sequential_priority = 0;
-
-  all_filters_requested_part = 0;
-  all_filters_response_part = 0;
-
-  read_configuration();
-  TSDebug(BANJAX_PLUGIN_NAME, "unlock config lock");
-  TSMutexUnlock(config_mutex); //we will lock it in read_configuration again
-
-}
-
 static
 int
 handle_transaction_start(TSCont contp, TSEvent event, void *edata)
@@ -177,7 +134,7 @@ handle_transaction_start(TSCont contp, TSEvent event, void *edata)
   txn_contp = TSContCreate((TSEventFunc) ATSEventHandler::handle_transaction_change, TSMutexCreate());
   /* create the data that'll be associated with the continuation */
   cd = (TransactionData *) TSmalloc(sizeof(TransactionData));
-  cd = new(cd) TransactionData(txnp);
+  cd = new(cd) TransactionData(g_banjax_current, txnp);
   TSContDataSet(txn_contp, cd);
 
   TSHttpTxnHookAdd(txnp, TS_HTTP_READ_REQUEST_HDR_HOOK, txn_contp);
@@ -194,9 +151,14 @@ static
 int handle_management(TSCont contp, TSEvent event, void *edata)
 {
   (void) contp; (void) edata;
-  TSReleaseAssert(event == TS_EVENT_MGMT_UPDATE);
   TSDebug(BANJAX_PLUGIN_NAME, "reload configuration signal received");
-  ATSEventHandler::banjax->reload_config();
+  TSReleaseAssert(event == TS_EVENT_MGMT_UPDATE);
+
+  std::shared_ptr<Banjax> new_banjax(new Banjax(TSPluginDirGet()));
+
+  // This happens atomically, so (in theory) we don't need to wrap in in mutex.
+  g_banjax_current = std::move(new_banjax);
+
   return 0;
 }
 
@@ -208,44 +170,28 @@ int handle_management(TSCont contp, TSEvent event, void *edata)
 Banjax::Banjax(const string& banjax_config_dir)
   : all_filters_requested_part(0),
     all_filters_response_part(0),
-    config_mutex(TSMutexCreate()),
     banjax_config_dir(banjax_config_dir),
     current_sequential_priority(0),
     swabber_interface(&ip_database)
 {
-
-  //Everything is static in ATSEventHandle so it is more like a namespace
-  //than a class (we never instatiate from it). so the only reason
-  //we have to create this object is to set the static reference to banjax into
-  //ATSEventHandler, it is somehow the acknowledgementt that only one banjax
-  //object can exist
-  ATSEventHandler::banjax = this;
-
   /* create an TSTextLogObject to log blacklisted requests to */
   TSReturnCode error = TSTextLogObjectCreate(BANJAX_PLUGIN_NAME, TS_LOG_MODE_ADD_TIMESTAMP, &log);
   if (!log || error == TS_ERROR) {
     TSDebug(BANJAX_PLUGIN_NAME, "error while creating log");
   }
 
-  TSDebug(BANJAX_PLUGIN_NAME, "in the beginning");
+  TSDebug(BANJAX_PLUGIN_NAME, "reading configuration");
 
+  // Creation of filters happen here
+  read_configuration();
+
+  // Start handling transactions
   TSCont contp = TSContCreate(handle_transaction_start, ip_database.db_mutex);
+  TSHttpHookAdd(TS_HTTP_TXN_START_HOOK, contp);
 
-  TransactionData* cd = (TransactionData *) TSmalloc(sizeof(TransactionData));
-  cd = new(cd) TransactionData(NULL); //no transaction attached to this cont
-  TSContDataSet(contp, cd);
-
-  //For being able to be reload by traffic_line -x
+  // Handle reload by traffic_line -x
   TSCont management_contp = TSContCreate(handle_management, NULL);
   TSMgmtUpdateRegister(management_contp, BANJAX_PLUGIN_NAME);
-
-  //creation of filters happen here
-  TSMutexLock(config_mutex);
-  read_configuration();
-  TSMutexUnlock(config_mutex);
-
-  //this probably should happen at the end due to multi-threading
-  TSHttpHookAdd(TS_HTTP_TXN_START_HOOK, contp);
 }
 
 void
@@ -389,8 +335,9 @@ Banjax::process_config(const YAML::Node& cfg)
   } //for all nodes
 };
 
-/* Global pointer that keep track of banjax global object */
-Banjax* p_banjax_plugin;
+static void reset_g_banjax_current() {
+  g_banjax_current.reset();
+}
 
 void
 TSPluginInit(int argc, const char *argv[])
@@ -433,8 +380,8 @@ TSPluginInit(int argc, const char *argv[])
   }
 
   /* create the banjax object that control the whole procedure */
-  p_banjax_plugin = (Banjax*)TSmalloc(sizeof(Banjax));
-  p_banjax_plugin = new(p_banjax_plugin) Banjax(banjax_config_dir);
+  g_banjax_current.reset(new Banjax(banjax_config_dir));
+  atexit(reset_g_banjax_current);
 
   //if everything went smoothly then register banjax
 #if(TS_VERSION_NUMBER < 6000000)
