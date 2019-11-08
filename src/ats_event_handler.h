@@ -13,30 +13,12 @@
 #define MAX_REQUEST_LENGTH    16384;
 #define MAX_COOKIE_LENGTH     8192;
 
-class BanjaxContinuation;
+class TransactionData;
 class Banjax;
 
 class ATSEventHandler
 {
-  friend class Banjax;
-protected:
-  static Banjax* banjax; //As we only have one banjax main object it
-  //make sense to have it as an static member. In fact there is no 
-  //fundamental different between ATSEventHandler and Banjax,
-  //It is just that Banjax is taking care of more high level tasks
-  //And ATSEventHandler talks to ATS. that is why they are both
-  //friend of each other
-  static TSCont global_contp;
-
 public:
-  /**
-     called always when the transaction starts
-     The global continuation is a protected static member of
-     banjax so it can always be accessed by ATSEventHandler
-     methods
-   */
-  static void handle_txn_start(TSHttpTxn txnp);
-
   /**
      runs all filters to make decsion based on request header
      
@@ -44,24 +26,17 @@ public:
                  where all filters are accesible through it
 
   */
-  static void handle_request(BanjaxContinuation* cd);
+  static void handle_request(TransactionData* cd);
 
   /**
      runs filters who need to be executed on during generating the transaction's
      response
   */
-  static void handle_response(BanjaxContinuation* cd);
+  static void handle_response(TransactionData* cd);
 
-  static int  banjax_global_eventhandler(TSCont contp, TSEvent event, void *edata);
+  static int  handle_transaction_change(TSCont contp, TSEvent event, void *edata);
 
-
-  /**
-     this is to reload banjax config when you get into the traffi_line -x
-     situation 
-   */
-  static int  banjax_management_handler(TSCont contp, TSEvent event, void *edata);
-
-  static void handle_http_close(Banjax::TaskQueue& current_queue, BanjaxContinuation* cd);
+  static void handle_http_close(Banjax::TaskQueue& current_queue, TransactionData* cd);
 
   /**
      Destroy the continuation and release the object related to it after
@@ -69,7 +44,5 @@ public:
    */
   static void destroy_continuation(TSCont contp);
 };
-
-//extern Banjax* ATSEventHandler::banjax;
 
 #endif /* ats_event_handler.h */

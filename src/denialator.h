@@ -71,7 +71,7 @@ class Denialator : public BanjaxFilter
   /**
      we  overload generate_respons cause we have to say denied access
   */
-  virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
+  std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info) override;
 
 };
   

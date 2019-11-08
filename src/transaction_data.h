@@ -10,21 +10,25 @@
 #include "banjax_filter.h"
 #include "transaction_muncher.h"
 
-class BanjaxContinuation{
+class Banjax;
+
+class TransactionData{
 public:
+  std::shared_ptr<Banjax> banjax;
   TSHttpTxn txnp;
-  TSCont contp;
 
   TransactionMuncher transaction_muncher;
   FilterResponse response_info;
 
-  ~BanjaxContinuation();
+  ~TransactionData();
 
   /**
      Constructor to set the default values
    */
-  BanjaxContinuation(TSHttpTxn cur_txn)
-    : txnp(cur_txn), transaction_muncher(cur_txn)
+  TransactionData(std::shared_ptr<Banjax> banjax, TSHttpTxn cur_txn)
+    : banjax(std::move(banjax))
+    , txnp(cur_txn)
+    , transaction_muncher(cur_txn)
   { }
 };
 

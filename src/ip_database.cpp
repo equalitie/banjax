@@ -22,7 +22,7 @@ using namespace std;
   eventually the continuation need to be retried
 */
 bool 
-IPDatabase::set_ip_state(std::string& ip, FilterIDType filter_id, FilterState state)
+IPDatabase::set_ip_state(const std::string& ip, FilterIDType filter_id, FilterState state)
 {
   //we need to lock at the begining because somebody can
   //delete an ip while we are searching

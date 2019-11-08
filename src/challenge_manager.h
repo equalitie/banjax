@@ -141,7 +141,7 @@ protected:
    * @param  cookie the value of the cookie
    * @return        true if the SHA256 of the cookie verifies the challenge
    */
-  bool check_sha(const char* cookiestr);
+  bool check_sha(const char* cookiestr) const;
 
   /**
    * Checks if the second part of the cookie indeed SHA256 of the
@@ -149,8 +149,10 @@ protected:
    * @param  cookie the value of the cookie
    * @return  true if the cookie verifies the challenge
    */
+  static
   bool check_auth_validity(const char* cookiestr, const std::string password_hash);
 
+  static
   bool replace(std::string &original, const std::string& from, const std::string& to);
 
   //Hosts that challenger needs to check
@@ -162,13 +164,13 @@ protected:
   static const char b64_table[65];
   static const char reverse_table[128];
 
-  bool is_captcha_url(const std::string& url);
-  bool is_captcha_answer(const std::string& url);
+  static bool is_captcha_url(const std::string& url);
+  static bool is_captcha_answer(const std::string& url);
 
   bool needs_authentication(const std::string& url, const HostChallengeSpec&) const;
 
   std::map<std::string, ChallengeDefinition::ChallengeType> challenge_type;
-  ChallengeSpec* challenge_specs[ChallengeDefinition::CHALLENGE_COUNT];
+  std::vector<std::unique_ptr<ChallengeSpec>> challenge_specs;
 
   typedef std::map<std::string, std::list<std::shared_ptr<HostChallengeSpec>>> HostChallengeMap;
   HostChallengeMap host_challenges;
@@ -207,7 +209,7 @@ protected:
    *         supposed to address
    * @return        true if the cookie is valid
    */
-  bool check_cookie(std::string answer, const TransactionParts&, const HostChallengeSpec& cookied_challenge);
+  bool check_cookie(std::string answer, const TransactionParts&, const HostChallengeSpec& cookied_challenge) const;
 
   std::string generate_html(std::string ip, long time, std::string url, const TransactionParts& transaction_parts, ChallengerExtendedResponse* response_info);
 
@@ -215,6 +217,7 @@ protected:
      gets a time in long format in future and turn it into browser and human
      understandable point in time
    */
+  static
   std::string format_validity_time_for_cookie(long validity_time);
 
   bool is_globally_white_listed(const std::string& ip) const;
@@ -240,7 +243,7 @@ public:
 
     //Initializing the challenge definitions
     for(unsigned int i = 0; i < ChallengeDefinition::CHALLENGE_COUNT; i++) {
-      challenge_specs[i] = new ChallengeSpec(ChallengeDefinition::CHALLENGE_LIST[i], ChallengeDefinition::CHALLENGE_FILE_LIST[i],(ChallengeDefinition::ChallengeType)i);
+      challenge_specs.emplace_back(new ChallengeSpec(ChallengeDefinition::CHALLENGE_LIST[i], ChallengeDefinition::CHALLENGE_FILE_LIST[i],(ChallengeDefinition::ChallengeType)i));
       challenge_type[ChallengeDefinition::CHALLENGE_LIST[i]] = (ChallengeDefinition::ChallengeType)i;
     }
 
@@ -280,7 +283,7 @@ public:
   void on_http_close(const TransactionParts& transaction_parts) override {}
 
 private:
-  virtual std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info);
+  std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info) override;
 
   void load_config(const std::string& banjax_dir);
 };

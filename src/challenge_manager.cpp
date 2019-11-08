@@ -34,7 +34,7 @@ using namespace std;
 
 #include "util.h"
 #include "base64.h"
-#include "cookie_parser.h"
+#include "cookie.h"
 #include "challenge_manager.h"
 #include "cookiehash.h"
 #include "print.h"
@@ -234,7 +234,7 @@ vector<string> ChallengeManager::split(const string &s, char delim) {
  * @param  cookie the value of the cookie
  * @return        true if the SHA256 of the cookie verifies the challenge
  */
-bool ChallengeManager::check_sha(const char* cookiestr){
+bool ChallengeManager::check_sha(const char* cookiestr) const {
 
   unsigned char hash[SHA256_DIGEST_LENGTH];
   SHA256_CTX sha256;
@@ -305,19 +305,18 @@ bool ChallengeManager::check_auth_validity(const char* cookiestr, const std::str
  * @param  ip     the client ip
  * @return        true if the cookie is valid
  */
-bool ChallengeManager::check_cookie(string answer, const TransactionParts& transaction_parts, const HostChallengeSpec& cookied_challenge) {
+bool ChallengeManager::check_cookie(string answer, const TransactionParts& transaction_parts, const HostChallengeSpec& cookied_challenge) const {
   string cookie_jar = transaction_parts.at(TransactionMuncher::COOKIE);
   string ip         = transaction_parts.at(TransactionMuncher::IP);
 
   DEBUG("ChallengeManager::check_cookie: cookie_jar = ", cookie_jar);
 
-  CookieParser cookie_parser;
-  const char* next_cookie = cookie_jar.c_str();
+  boost::string_view cookie_jar_s = cookie_jar;
 
-  while((next_cookie = cookie_parser.parse_a_cookie(next_cookie)) != NULL) {
-    if (cookie_parser.name == "deflect") {
+  while(boost::optional<Cookie> cookie = Cookie::consume(cookie_jar_s)) {
+    if (cookie->name == "deflect") {
       // TODO(inetic): No need to actually make a copy.
-      std::string captcha_cookie(cookie_parser.value.begin(), cookie_parser.value.end());
+      std::string captcha_cookie(cookie->value.begin(), cookie->value.end());
 
       //Here we check the challenge specific requirement of the cookie
       bool challenge_prevailed;
@@ -357,6 +356,7 @@ bool ChallengeManager::check_cookie(string answer, const TransactionParts& trans
  * @param from     substing to be replaced
  * @param to       what to replace by
  */
+/* static */
 bool ChallengeManager::replace(string &original, const string& from, const string& to){
   size_t start_pos = original.find(from);
   if(start_pos == string::npos)
@@ -452,6 +452,7 @@ string ChallengeManager::generate_html(
  * gets a time in long format in future and turn it into browser and human
  * understandable point in time
  */
+/* static */
 string
 ChallengeManager::format_validity_time_for_cookie(long validity_time)
 {
@@ -465,10 +466,12 @@ ChallengeManager::format_validity_time_for_cookie(long validity_time)
   return string(buffer);
 }
 
+/* static */
 bool ChallengeManager::is_captcha_url(const std::string& url) {
   size_t found = url.rfind("__captcha");
   return found != std::string::npos;
 }
+/* static */
 bool ChallengeManager::is_captcha_answer(const std::string& url) {
   size_t found = url.rfind("__validate/");
   return found != std::string::npos;
