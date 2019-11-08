@@ -184,14 +184,6 @@ Banjax::Banjax(const string& banjax_config_dir)
 
   // Creation of filters happen here
   read_configuration();
-
-  // Start handling transactions
-  TSCont contp = TSContCreate(handle_transaction_start, ip_database.db_mutex);
-  TSHttpHookAdd(TS_HTTP_TXN_START_HOOK, contp);
-
-  // Handle reload by traffic_line -x
-  TSCont management_contp = TSContCreate(handle_management, NULL);
-  TSMgmtUpdateRegister(management_contp, BANJAX_PLUGIN_NAME);
 }
 
 void
@@ -353,8 +345,7 @@ TSPluginInit(int argc, const char *argv[])
 
   if (!check_ts_version(TSTrafficServerVersionGet())) {
     TSError("Plugin requires Traffic Server 3.0 or later");
-    goto fatal_err;
-
+    return abort_traffic_server();
   }
 
   if (argc > 1) {//then use the path specified by the arguemnt
@@ -366,22 +357,15 @@ TSPluginInit(int argc, const char *argv[])
       TSError(error_str.c_str());
       // int err = errno;
       // TSError(explain_errno_stat(err, banjax_config_dir.c_str(), &stat_buffer));
-
-      goto fatal_err;
-
+      return abort_traffic_server();
     }
 
     if (!S_ISDIR(stat_buffer.st_mode)) {
       std::string error_str = "given banjax config directory " + banjax_config_dir + " doesn't seem to be an actual directory";
       TSError(error_str.c_str());
-      goto fatal_err;
+      return abort_traffic_server();
     }
-
   }
-
-  /* create the banjax object that control the whole procedure */
-  g_banjax_current.reset(new Banjax(banjax_config_dir));
-  atexit(reset_g_banjax_current);
 
   //if everything went smoothly then register banjax
 #if(TS_VERSION_NUMBER < 6000000)
@@ -389,15 +373,21 @@ TSPluginInit(int argc, const char *argv[])
 #else
   if (TSPluginRegister(&info) != TS_SUCCESS) {
 #endif
-      TSError("[version] Plugin registration failed. \n");
-     goto fatal_err;
+    TSError("[version] Plugin registration failed. \n");
+    return abort_traffic_server();
   }
 
-  return; //reaching this point means successfully registered
+  /* create the banjax object that control the whole procedure */
+  g_banjax_current.reset(new Banjax(banjax_config_dir));
+  atexit(reset_g_banjax_current);
 
- fatal_err:
-    TSError("Unable to register banjax due to a fatal error.");
-    abort_traffic_server();
+  // Start handling transactions
+  TSCont contp = TSContCreate(handle_transaction_start, NULL);
+  TSHttpHookAdd(TS_HTTP_TXN_START_HOOK, contp);
+
+  // Handle reload by traffic_line -x
+  TSCont management_contp = TSContCreate(handle_management, NULL);
+  TSMgmtUpdateRegister(management_contp, BANJAX_PLUGIN_NAME);
 }
 
 /**
