@@ -66,7 +66,6 @@ public:
 protected:
   //requests
   TSTextLogObject log;
-  static TSCont global_contp;
   
   IPDatabase ip_database;
   SwabberInterface swabber_interface;
