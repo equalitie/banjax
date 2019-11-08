@@ -47,6 +47,4 @@ public:
   static void destroy_continuation(TSCont contp);
 };
 
-//extern Banjax* ATSEventHandler::banjax;
-
 #endif /* ats_event_handler.h */

@@ -72,7 +72,7 @@ protected:
 
   // This keeps the list of all created filter objects so we can delete them on
   // re-load.
-  std::list<BanjaxFilter*> filters;    
+  std::list<std::unique_ptr<BanjaxFilter>> filters;
   TaskQueue task_queues[BanjaxFilter::TOTAL_NO_OF_QUEUES];
 
   /**

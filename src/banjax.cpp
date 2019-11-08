@@ -104,7 +104,7 @@ Banjax::filter_factory()
     }
 
     if(cur_filter){
-      filters.push_back(cur_filter);
+      filters.emplace_back(cur_filter);
     }
   }
 
@@ -135,10 +135,6 @@ void Banjax::reload_config() {
     task_queues[i].clear();
 
   //delete all filters
-  for (auto filter : filters) {
-      delete filter;
-  }
-
   filters.clear();
 
   //reset the ip_database
@@ -448,7 +444,6 @@ TSPluginInit(int argc, const char *argv[])
 #endif
       TSError("[version] Plugin registration failed. \n");
      goto fatal_err;
-
   }
 
   return; //reaching this point means successfully registered
@@ -456,7 +451,6 @@ TSPluginInit(int argc, const char *argv[])
  fatal_err:
     TSError("Unable to register banjax due to a fatal error.");
     abort_traffic_server();
-
 }
 
 /**
