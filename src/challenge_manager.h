@@ -170,7 +170,7 @@ protected:
   bool needs_authentication(const std::string& url, const HostChallengeSpec&) const;
 
   std::map<std::string, ChallengeDefinition::ChallengeType> challenge_type;
-  ChallengeSpec* challenge_specs[ChallengeDefinition::CHALLENGE_COUNT];
+  std::vector<std::unique_ptr<ChallengeSpec>> challenge_specs;
 
   typedef std::map<std::string, std::list<std::shared_ptr<HostChallengeSpec>>> HostChallengeMap;
   HostChallengeMap host_challenges;
@@ -243,7 +243,7 @@ public:
 
     //Initializing the challenge definitions
     for(unsigned int i = 0; i < ChallengeDefinition::CHALLENGE_COUNT; i++) {
-      challenge_specs[i] = new ChallengeSpec(ChallengeDefinition::CHALLENGE_LIST[i], ChallengeDefinition::CHALLENGE_FILE_LIST[i],(ChallengeDefinition::ChallengeType)i);
+      challenge_specs.emplace_back(new ChallengeSpec(ChallengeDefinition::CHALLENGE_LIST[i], ChallengeDefinition::CHALLENGE_FILE_LIST[i],(ChallengeDefinition::ChallengeType)i));
       challenge_type[ChallengeDefinition::CHALLENGE_LIST[i]] = (ChallengeDefinition::ChallengeType)i;
     }
 

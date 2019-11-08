@@ -1,5 +1,5 @@
 /*
- * These are definitions that are used in the main module (or shared by more 
+ * These are definitions that are used in the main module (or shared by more
  * modules)
  * Vmon: June 2013
  */
@@ -20,8 +20,8 @@ class BanjaxFilter;
 #include "global_white_list.h"
 
 //Everything is static in ATSEventHandler so the only reason
-//we have to create this object is to set the static reference to banjax into 
-//ATSEventHandler, it is somehow the acknowledgementt that only one banjax 
+//we have to create this object is to set the static reference to banjax into
+//ATSEventHandler, it is somehow the acknowledgementt that only one banjax
 //object can exist
 class Banjax
 {
@@ -62,11 +62,11 @@ protected:
 
 public:
   typedef std::list<BanjaxFilter*> TaskQueue;
-  
+
 protected:
   //requests
   TSTextLogObject log;
-  
+
   IPDatabase ip_database;
   SwabberInterface swabber_interface;
 
@@ -84,12 +84,12 @@ protected:
   //Recursively read the entire config structure
   //including inside the included files
   void process_config(const YAML::Node& cfg);
-  
+
   /**
      Read the config file and create filters whose name is
      mentioned in the config file. If you make a new filter
      you need to add it inside this function
-     
+
      @param banjx_dir the directory that contains banjax related files to be
                       passed to each filter
      @param main_root is libconfig++ ref to the root of
@@ -101,7 +101,7 @@ public:
   uint64_t which_parts_are_requested() { return all_filters_requested_part;}
   uint64_t which_response_parts_are_requested() { return all_filters_response_part;}
   /**
-     Constructor 
+     Constructor
 
      @param banjax_config_dir path to the folder containing banjax.conf
    */
