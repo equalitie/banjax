@@ -8,6 +8,7 @@
 
 #include <assert.h>
 #include <yaml-cpp/yaml.h>
+#include <functional>
 
 #include "banjax_common.h"
 #include "transaction_muncher.h"
