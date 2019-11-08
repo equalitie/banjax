@@ -48,8 +48,6 @@ using namespace std;
 #define TSError TSErrorAlternative
 #endif
 
-extern TSCont Banjax::global_contp;
-
 extern const string Banjax::CONFIG_FILENAME = "banjax.conf";
 
 extern Banjax* ATSEventHandler::banjax;
@@ -225,11 +223,11 @@ Banjax::Banjax(const string& banjax_config_dir)
 
   TSDebug(BANJAX_PLUGIN_NAME, "in the beginning");
 
-  global_contp = TSContCreate(handle_transaction_start, ip_database.db_mutex);
+  TSCont contp = TSContCreate(handle_transaction_start, ip_database.db_mutex);
 
   BanjaxContinuation* cd = (BanjaxContinuation *) TSmalloc(sizeof(BanjaxContinuation));
   cd = new(cd) BanjaxContinuation(NULL); //no transaction attached to this cont
-  TSContDataSet(global_contp, cd);
+  TSContDataSet(contp, cd);
 
   //For being able to be reload by traffic_line -x
   TSCont management_contp = TSContCreate(ATSEventHandler::banjax_management_handler, NULL);
@@ -241,8 +239,7 @@ Banjax::Banjax(const string& banjax_config_dir)
   TSMutexUnlock(config_mutex);
 
   //this probably should happen at the end due to multi-threading
-  TSHttpHookAdd(TS_HTTP_TXN_START_HOOK, global_contp);
-
+  TSHttpHookAdd(TS_HTTP_TXN_START_HOOK, contp);
 }
 
 void

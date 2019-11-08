@@ -44,8 +44,7 @@ ATSEventHandler::handle_transaction_change(TSCont contp, TSEvent event, void *ed
 
   switch (event) {
   case TS_EVENT_HTTP_READ_REQUEST_HDR:
-    if(contp != Banjax::global_contp)
-      handle_request((BanjaxContinuation *) TSContDataGet(contp));
+    handle_request((BanjaxContinuation *) TSContDataGet(contp));
     return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_READ_CACHE_HDR:
@@ -54,31 +53,24 @@ ATSEventHandler::handle_transaction_change(TSCont contp, TSEvent event, void *ed
 
   case TS_EVENT_HTTP_SEND_REQUEST_HDR:
     TSDebug(BANJAX_PLUGIN_NAME, "miss");
-    if (contp != Banjax::global_contp) {
-	    cd = (BanjaxContinuation *) TSContDataGet(contp);
-	    cd->transaction_muncher.miss();
-    }
+	cd = (BanjaxContinuation *) TSContDataGet(contp);
+	cd->transaction_muncher.miss();
     TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
     return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_SEND_RESPONSE_HDR:
-    if (contp != Banjax::global_contp) {
-      cd = (BanjaxContinuation*) TSContDataGet(contp);
-      handle_response(cd);
-    }
+    cd = (BanjaxContinuation*) TSContDataGet(contp);
+    handle_response(cd);
     return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_TXN_CLOSE:
     TSDebug(BANJAX_PLUGIN_NAME, "txn close");
-    if (contp != Banjax::global_contp) {
-      cd = (BanjaxContinuation *) TSContDataGet(contp);
-      handle_http_close(banjax->task_queues[BanjaxFilter::HTTP_CLOSE], cd);
-
-      //killing the continuation
-      cd->~BanjaxContinuation(); //leave mem manage to ATS
-      //TSfree(cd); I think TS is taking care of this
-      destroy_continuation(contp);
-    }
+    cd = (BanjaxContinuation *) TSContDataGet(contp);
+    handle_http_close(banjax->task_queues[BanjaxFilter::HTTP_CLOSE], cd);
+    //killing the continuation
+    cd->~BanjaxContinuation(); //leave mem manage to ATS
+    //TSfree(cd); I think TS is taking care of this
+    destroy_continuation(contp);
     break;
 
   case TS_EVENT_TIMEOUT:
