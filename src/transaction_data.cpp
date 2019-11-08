@@ -19,9 +19,4 @@ TransactionData::~TransactionData()
     delete response_info.response_data;
     response_info.response_data = NULL;
   }
-  // TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
-
-  // TSCont temp_contp = contp;
-  // TSfree(this);
-  // TSContDestroy(temp_contp);
 }

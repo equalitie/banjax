@@ -40,7 +40,7 @@ int
 ATSEventHandler::handle_transaction_change(TSCont contp, TSEvent event, void *edata)
 {
   TSHttpTxn txnp = (TSHttpTxn) edata;
-  TransactionData *cd;
+  TransactionData* cd = (TransactionData*) TSContDataGet(contp);
 
   switch (event) {
   case TS_EVENT_HTTP_READ_REQUEST_HDR:
@@ -53,24 +53,21 @@ ATSEventHandler::handle_transaction_change(TSCont contp, TSEvent event, void *ed
 
   case TS_EVENT_HTTP_SEND_REQUEST_HDR:
     TSDebug(BANJAX_PLUGIN_NAME, "miss");
-	cd = (TransactionData *) TSContDataGet(contp);
-	cd->transaction_muncher.miss();
+    cd->transaction_muncher.miss();
     TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
     return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_SEND_RESPONSE_HDR:
-    cd = (TransactionData*) TSContDataGet(contp);
     handle_response(cd);
     return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_TXN_CLOSE:
     TSDebug(BANJAX_PLUGIN_NAME, "txn close");
-    cd = (TransactionData *) TSContDataGet(contp);
     handle_http_close(banjax->task_queues[BanjaxFilter::HTTP_CLOSE], cd);
-    //killing the continuation
-    cd->~TransactionData(); //leave mem manage to ATS
-    //TSfree(cd); I think TS is taking care of this
-    destroy_continuation(contp);
+    cd->~TransactionData();
+    TSfree(cd);
+    TSContDestroy(contp);
+    TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
     break;
 
   case TS_EVENT_TIMEOUT:
@@ -151,11 +148,6 @@ ATSEventHandler::handle_request(TransactionData* cd)
     if (!continue_filtering) break;
   }
 
-  //TODO: it is imaginable that a filter needs to be
-  //called during response but does not need to influnence
-  //the response, e.g. botbanger hence we need to get the
-  //response hook while continuing with the flow
-  //destroy_continuation(cd->txnp, cd->contp);
   TSHttpTxnReenable(cd->txnp, TS_EVENT_HTTP_CONTINUE);
 }
 
@@ -242,19 +234,4 @@ ATSEventHandler::handle_http_close(Banjax::TaskQueue& current_queue, Transaction
   for(auto cur_task : current_queue) {
     cur_task->on_http_close(cur_trans_parts);
   }
-}
-
-void
-ATSEventHandler::destroy_continuation(TSCont contp)
-{
-  TransactionData *cd = NULL;
-
-  cd = (TransactionData *) TSContDataGet(contp);
-
-  //save the txn before destroying the continuation so we can continue
-  TSHttpTxn txn_keeper = cd->txnp;
-  TSfree(cd);
-
-  TSContDestroy(contp);
-  TSHttpTxnReenable(txn_keeper, TS_EVENT_HTTP_CONTINUE);
 }
