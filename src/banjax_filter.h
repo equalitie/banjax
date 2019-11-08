@@ -91,6 +91,8 @@ public:
     banned_ip(false),
     response_code(403)
   {}
+
+  virtual ~FilterExtendedResponse() {}
 };
 
 /** we want to keep the FilterResponse struture as light as possible.
