@@ -186,8 +186,6 @@ handle_transaction_start(TSCont contp, TSEvent event, void *edata)
   cd = new(cd) BanjaxContinuation(txnp);
   TSContDataSet(txn_contp, cd);
 
-  cd->contp = txn_contp;
-
   TSHttpTxnHookAdd(txnp, TS_HTTP_READ_REQUEST_HDR_HOOK, txn_contp);
   TSHttpTxnHookAdd(txnp, TS_HTTP_SEND_REQUEST_HDR_HOOK, txn_contp);
   TSHttpTxnHookAdd(txnp, TS_HTTP_SEND_RESPONSE_HDR_HOOK, txn_contp);
@@ -232,8 +230,6 @@ Banjax::Banjax(const string& banjax_config_dir)
   BanjaxContinuation* cd = (BanjaxContinuation *) TSmalloc(sizeof(BanjaxContinuation));
   cd = new(cd) BanjaxContinuation(NULL); //no transaction attached to this cont
   TSContDataSet(global_contp, cd);
-
-  cd->contp = global_contp;
 
   //For being able to be reload by traffic_line -x
   TSCont management_contp = TSContCreate(ATSEventHandler::banjax_management_handler, NULL);

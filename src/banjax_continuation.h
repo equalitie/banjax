@@ -13,7 +13,6 @@
 class BanjaxContinuation{
 public:
   TSHttpTxn txnp;
-  TSCont contp;
 
   TransactionMuncher transaction_muncher;
   FilterResponse response_info;
