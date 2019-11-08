@@ -194,6 +194,16 @@ handle_transaction_start(TSCont contp, TSEvent event, void *edata)
   return TS_EVENT_NONE;
 }
 
+static
+int handle_management(TSCont contp, TSEvent event, void *edata)
+{
+  (void) contp; (void) edata;
+  TSReleaseAssert(event == TS_EVENT_MGMT_UPDATE);
+  TSDebug(BANJAX_PLUGIN_NAME, "reload configuration signal received");
+  ATSEventHandler::banjax->reload_config();
+  return 0;
+}
+
 /**
    Constructor
 
@@ -230,7 +240,7 @@ Banjax::Banjax(const string& banjax_config_dir)
   TSContDataSet(contp, cd);
 
   //For being able to be reload by traffic_line -x
-  TSCont management_contp = TSContCreate(ATSEventHandler::banjax_management_handler, NULL);
+  TSCont management_contp = TSContCreate(handle_management, NULL);
   TSMgmtUpdateRegister(management_contp, BANJAX_PLUGIN_NAME);
 
   //creation of filters happen here

@@ -18,11 +18,9 @@ class Banjax;
 
 class ATSEventHandler
 {
-  friend class Banjax;
-protected:
+public:
   static Banjax* banjax;
 
-public:
   /**
      runs all filters to make decsion based on request header
      
@@ -39,13 +37,6 @@ public:
   static void handle_response(TransactionData* cd);
 
   static int  handle_transaction_change(TSCont contp, TSEvent event, void *edata);
-
-
-  /**
-     this is to reload banjax config when you get into the traffi_line -x
-     situation 
-   */
-  static int  banjax_management_handler(TSCont contp, TSEvent event, void *edata);
 
   static void handle_http_close(Banjax::TaskQueue& current_queue, TransactionData* cd);
 
