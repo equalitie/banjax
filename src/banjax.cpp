@@ -30,7 +30,7 @@ using namespace std;
 #include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
 
 #include "util.h"
-#include "banjax_continuation.h"
+#include "transaction_data.h"
 
 #include "regex_manager.h"
 #include "challenge_manager.h"
@@ -176,12 +176,12 @@ handle_transaction_start(TSCont contp, TSEvent event, void *edata)
   TSDebug(BANJAX_PLUGIN_NAME, "txn start");
 
   TSCont txn_contp;
-  BanjaxContinuation *cd;
+  TransactionData *cd;
 
   txn_contp = TSContCreate((TSEventFunc) ATSEventHandler::handle_transaction_change, TSMutexCreate());
   /* create the data that'll be associated with the continuation */
-  cd = (BanjaxContinuation *) TSmalloc(sizeof(BanjaxContinuation));
-  cd = new(cd) BanjaxContinuation(txnp);
+  cd = (TransactionData *) TSmalloc(sizeof(TransactionData));
+  cd = new(cd) TransactionData(txnp);
   TSContDataSet(txn_contp, cd);
 
   TSHttpTxnHookAdd(txnp, TS_HTTP_READ_REQUEST_HDR_HOOK, txn_contp);
@@ -225,8 +225,8 @@ Banjax::Banjax(const string& banjax_config_dir)
 
   TSCont contp = TSContCreate(handle_transaction_start, ip_database.db_mutex);
 
-  BanjaxContinuation* cd = (BanjaxContinuation *) TSmalloc(sizeof(BanjaxContinuation));
-  cd = new(cd) BanjaxContinuation(NULL); //no transaction attached to this cont
+  TransactionData* cd = (TransactionData *) TSmalloc(sizeof(TransactionData));
+  cd = new(cd) TransactionData(NULL); //no transaction attached to this cont
   TSContDataSet(contp, cd);
 
   //For being able to be reload by traffic_line -x

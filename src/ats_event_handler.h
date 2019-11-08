@@ -13,7 +13,7 @@
 #define MAX_REQUEST_LENGTH    16384;
 #define MAX_COOKIE_LENGTH     8192;
 
-class BanjaxContinuation;
+class TransactionData;
 class Banjax;
 
 class ATSEventHandler
@@ -30,13 +30,13 @@ public:
                  where all filters are accesible through it
 
   */
-  static void handle_request(BanjaxContinuation* cd);
+  static void handle_request(TransactionData* cd);
 
   /**
      runs filters who need to be executed on during generating the transaction's
      response
   */
-  static void handle_response(BanjaxContinuation* cd);
+  static void handle_response(TransactionData* cd);
 
   static int  handle_transaction_change(TSCont contp, TSEvent event, void *edata);
 
@@ -47,7 +47,7 @@ public:
    */
   static int  banjax_management_handler(TSCont contp, TSEvent event, void *edata);
 
-  static void handle_http_close(Banjax::TaskQueue& current_queue, BanjaxContinuation* cd);
+  static void handle_http_close(Banjax::TaskQueue& current_queue, TransactionData* cd);
 
   /**
      Destroy the continuation and release the object related to it after

@@ -10,19 +10,19 @@
 #include "banjax_filter.h"
 #include "transaction_muncher.h"
 
-class BanjaxContinuation{
+class TransactionData{
 public:
   TSHttpTxn txnp;
 
   TransactionMuncher transaction_muncher;
   FilterResponse response_info;
 
-  ~BanjaxContinuation();
+  ~TransactionData();
 
   /**
      Constructor to set the default values
    */
-  BanjaxContinuation(TSHttpTxn cur_txn)
+  TransactionData(TSHttpTxn cur_txn)
     : txnp(cur_txn), transaction_muncher(cur_txn)
   { }
 };

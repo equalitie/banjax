@@ -27,7 +27,7 @@ using namespace std;
 #include <stdlib.h>
 
 #include "banjax.h"
-#include "banjax_continuation.h"
+#include "transaction_data.h"
 #include "transaction_muncher.h"
 #include "regex_manager.h"
 #include "challenge_manager.h"
@@ -40,11 +40,11 @@ int
 ATSEventHandler::handle_transaction_change(TSCont contp, TSEvent event, void *edata)
 {
   TSHttpTxn txnp = (TSHttpTxn) edata;
-  BanjaxContinuation *cd;
+  TransactionData *cd;
 
   switch (event) {
   case TS_EVENT_HTTP_READ_REQUEST_HDR:
-    handle_request((BanjaxContinuation *) TSContDataGet(contp));
+    handle_request((TransactionData *) TSContDataGet(contp));
     return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_READ_CACHE_HDR:
@@ -53,22 +53,22 @@ ATSEventHandler::handle_transaction_change(TSCont contp, TSEvent event, void *ed
 
   case TS_EVENT_HTTP_SEND_REQUEST_HDR:
     TSDebug(BANJAX_PLUGIN_NAME, "miss");
-	cd = (BanjaxContinuation *) TSContDataGet(contp);
+	cd = (TransactionData *) TSContDataGet(contp);
 	cd->transaction_muncher.miss();
     TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
     return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_SEND_RESPONSE_HDR:
-    cd = (BanjaxContinuation*) TSContDataGet(contp);
+    cd = (TransactionData*) TSContDataGet(contp);
     handle_response(cd);
     return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_TXN_CLOSE:
     TSDebug(BANJAX_PLUGIN_NAME, "txn close");
-    cd = (BanjaxContinuation *) TSContDataGet(contp);
+    cd = (TransactionData *) TSContDataGet(contp);
     handle_http_close(banjax->task_queues[BanjaxFilter::HTTP_CLOSE], cd);
     //killing the continuation
-    cd->~BanjaxContinuation(); //leave mem manage to ATS
+    cd->~TransactionData(); //leave mem manage to ATS
     //TSfree(cd); I think TS is taking care of this
     destroy_continuation(contp);
     break;
@@ -99,7 +99,7 @@ ATSEventHandler::banjax_management_handler(TSCont contp, TSEvent event, void *ed
 }
 
 void
-ATSEventHandler::handle_request(BanjaxContinuation* cd)
+ATSEventHandler::handle_request(TransactionData* cd)
 {
   // Retreiving part of header requested by the filters
   const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(banjax->which_parts_are_requested());
@@ -160,7 +160,7 @@ ATSEventHandler::handle_request(BanjaxContinuation* cd)
 }
 
 void
-ATSEventHandler::handle_response(BanjaxContinuation* cd)
+ATSEventHandler::handle_response(TransactionData* cd)
 {
   auto status = cd->transaction_muncher.get_response_status();
 
@@ -235,7 +235,7 @@ ATSEventHandler::handle_response(BanjaxContinuation* cd)
 }
 
 void
-ATSEventHandler::handle_http_close(Banjax::TaskQueue& current_queue, BanjaxContinuation* cd)
+ATSEventHandler::handle_http_close(Banjax::TaskQueue& current_queue, TransactionData* cd)
 {
   const TransactionParts& cur_trans_parts = cd->transaction_muncher.retrieve_parts(banjax->which_parts_are_requested());
 
@@ -247,9 +247,9 @@ ATSEventHandler::handle_http_close(Banjax::TaskQueue& current_queue, BanjaxConti
 void
 ATSEventHandler::destroy_continuation(TSCont contp)
 {
-  BanjaxContinuation *cd = NULL;
+  TransactionData *cd = NULL;
 
-  cd = (BanjaxContinuation *) TSContDataGet(contp);
+  cd = (TransactionData *) TSContDataGet(contp);
 
   //save the txn before destroying the continuation so we can continue
   TSHttpTxn txn_keeper = cd->txnp;

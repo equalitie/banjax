@@ -7,13 +7,13 @@
  */
 #include <ts/ts.h>
 
-#include "banjax_continuation.h"
+#include "transaction_data.h"
 
 /**
    We are calling the destructor manually so we can ask 
    TS to release the memory according to their management
  */
-BanjaxContinuation::~BanjaxContinuation()
+TransactionData::~TransactionData()
 {
   if (response_info.response_data != NULL && response_info.response_type == FilterResponse::I_RESPOND) {
     delete response_info.response_data;
