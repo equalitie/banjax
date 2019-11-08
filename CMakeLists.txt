@@ -1,14 +1,15 @@
 cmake_minimum_required (VERSION 2.8)
 ################################################################################
 set(CMAKE_BUILD_TYPE Debug)
-set(GLOB BOOST_VERSION 1.55)
+set(GLOB BOOST_VERSION 1.68)
 include(ExternalProject)
 
 externalproject_add(yaml
-    URL https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.5.3.tar.gz
-    CMAKE_ARGS -DCMAKE_CXX_FLAGS=-fPIC
+    URL https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.6.3.tar.gz
+    CMAKE_ARGS "-DCMAKE_CXX_FLAGS=-fPIC -Wno-effc++ -Wno-shadow -Wno-unused-variable"
     UPDATE_COMMAND ""
     INSTALL_COMMAND ""
+    BUILD_COMMAND $(MAKE) yaml-cpp
     PREFIX "yaml")
 
 set(YAML_DIR "${CMAKE_BINARY_DIR}/yaml/src")
