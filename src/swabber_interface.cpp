@@ -41,10 +41,8 @@ SwabberInterface::SwabberInterface(IPDatabase* global_ip_db)
    swabber_port(SWABBER_PORT),
    grace_period(SWABBER_GRACE_PERIOD)
 {
-
   //TODO: I need to handle error here!!!
   //socket.bind(("tcp://"+SWABBER_SERVER+":"+SWABBER_PORT).c_str());
-
 }
 
 /**
@@ -60,27 +58,25 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
 
   TSDebug(BANJAX_PLUGIN_NAME, "Loading swabber interface conf");
 
-  for(std::list<YAML::const_iterator>::const_iterator cur_node_it = swabber_config.config_node_list.begin(); cur_node_it != swabber_config.config_node_list.end(); cur_node_it++)
-    {
-      try {
-      //look for white_listed_ips, they all should have been merged
-          //by the yaml merger
-        auto cur_node = (*cur_node_it)->second;
-        if (cur_node["grace_period"])
-          grace_period = cur_node["grace_period"].as<long>();
+  for(auto& cur_node_p : swabber_config.config_node_list) {
+    try {
+      // Look for white_listed_ips, they all should have been merged by the
+      // yaml merger
+      auto cur_node = cur_node_p->second;
+      if (cur_node["grace_period"])
+        grace_period = cur_node["grace_period"].as<long>();
 
-        if (cur_node["port"])
-          swabber_port = cur_node["port"].as<string>();
+      if (cur_node["port"])
+        swabber_port = cur_node["port"].as<string>();
 
-        if (cur_node["server"])
-          swabber_server = cur_node["server"].as<string>();
+      if (cur_node["server"])
+        swabber_server = cur_node["server"].as<string>();
 
-      } catch(YAML::RepresentationException& e)
-        {
-          TSDebug(BANJAX_PLUGIN_NAME, "Error loading swabber config: %s", e.what());
-          throw;
-        }
+    } catch(YAML::RepresentationException& e) {
+      TSDebug(BANJAX_PLUGIN_NAME, "Error loading swabber config: %s", e.what());
+      throw;
     }
+  }
 
   string new_binding_string  = "tcp://"+swabber_server+":"+swabber_port;
   if (!p_socket) { //we haven't got connected to anywhere before
@@ -98,20 +94,16 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
 
       TSDebug(BANJAX_PLUGIN_NAME,"connecting to %s",  new_binding_string.c_str());
       p_socket->bind(new_binding_string.c_str());
-    } catch (zmq::error_t e)
-      {
-        //this shouldn't happen this is a bug but * doesn't get free even
-        //if you delete it
-        TSDebug(BANJAX_PLUGIN_NAME, "failed to bind: %s this is probably zmq bug not being able to unbind properly",  e.what());
-        throw;
-      }
-
-
+    } catch (zmq::error_t e) {
+      //this shouldn't happen this is a bug but * doesn't get free even
+      //if you delete it
+      TSDebug(BANJAX_PLUGIN_NAME, "failed to bind: %s this is probably zmq bug not being able to unbind properly",  e.what());
+      throw;
+    }
   }; //else  {re-connecting to the same point do nothing} //unbind bind doesn't work
 
   _binding_string = new_binding_string;
   TSDebug(BANJAX_PLUGIN_NAME, "Done loading swabber conf");
-
 }
 
 /**
@@ -165,7 +157,6 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
       return;
     }
 
-
     if (cur_ip_state.second.size() == 0) {
       //recording the first request for banning
       cur_ip_state.second.resize(1);
@@ -179,7 +170,6 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
       strftime(time_buffer,80,"%Y-%m-%dT%H:%M:%S",timeinfo);
 
       ban_ip_list << bot_ip << ", " << "[" << time_buffer << "], " << banning_reason << ", flagged" <<endl;
-
     }
 
     /* only ban if the grace period is passed */

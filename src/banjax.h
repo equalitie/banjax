@@ -21,9 +21,6 @@ class BanjaxFilter;
 class Banjax
 {
 public:
-  typedef std::list<BanjaxFilter*> TaskQueue;
-
-public:
   //it keeps all part of requests and responses which is
   //requested by filter at initialization for later
   //fast use
@@ -89,6 +86,8 @@ protected:
   void reload_config();
 
 public:
+  typedef std::list<BanjaxFilter*> TaskQueue;
+
   TaskQueue task_queues[BanjaxFilter::TOTAL_NO_OF_QUEUES];
 
   uint64_t which_parts_are_requested() { return all_filters_requested_part;}
