@@ -53,9 +53,6 @@ typedef std::unordered_map<std::string, IPState> IPHashTable;
 
 class IPDatabase
 {
-  friend class Banjax; //To access the mutex and assign it to the global 
-  //continuation
-
 protected:
   IPHashTable _ip_db;
   TSMutex db_mutex;
@@ -100,7 +97,6 @@ public:
     for(unsigned int cur_col = 0; cur_col < NUMBER_OF_STATE_KEEPER_FILTERS; cur_col++)
       filter_to_column[column_to_filter[cur_col]] = cur_col;
   }
-
 };
 
 #endif
