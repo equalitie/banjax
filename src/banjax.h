@@ -25,11 +25,16 @@ class BanjaxFilter;
 //object can exist
 class Banjax
 {
-protected:
+public:
+  typedef std::list<BanjaxFilter*> TaskQueue;
+
+public:
   //it keeps all part of requests and responses which is
   //requested by filter at initialization for later
   //fast use
   uint64_t all_filters_requested_part;
+
+protected:
   uint64_t all_filters_response_part;
 
   std::string banjax_config_dir; //this keeps the folder contains banjax.conf and banjax.d folder
@@ -50,12 +55,6 @@ protected:
   // List of privileged IPs.
   GlobalWhiteList global_ip_white_list;
 
-  friend class ATSEventHandler;
-
-public:
-  typedef std::list<BanjaxFilter*> TaskQueue;
-
-protected:
   //requests
   TSTextLogObject log;
 
@@ -65,8 +64,6 @@ protected:
   // This keeps the list of all created filter objects so we can delete them on
   // re-load.
   std::list<std::unique_ptr<BanjaxFilter>> filters;
-  TaskQueue task_queues[BanjaxFilter::TOTAL_NO_OF_QUEUES];
-
   /**
      open the mysql database and read the configs from the database
      this include the regex and l2b models
@@ -89,7 +86,16 @@ protected:
   */
   void filter_factory();
 
+  /**
+     reload config and remake filters when traffic_line -x is executed
+     the ip databes will stay untouched so banning states should
+     be stay steady
+  */
+  void reload_config();
+
 public:
+  TaskQueue task_queues[BanjaxFilter::TOTAL_NO_OF_QUEUES];
+
   uint64_t which_parts_are_requested() { return all_filters_requested_part;}
   uint64_t which_response_parts_are_requested() { return all_filters_response_part;}
   /**
@@ -98,13 +104,6 @@ public:
      @param banjax_config_dir path to the folder containing banjax.conf
    */
   Banjax(const std::string& banjax_config_dir);
-
-  /**
-     reload config and remake filters when traffic_line -x is executed
-     the ip databes will stay untouched so banning states should
-     be stay steady
-  */
-  void reload_config();
 };
 
 #endif /*banjax.h*/
