@@ -23,14 +23,13 @@ jobs:
     # This is based on your 1.0 configuration file or project settings
     #- run: add-apt-repository --yes ppa:ubuntu-toolchain-r/test
     - run: apt-get update
-    - run: apt-get install g++-5 tcl-dev libyaml-cpp-dev libzmq-dev libboost-dev libconfig++-dev libssl-dev libboost-system-dev libboost-test-dev
-    - run: update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 1
+    - run: apt-get install g++ tcl-dev libyaml-cpp-dev libzmq3-dev libboost-dev libconfig++-dev libssl-dev libboost-system-dev libboost-test-dev
     - run: ls; pwd; nproc
     - run: cd ~/; git clone git@github.com:google/re2.git && cd re2; make && make install
     - run: cp ~/re2/obj/so/lib* /lib/
     - run: cd ~/; wget http://tux.rainside.sk/apache/trafficserver/trafficserver-7.1.8.tar.bz2
     - run: cd ~/; tar xf trafficserver-7.1.8.tar.bz2
-    - run: cd ~/trafficserver-7.1.8 && ./configure --prefix=`pwd`/../ts7 && make -j`nproc` && make install
+    - run: cd ~/trafficserver-7.1.8 && ./configure --prefix=`pwd`/../ts7 && make -j3 && make install
     - run: echo "banjax/banjax.so $HOME/ts7/libexec/trafficserver/banjax/" >> ~/ts7/etc/trafficserver/plugin.config
     - run: echo "regex_map http://^127.0.0.1:8080$/ http://127.0.0.1:8000/" >> ~/ts7/etc/trafficserver/remap.config
     - run: perl -pi -e 's/CONFIG proxy.config.http.cache.required_headers INT .+/CONFIG proxy.config.http.cache.required_headers INT 0/g' ~/ts7/etc/trafficserver/records.config
