@@ -37,10 +37,6 @@ protected:
   YAML::Node cfg;
   YAML::Node priorities;
 
-  // Manage the priority for filter whose priority isn't specified in the
-  // config file.
-  int current_sequential_priority;
-
   // Store all configs related to a filter in different yaml nodes (in
   // different files maybe).
   std::map<std::string, FilterConfig> filter_config_map;

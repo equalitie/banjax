@@ -178,7 +178,6 @@ Banjax::Banjax(const string& banjax_config_dir)
   : all_filters_requested_part(0),
     all_filters_response_part(0),
     banjax_config_dir(banjax_config_dir),
-    current_sequential_priority(0),
     swabber_interface(&ip_database)
 {
   /* create an TSTextLogObject to log blacklisted requests to */
@@ -273,6 +272,8 @@ void
 Banjax::process_config(const YAML::Node& cfg)
 {
   static const  string sep = "/";
+
+  int current_sequential_priority = 0;
 
   for (YAML::const_iterator it = cfg.begin(); it != cfg.end(); ++it) {
     try {
