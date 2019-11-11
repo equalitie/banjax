@@ -45,9 +45,19 @@ using namespace std;
 #define TSError TSErrorAlternative
 #endif
 
-std::shared_ptr<Banjax> g_banjax_current;
+const string CONFIG_FILENAME = "banjax.conf";
 
-extern const string Banjax::CONFIG_FILENAME = "banjax.conf";
+struct BanjaxPlugin {
+  string config_dir;
+  std::shared_ptr<Banjax> current_state;
+
+  BanjaxPlugin(string config_dir)
+    : config_dir(move(config_dir))
+    , current_state(make_shared<Banjax>(this->config_dir))
+  {}
+};
+
+std::shared_ptr<BanjaxPlugin> g_banjax_plugin;
 
 void TSErrorAlternative(const char* fmt, ...)
 {
@@ -131,7 +141,7 @@ handle_transaction_start(TSCont contp, TSEvent event, void *edata)
   txn_contp = TSContCreate((TSEventFunc) ATSEventHandler::handle_transaction_change, TSMutexCreate());
   /* create the data that'll be associated with the continuation */
   cd = (TransactionData *) TSmalloc(sizeof(TransactionData));
-  cd = new(cd) TransactionData(g_banjax_current, txnp);
+  cd = new(cd) TransactionData(g_banjax_plugin->current_state, txnp);
   TSContDataSet(txn_contp, cd);
 
   TSHttpTxnHookAdd(txnp, TS_HTTP_READ_REQUEST_HDR_HOOK, txn_contp);
@@ -151,10 +161,10 @@ int handle_management(TSCont contp, TSEvent event, void *edata)
   TSDebug(BANJAX_PLUGIN_NAME, "reload configuration signal received");
   TSReleaseAssert(event == TS_EVENT_MGMT_UPDATE);
 
-  std::shared_ptr<Banjax> new_banjax(new Banjax(TSPluginDirGet()));
+  std::shared_ptr<Banjax> new_banjax(new Banjax(g_banjax_plugin->config_dir));
 
   // This happens atomically, so (in theory) we don't need to wrap in in mutex.
-  g_banjax_current = std::move(new_banjax);
+  g_banjax_plugin->current_state = std::move(new_banjax);
 
   return 0;
 }
@@ -189,8 +199,7 @@ Banjax::read_configuration()
   // Read the file. If there is an error, report it and exit.
   static const  string sep = "/";
 
-  //string banjax_dir = TSPluginDirGet(); //+ sep + BANJAX_PLUGIN_NAME;
-  string absolute_config_file = /*TSInstallDirGet() + sep + */ banjax_config_dir + sep+ CONFIG_FILENAME;
+  string absolute_config_file = banjax_config_dir + sep + CONFIG_FILENAME;
   TSDebug(BANJAX_PLUGIN_NAME, "Reading configuration from [%s]", absolute_config_file.c_str());
 
   try
@@ -324,17 +333,14 @@ Banjax::process_config(const YAML::Node& cfg)
   } //for all nodes
 };
 
-static void reset_g_banjax_current() {
-  g_banjax_current.reset();
+static void destroy_g_banjax_plugin() {
+  g_banjax_plugin.reset();
 }
 
 void
 TSPluginInit(int argc, const char *argv[])
 {
   TSPluginRegistrationInfo info;
-
-  //set the config folder
-  std::string banjax_config_dir = TSPluginDirGet();
 
   info.plugin_name = (char*) BANJAX_PLUGIN_NAME;
   info.vendor_name = (char*) "eQualit.ie";
@@ -345,6 +351,18 @@ TSPluginInit(int argc, const char *argv[])
     return abort_traffic_server();
   }
 
+  {
+    std::stringstream ss;
+    for (int i = 0; i < argc; i++) {
+      ss << "\"" << argv[i] << "\"";
+      if (i != argc + 1) ss << ", ";
+    }
+    TSDebug(BANJAX_PLUGIN_NAME, "TSPluginInit args: %s", ss.str().c_str());
+  }
+
+  // Set the config folder to a default value (can be modified by argv[1])
+  std::string banjax_config_dir = TSPluginDirGet();
+
   if (argc > 1) {//then use the path specified by the arguemnt
     banjax_config_dir = argv[1];
 
@@ -352,8 +370,6 @@ TSPluginInit(int argc, const char *argv[])
     if (stat(banjax_config_dir.c_str(), &stat_buffer) < 0) {
       std::string error_str = "given banjax config directory " + banjax_config_dir + " doen't exist or is unaccessible.";
       TSError(error_str.c_str());
-      // int err = errno;
-      // TSError(explain_errno_stat(err, banjax_config_dir.c_str(), &stat_buffer));
       return abort_traffic_server();
     }
 
@@ -375,8 +391,8 @@ TSPluginInit(int argc, const char *argv[])
   }
 
   /* create the banjax object that control the whole procedure */
-  g_banjax_current.reset(new Banjax(banjax_config_dir));
-  atexit(reset_g_banjax_current);
+  g_banjax_plugin.reset(new BanjaxPlugin{banjax_config_dir});
+  atexit(destroy_g_banjax_plugin);
 
   // Start handling transactions
   TSCont contp = TSContCreate(handle_transaction_start, nullptr);

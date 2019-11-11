@@ -33,7 +33,6 @@ protected:
   uint64_t all_filters_response_part;
 
   std::string banjax_config_dir; //this keeps the folder contains banjax.conf and banjax.d folder
-  static const std::string CONFIG_FILENAME;
 
   YAML::Node cfg;
   YAML::Node priorities;
