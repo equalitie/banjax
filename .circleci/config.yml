@@ -23,7 +23,7 @@ jobs:
     # This is based on your 1.0 configuration file or project settings
     #- run: add-apt-repository --yes ppa:ubuntu-toolchain-r/test
     - run: apt-get update
-    - run: apt-get install -y g++ tcl-dev libyaml-cpp-dev libzmq3-dev libboost-dev libconfig++-dev libssl-dev libboost-system-dev libboost-test-dev
+    - run: apt-get install -y git g++ tcl-dev libyaml-cpp-dev libzmq3-dev libboost-dev libconfig++-dev libssl-dev libboost-system-dev libboost-test-dev
     - run: ls; pwd; nproc
     - run: cd ~/; git clone git@github.com:google/re2.git && cd re2; make && make install
     - run: cp ~/re2/obj/so/lib* /lib/
