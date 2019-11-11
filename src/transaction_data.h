@@ -15,14 +15,6 @@ class Banjax;
 
 class TransactionData{
 public:
-  std::shared_ptr<Banjax> banjax;
-  TSHttpTxn txnp;
-
-  TransactionMuncher transaction_muncher;
-  FilterResponse response_info;
-
-  ~TransactionData();
-
   /**
      Constructor to set the default values
    */
@@ -35,11 +27,19 @@ public:
   static
   int handle_transaction_change(TSCont contp, TSEvent event, void *edata);
 
+  ~TransactionData();
+
+private:
+  std::shared_ptr<Banjax> banjax;
+  TSHttpTxn txnp;
+
+  TransactionMuncher transaction_muncher;
+  FilterResponse response_info;
+
 private:
   void handle_request();
   void handle_response();
   void handle_http_close(Banjax::TaskQueue& current_queue);
-
 };
 
 #endif /*banjax_continuation.h*/
