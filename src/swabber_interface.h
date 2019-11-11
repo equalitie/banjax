@@ -28,7 +28,7 @@ class SwabberInterface
 
   //socket stuff
   zmq::context_t context;
-  zmq::socket_t* p_socket = nullptr; //so we can delete it everytime we reload banjax config
+  std::unique_ptr<zmq::socket_t> p_socket;
 
   std::string _binding_string; //store the last binded address to unbind on reload
   //"" indicate that we haven't bind anywhere yet
@@ -65,11 +65,6 @@ class SwabberInterface
      initiating the interface
   */
   SwabberInterface(IPDatabase* global_ip_db);
-
-  /** 
-     Destructor: closes and release the publication channell
-   */
-  ~SwabberInterface();
 
   /**
    * access function for grace period used by denialator

@@ -81,17 +81,14 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
   string new_binding_string  = "tcp://"+swabber_server+":"+swabber_port;
   if (!p_socket) { //we haven't got connected to anywhere before
     TSDebug(BANJAX_PLUGIN_NAME,"connecting to %s",  new_binding_string.c_str());
-    p_socket = new zmq::socket_t(context, ZMQ_PUB);
+    p_socket.reset(new zmq::socket_t(context, ZMQ_PUB));
     p_socket->bind(new_binding_string.c_str());
     //just get connected
   } else if (new_binding_string != _binding_string) { //we are getting connected to a new end point just drop the last point and connect to new point
     TSDebug(BANJAX_PLUGIN_NAME, "unbinding from %s",  _binding_string.c_str());
     try {
-      delete p_socket;
       //socket.unbind(_binding_string); //no unbind in old zmq :(
-
-      p_socket = new zmq::socket_t(context, ZMQ_PUB);
-
+      p_socket.reset(new zmq::socket_t(context, ZMQ_PUB));
       TSDebug(BANJAX_PLUGIN_NAME,"connecting to %s",  new_binding_string.c_str());
       p_socket->bind(new_binding_string.c_str());
     } catch (zmq::error_t e) {
@@ -104,14 +101,6 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
 
   _binding_string = new_binding_string;
   TSDebug(BANJAX_PLUGIN_NAME, "Done loading swabber conf");
-}
-
-/**
-   Destructor: closes and release the publication channell
- */
-SwabberInterface::~SwabberInterface()
-{
-  delete p_socket;
 }
 
 /**
