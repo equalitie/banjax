@@ -7,6 +7,7 @@
 #ifndef BANJAX_CONTINUATION_H
 #define BANJAX_CONTINUATION_H
 
+#include "banjax.h"
 #include "banjax_filter.h"
 #include "transaction_muncher.h"
 
@@ -30,6 +31,15 @@ public:
     , txnp(cur_txn)
     , transaction_muncher(cur_txn)
   { }
+
+  static
+  int handle_transaction_change(TSCont contp, TSEvent event, void *edata);
+
+private:
+  void handle_request();
+  void handle_response();
+  void handle_http_close(Banjax::TaskQueue& current_queue);
+
 };
 
 #endif /*banjax_continuation.h*/

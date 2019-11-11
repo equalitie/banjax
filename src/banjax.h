@@ -10,7 +10,6 @@
 #include <string>
 #include <list>
 
-class ATSEventHandler;
 class BanjaxFilter;
 
 #include "ip_database.h"
@@ -19,10 +18,6 @@ class BanjaxFilter;
 #include "banjax_filter.h"
 #include "global_white_list.h"
 
-//Everything is static in ATSEventHandler so the only reason
-//we have to create this object is to set the static reference to banjax into
-//ATSEventHandler, it is somehow the acknowledgementt that only one banjax
-//object can exist
 class Banjax
 {
 public:

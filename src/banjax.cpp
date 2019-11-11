@@ -37,7 +37,6 @@ using namespace std;
 
 #include "banjax.h"
 #include "swabber_interface.h"
-#include "ats_event_handler.h"
 
 #define TSError_does_not_work_in_TSPluginInit
 
@@ -138,7 +137,7 @@ handle_transaction_start(TSCont contp, TSEvent event, void *edata)
   TSCont txn_contp;
   TransactionData *cd;
 
-  txn_contp = TSContCreate((TSEventFunc) ATSEventHandler::handle_transaction_change, TSMutexCreate());
+  txn_contp = TSContCreate((TSEventFunc) TransactionData::handle_transaction_change, TSMutexCreate());
   /* create the data that'll be associated with the continuation */
   cd = (TransactionData *) TSmalloc(sizeof(TransactionData));
   cd = new(cd) TransactionData(g_banjax_plugin->current_state, txnp);
