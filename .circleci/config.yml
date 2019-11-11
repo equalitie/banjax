@@ -16,19 +16,18 @@ jobs:
     #   If you break your build into multiple jobs with workflows, you will probably want to do the parts of this that are relevant in each
     # The following `checkout` command checks out your code to your working directory. In 1.0 we did this implicitly. In 2.0 you can choose where in the course of a job your code should be checked out.
     - checkout
-    - run: nproc
     # Prepare for artifact and test results  collection equivalent to how it was done on 1.0.
     # In many cases you can simplify this from what is generated here.
     # 'See docs on artifact collection here https://circleci.com/docs/2.0/artifacts/'
     - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
     # This is based on your 1.0 configuration file or project settings
-    - run: sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
-    - run: sudo apt-get update
-    - run: sudo apt-get install g++-5 tcl-dev libyaml-cpp-dev libzmq-dev libboost-dev libconfig++-dev libssl-dev libboost-system-dev libboost-test-dev
-    - run: sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 1
+    - run: add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+    - run: apt-get update
+    - run: apt-get install g++-5 tcl-dev libyaml-cpp-dev libzmq-dev libboost-dev libconfig++-dev libssl-dev libboost-system-dev libboost-test-dev
+    - run: update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 1
     - run: ls; pwd; nproc
-    - run: cd ~/; git clone git@github.com:google/re2.git && cd re2; make && sudo make install
-    - run: sudo cp ~/re2/obj/so/lib* /lib/
+    - run: cd ~/; git clone git@github.com:google/re2.git && cd re2; make && make install
+    - run: cp ~/re2/obj/so/lib* /lib/
     - run: cd ~/; wget http://tux.rainside.sk/apache/trafficserver/trafficserver-7.1.8.tar.bz2
     - run: cd ~/; tar xf trafficserver-7.1.8.tar.bz2
     - run: cd ~/trafficserver-7.1.8 && ./configure --prefix=`pwd`/../ts7 && make -j`nproc` && make install
@@ -38,7 +37,7 @@ jobs:
     - run: cat ~/ts7/etc/trafficserver/records.config
     - run: mkdir build7
     - run: cd build7 && cmake ../ -DCMAKE_CXX_FLAGS="-I$HOME/ts7/include"
-    - run: cd build7 && make -j`nproc`
+    - run: cd build7 && make -j3
     - run: mkdir ~/ts7/libexec/trafficserver/banjax
     - run: cp config/{auth,solver}.html ~/ts7/libexec/trafficserver/banjax/
     - run: cp build7/banjax.so ~/ts7/libexec/trafficserver/banjax/
