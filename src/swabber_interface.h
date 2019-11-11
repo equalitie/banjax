@@ -87,6 +87,7 @@ class SwabberInterface
   */
   void ban(std::string bot_ip, std::string banning_reason);
   
+  std::unique_ptr<zmq::socket_t> release_socket();
 };
 
 #endif /*db_tools.h*/

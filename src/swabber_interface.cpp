@@ -206,3 +206,11 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
     TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the swabber socket");
   }
 }
+
+std::unique_ptr<zmq::socket_t> SwabberInterface::release_socket()
+{
+  TSMutexLock(swabber_mutex);
+  auto s = std::move(p_socket);
+  TSMutexUnlock(swabber_mutex);
+  return s;
+}

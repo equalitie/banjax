@@ -48,10 +48,12 @@ const string CONFIG_FILENAME = "banjax.conf";
 
 struct BanjaxPlugin {
   string config_dir;
+  TSMutex reload_mutex;
   std::shared_ptr<Banjax> current_state;
 
   BanjaxPlugin(string config_dir)
     : config_dir(move(config_dir))
+    , reload_mutex(TSMutexCreate())
     , current_state(make_shared<Banjax>(this->config_dir))
   {}
 };
@@ -160,12 +162,21 @@ int handle_management(TSCont contp, TSEvent event, void *edata)
   TSDebug(BANJAX_PLUGIN_NAME, "reload configuration signal received");
   TSReleaseAssert(event == TS_EVENT_MGMT_UPDATE);
 
+  TSMutexLock(g_banjax_plugin->reload_mutex);
+
+  g_banjax_plugin->current_state->deactivate_swabber();
   std::shared_ptr<Banjax> new_banjax(new Banjax(g_banjax_plugin->config_dir));
 
   // This happens atomically, so (in theory) we don't need to wrap in in mutex.
   g_banjax_plugin->current_state = std::move(new_banjax);
 
+  TSMutexUnlock(g_banjax_plugin->reload_mutex);
+
   return 0;
+}
+
+void Banjax::deactivate_swabber() {
+  swabber_interface.release_socket();
 }
 
 /**

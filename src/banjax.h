@@ -98,6 +98,8 @@ public:
      @param banjax_config_dir path to the folder containing banjax.conf
    */
   Banjax(const std::string& banjax_config_dir);
+
+  void deactivate_swabber();
 };
 
 #endif /*banjax.h*/
