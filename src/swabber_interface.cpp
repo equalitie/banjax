@@ -6,20 +6,19 @@
  * Vmon: June 2013
  */
 
-#include <zmq.hpp>
 #include <string>
 #include <ctime>
 #include <sys/time.h>
 #include <utility>
 
-#include <stdio.h>
 #include <iostream>
 #include <ts/ts.h>
 
-using namespace std;
-
 #include "swabber_interface.h"
 #include "banjax.h"
+#include "defer.h"
+
+using namespace std;
 
 //Swabber connection detail
 const string SwabberInterface::SWABBER_SERVER = "*";
@@ -31,18 +30,15 @@ const unsigned int SwabberInterface::SWABBER_MAX_MSG_SIZE = 1024;
 
 const string SwabberInterface::BAN_IP_LOG("/usr/local/trafficserver/logs/ban_ip_list.log");
 
-/* initiating the interface */
 SwabberInterface::SwabberInterface(IPDatabase* global_ip_db)
-  :context (1),
-   ban_ip_list(BAN_IP_LOG.c_str(), ios::out | ios::app), //openning banned ip log file
+  :socket(new Socket()),
+   ban_ip_list(BAN_IP_LOG.c_str(), ios::out | ios::app),
    swabber_mutex(TSMutexCreate()),
    ip_database(global_ip_db),
    swabber_server(SWABBER_SERVER),
    swabber_port(SWABBER_PORT),
    grace_period(SWABBER_GRACE_PERIOD)
 {
-  //TODO: I need to handle error here!!!
-  //socket.bind(("tcp://"+SWABBER_SERVER+":"+SWABBER_PORT).c_str());
 }
 
 /**
@@ -78,28 +74,12 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
     }
   }
 
-  string new_binding_string  = "tcp://"+swabber_server+":"+swabber_port;
-  if (!p_socket) { //we haven't got connected to anywhere before
-    TSDebug(BANJAX_PLUGIN_NAME,"connecting to %s",  new_binding_string.c_str());
-    p_socket.reset(new zmq::socket_t(context, ZMQ_PUB));
-    p_socket->bind(new_binding_string.c_str());
-    //just get connected
-  } else if (new_binding_string != _binding_string) { //we are getting connected to a new end point just drop the last point and connect to new point
-    TSDebug(BANJAX_PLUGIN_NAME, "unbinding from %s",  _binding_string.c_str());
-    try {
-      //socket.unbind(_binding_string); //no unbind in old zmq :(
-      p_socket.reset(new zmq::socket_t(context, ZMQ_PUB));
-      TSDebug(BANJAX_PLUGIN_NAME,"connecting to %s",  new_binding_string.c_str());
-      p_socket->bind(new_binding_string.c_str());
-    } catch (zmq::error_t e) {
-      //this shouldn't happen this is a bug but * doesn't get free even
-      //if you delete it
-      TSDebug(BANJAX_PLUGIN_NAME, "failed to bind: %s this is probably zmq bug not being able to unbind properly",  e.what());
-      throw;
-    }
-  }; //else  {re-connecting to the same point do nothing} //unbind bind doesn't work
+  local_endpoint = "tcp://" + swabber_server + ":" + swabber_port;
 
-  _binding_string = new_binding_string;
+  if (!socket->bind(local_endpoint)) {
+    TSDebug(BANJAX_PLUGIN_NAME, "Swabber: Failed to bind (we'll try to bind again later)");
+  }
+
   TSDebug(BANJAX_PLUGIN_NAME, "Done loading swabber conf");
 }
 
@@ -112,24 +92,6 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
 void
 SwabberInterface::ban(string bot_ip, std::string banning_reason)
 {
-  /*zmq_msg_t msg_to_send, ip_to_send;
-
-  zmq_msg_init_size(&msg_to_send, SWABBER_BAN.size());
-  memcpy((zmq_msg_data)(&msg_to_send), (void*)SWABBER_BAN.c_str(), SWABBER_BAN.size());
-  if (zmq_send(socket, &msg_to_send, ZMQ_SNDMORE) == -1)
-    throw SEND_ERROR;
-  else {
-    zmq_msg_close(&msg_to_send);
-
-    TSDebug(BANJAX_PLUGIN_NAME, "Publishing %s to be banned", bot_ip.c_str());
-    zmq_msg_init_size(&msg_to_send, bot_ip.size());
-    memcpy((zmq_msg_data)(&msg_to_send), (void*)bot_ip.c_str(), bot_ip.size());
-    if (zmq_send(socket, &msg_to_send, 0) == -1)
-      throw SEND_ERROR;
-  }
-
-  zmq_msg_close(&msg_to_send);*/
-
   timeval cur_time; gettimeofday(&cur_time, NULL);
   char time_buffer[80];
   time_t rawtime;
@@ -181,36 +143,39 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
   memcpy((void*)ip_to_ban.data(), bot_ip.c_str(), bot_ip.size());
 
   TSDebug(BANJAX_PLUGIN_NAME, "locking the swabber socket...");
-  if (TSMutexLockTry(swabber_mutex) == TS_SUCCESS) {
-    if (p_socket) {
-      p_socket->send(ban_request, ZMQ_SNDMORE);
-      p_socket->send(ip_to_ban);
-    }
-    else {
-      TSDebug(BANJAX_PLUGIN_NAME, "Can't send ban request, socket not instantiated");
-    }
 
-    //also asking fail2ban to ban
-    //char fail2ban_cmd[1024] = "fail2ban-client set ats-filter banip ";
-    //char iptable_ban_cmd[1024] = "iptables -A INPUT -j DROP -s ";
-    //strcat(iptable_ban_cmd, bot_ip.c_str());
-
-    //TSDebug(BANJAX_PLUGIN_NAME, "banning client ip: %s", iptable_ban_cmd);
-    //system(iptable_ban_cmd);
-    ban_ip_list << bot_ip << ", " << "[" << time_buffer << "], " << banning_reason << ", banned" << endl;
-    TSMutexUnlock(swabber_mutex);
-    //now we can drop the ip from the database
-    ip_database->drop_ip(bot_ip);
-  }
-  else {
+  if (TSMutexLockTry(swabber_mutex) != TS_SUCCESS) {
     TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the swabber socket");
+    return;
   }
+
+  {
+    auto on_scope_exit = defer([&] { TSMutexUnlock(swabber_mutex); });
+
+    if (!socket) {
+      // If we're here, the socket has been released and thus this swabber
+      // interface has been deactivated.
+      return;
+    }
+
+    if (!socket->is_bound() && !socket->bind(local_endpoint)) {
+      TSDebug(BANJAX_PLUGIN_NAME, "Failed to bind to %s", local_endpoint.c_str());
+      return;
+    }
+
+    socket->s.send(ban_request, ZMQ_SNDMORE);
+    socket->s.send(ip_to_ban);
+
+    ban_ip_list << bot_ip << ", " << "[" << time_buffer << "], " << banning_reason << ", banned" << endl;
+  }
+
+  ip_database->drop_ip(bot_ip);
 }
 
-std::unique_ptr<zmq::socket_t> SwabberInterface::release_socket()
+std::unique_ptr<SwabberInterface::Socket> SwabberInterface::release_socket()
 {
   TSMutexLock(swabber_mutex);
-  auto s = std::move(p_socket);
+  auto s = std::move(socket);
   TSMutexUnlock(swabber_mutex);
   return s;
 }

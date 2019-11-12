@@ -16,7 +16,33 @@
 #include "banjax_filter.h"
 class SwabberInterface
 {
- protected:
+public:
+  struct Socket {
+    zmq::context_t ctx;
+    zmq::socket_t s;
+    std::string bound_endpoint;
+
+    Socket()
+      : ctx(1 /* thread count */)
+      , s(ctx, ZMQ_PUB)
+    {}
+
+    bool bind(std::string endpoint) {
+      try {
+        s.bind(endpoint.c_str());
+        bound_endpoint = std::move(endpoint);
+      } catch(const zmq::error_t&) {
+        return false;
+      }
+      return true;
+    }
+
+    bool is_bound() const {
+      return !bound_endpoint.empty();
+    }
+  };
+
+protected:
   static const std::string SWABBER_SERVER; //default server
   static const std::string SWABBER_PORT; //default port
   static const long SWABBER_GRACE_PERIOD; //default grace period
@@ -26,9 +52,8 @@ class SwabberInterface
 
   static const unsigned int SWABBER_MAX_MSG_SIZE;
 
-  //socket stuff
-  zmq::context_t context;
-  std::unique_ptr<zmq::socket_t> p_socket;
+  std::string local_endpoint;
+  std::unique_ptr<Socket> socket;
 
   std::string _binding_string; //store the last binded address to unbind on reload
   //"" indicate that we haven't bind anywhere yet
@@ -54,7 +79,7 @@ class SwabberInterface
   //ban immediately after receiving the first request
   long grace_period;
   
- public:
+public:
   //Error list
   enum SWABBER_ERROR {
     CONNECT_ERROR,
@@ -87,7 +112,7 @@ class SwabberInterface
   */
   void ban(std::string bot_ip, std::string banning_reason);
   
-  std::unique_ptr<zmq::socket_t> release_socket();
+  std::unique_ptr<Socket> release_socket();
 };
 
 #endif /*db_tools.h*/
