@@ -41,9 +41,10 @@ struct RegexState {
 };
 
 union RegexStateUnion {
-  FilterStateUnit state_allocator[NO_OF_STATE_UNIT_PER_REGEX];
+  long long state_allocator[NO_OF_STATE_UNIT_PER_REGEX];
   RegexState regex_state;
-RegexStateUnion(): state_allocator() {}
+
+  RegexStateUnion(): state_allocator() {}
 };
 
 class RegexManager : public BanjaxFilter
