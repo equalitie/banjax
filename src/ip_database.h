@@ -178,5 +178,6 @@ private:
 
 //------------------------------------------------------------
 using SwabberIpDb = IpDb<Default<time_t, 0>>;
+using ChallengerIpDb = IpDb<Default<uint64_t, 0>>;
 
 #endif

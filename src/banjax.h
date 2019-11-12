@@ -51,7 +51,10 @@ protected:
   TSTextLogObject log;
 
   IPDatabase ip_database;
+
   SwabberIpDb swabber_ip_db;
+  ChallengerIpDb challenger_ip_db;
+
   SwabberInterface swabber_interface;
 
   // This keeps the list of all created filter objects so we can delete them on

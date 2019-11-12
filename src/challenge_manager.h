@@ -184,6 +184,8 @@ protected:
 
   const GlobalWhiteList* global_white_list;
 
+  ChallengerIpDb* challenger_ip_db;
+
   /**
    * Should be called upon failure of providing solution. Checks the ip_database
    * for current number of failure of solution for an ip, increament and store it
@@ -231,13 +233,14 @@ public:
   */
  ChallengeManager(const std::string& banjax_dir,
                   const FilterConfig& filter_config,
-                  IPDatabase* global_ip_database,
+                  ChallengerIpDb* challenger_ip_db,
                   SwabberInterface* global_swabber_interface,
                   const GlobalWhiteList* global_white_list)
     :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
     too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
     swabber_interface(global_swabber_interface),
-    global_white_list(global_white_list)
+    global_white_list(global_white_list),
+    challenger_ip_db(challenger_ip_db)
   {
     queued_tasks[HTTP_REQUEST] = this;
 
@@ -247,7 +250,6 @@ public:
       challenge_type[ChallengeDefinition::CHALLENGE_LIST[i]] = (ChallengeDefinition::ChallengeType)i;
     }
 
-    ip_database = global_ip_database;
     load_config(banjax_dir);
   }
 

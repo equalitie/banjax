@@ -87,7 +87,7 @@ Banjax::filter_factory()
       if (cur_filter_name.second == REGEX_BANNER_FILTER_NAME) {
         cur_filter = new RegexManager(banjax_config_dir, cur_config, &ip_database, &swabber_interface);
       } else if (cur_filter_name.second == CHALLENGER_FILTER_NAME){
-        cur_filter = new ChallengeManager(banjax_config_dir, cur_config, &ip_database, &swabber_interface, &global_ip_white_list);
+        cur_filter = new ChallengeManager(banjax_config_dir, cur_config, &challenger_ip_db, &swabber_interface, &global_ip_white_list);
       } else if (cur_filter_name.second == WHITE_LISTER_FILTER_NAME){
         cur_filter = new WhiteLister(banjax_config_dir, cur_config, global_ip_white_list);
       } else if (cur_filter_name.second == BOT_SNIFFER_FILTER_NAME){
