@@ -5,22 +5,14 @@
  *
  *  Vmon: Dec 2015, Initial version
  */
-#include <string>
-#include <cstring> //memcpy
 #include <sys/time.h>
-#include <list>
-#include <vector>
-#include <utility>
-
-#include <typeinfo>
-
-#include <ts/ts.h>
-
-using namespace std;
 
 #include "denialator.h"
 #include "ip_database.h"
 #include "global_white_list.h"
+#include "print.h"
+
+using namespace std;
 
 /*
  * checks if the ip has been reported to swabber and denial
@@ -33,34 +25,32 @@ FilterResponse Denialator::on_http_request(const TransactionParts& transaction_p
     return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
   }
 
-  boost::optional<FilterState> cur_ip_state = ip_database->get_ip_state(cur_ip, SWABBER_INTERFACE_ID);
+  boost::optional<FilterState> ip_state = ip_database->get_ip_state(cur_ip, SWABBER_INTERFACE_ID);
 
-  /* If we failed to query the database then just don't report to swabber */
-  if (!cur_ip_state) {
-  /* If it is zero size we set it to the current time */
-    TSDebug(BANJAX_PLUGIN_NAME, "denialotr not doing anything to failure of aquiring ip db lock ");
+  if (!ip_state) {
+    print::debug("Denialator: doing nothing due to a failure to acquire ip db lock");
     return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
   }
 
-  if (cur_ip_state->size() != 0) { //oh oh you have been reported
-    //if grace period is passed report to swabber
-    //check if we need to report to swabber
+  if (ip_state->size() != 0) {
+    // If grace period has passed report to swabber
     timeval cur_time; gettimeofday(&cur_time, NULL);
-    if ((cur_time.tv_sec - (*cur_ip_state)[0]) >= banning_grace_period) {
-        TSDebug(BANJAX_PLUGIN_NAME, "grace period passed, re-reporting to swabber");
-        swabber_interface->ban(cur_ip, "flagged on " + to_string((*cur_ip_state)[0]) + ", grace period passed. reported by denialator");
+
+    if ((cur_time.tv_sec - (*ip_state)[0]) >= banning_grace_period) {
+        print::debug("Denialator: Grace period passed, re-reporting to swabber");
+        swabber_interface->ban(cur_ip, "flagged on " + to_string((*ip_state)[0]) + ", grace period passed. reported by denialator");
     }
 
-    TSDebug(BANJAX_PLUGIN_NAME, "denialotr denying access to tagged ip: %s ",cur_ip.c_str());
-    //recording the first request for banning
+    print::debug("Denialator: denying access to tagged ip: " ,cur_ip);
+
+    // Record the first request for banning
     return FilterResponse([&](const TransactionParts& a, const FilterResponse& b) { return this->generate_response(a,b); });
   }
 
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
 }
 
-std::string Denialator::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
+std::string Denialator::generate_response(const TransactionParts&, const FilterResponse&)
 {
-  (void)transaction_parts; (void)response_info;
   return "<html><header></header><body>504 Gateway Timeout</body></html>";
 }

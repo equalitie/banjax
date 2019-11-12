@@ -7,7 +7,6 @@
 #ifndef DENIALATOR_H
 #define DENIALATOR_H
 
-#include <yaml-cpp/yaml.h>
 #include "swabber_interface.h"
 #include "banjax_filter.h"
 
