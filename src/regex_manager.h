@@ -17,7 +17,7 @@ struct RatedRegex
 {
   unsigned int id;
   std::string rule_name;
-  RE2* re2_regex;
+  std::unique_ptr<RE2> re2_regex;
   unsigned int interval; //interval to look in mseconds
   float rate; //threshold /interval
 
