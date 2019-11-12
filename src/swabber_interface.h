@@ -56,7 +56,7 @@ protected:
   TSMutex swabber_mutex;
 
   //to forgive ips after being banned
-  IPDatabase* ip_database;
+  SwabberIpDb* swabber_ip_db;
 
   //server and the port that swabber is going to connect to
   //if they are not specified in the config, they be set to
@@ -82,7 +82,7 @@ public:
   /**
      initiating the interface
   */
-  SwabberInterface(IPDatabase* global_ip_db, std::unique_ptr<Socket> s = nullptr);
+  SwabberInterface(SwabberIpDb*, std::unique_ptr<Socket> s = nullptr);
 
   /**
    * access function for grace period used by denialator

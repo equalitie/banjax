@@ -15,6 +15,7 @@
 #include <ts/ts.h> // TSMutex
 #include <vector>
 #include <boost/optional.hpp>
+#include <sys/time.h>
 
 #include "defer.h"
 #include "filter_list.h"
@@ -80,13 +81,16 @@ public:
   bool drop_ip(std::string& ip);
 };
 
-template<class IpState>
+template<class IpState_>
 class IpDb {
+public:
+  using IpState = IpState_;
+
 private:
   using IPHashTable = std::unordered_map<std::string, IpState>;
 
 public:
-  IpDb();
+  IpDb() : _mutex(TSMutexCreate()) {}
 
   IpDb(const IpDb&) = delete;
 
@@ -155,5 +159,24 @@ IpDb<IpState>::get_ip_state(const std::string& ip)
 
   return i != _db.end() ? i->second : IpState{};
 }
+
+//------------------------------------------------------------
+template<class T, T default_value>
+class Default {
+public:
+  Default()    : value(default_value) {}
+  Default(T v) : value(v) {}
+
+        T& operator*()       { return value; }
+  const T& operator*() const { return value; }
+
+  operator T() const { return value; }
+
+private:
+  T value;
+};
+
+//------------------------------------------------------------
+using SwabberIpDb = IpDb<Default<time_t, 0>>;
 
 #endif

@@ -93,7 +93,7 @@ Banjax::filter_factory()
       } else if (cur_filter_name.second == BOT_SNIFFER_FILTER_NAME){
         cur_filter = new BotSniffer(banjax_config_dir, cur_config);
       } else if (cur_filter_name.second == DENIALATOR_FILTER_NAME){
-        cur_filter = new Denialator(banjax_config_dir, cur_config, &ip_database, &swabber_interface, &global_ip_white_list);
+        cur_filter = new Denialator(banjax_config_dir, cur_config, &swabber_ip_db, &swabber_interface, &global_ip_white_list);
       } else {
         TSError(("don't know how to construct requested filter " + cur_filter_name.second).c_str());
         abort_traffic_server();
@@ -190,7 +190,7 @@ Banjax::Banjax(const string& banjax_config_dir,
   : all_filters_requested_part(0),
     all_filters_response_part(0),
     banjax_config_dir(banjax_config_dir),
-    swabber_interface(&ip_database, move(swabber_socket))
+    swabber_interface(&swabber_ip_db, move(swabber_socket))
 {
   /* create an TSTextLogObject to log blacklisted requests to */
   TSReturnCode error = TSTextLogObjectCreate(BANJAX_PLUGIN_NAME, TS_LOG_MODE_ADD_TIMESTAMP, &log);

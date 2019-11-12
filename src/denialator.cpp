@@ -25,20 +25,20 @@ FilterResponse Denialator::on_http_request(const TransactionParts& transaction_p
     return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
   }
 
-  boost::optional<FilterState> ip_state = ip_database->get_ip_state(cur_ip, SWABBER_INTERFACE_ID);
+  boost::optional<SwabberIpDb::IpState> ip_state = swabber_ip_db->get_ip_state(cur_ip);
 
   if (!ip_state) {
     print::debug("Denialator: doing nothing due to a failure to acquire ip db lock");
     return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
   }
 
-  if (ip_state->size() != 0) {
+  if (*ip_state != 0) {
     // If grace period has passed report to swabber
     timeval cur_time; gettimeofday(&cur_time, NULL);
 
-    if ((cur_time.tv_sec - (*ip_state)[0]) >= banning_grace_period) {
+    if ((cur_time.tv_sec - *ip_state) >= banning_grace_period) {
         print::debug("Denialator: Grace period passed, re-reporting to swabber");
-        swabber_interface->ban(cur_ip, "flagged on " + to_string((*ip_state)[0]) + ", grace period passed. reported by denialator");
+        swabber_interface->ban(cur_ip, "flagged on " + to_string(*ip_state) + ", grace period passed. reported by denialator");
     }
 
     print::debug("Denialator: denying access to tagged ip: " ,cur_ip);

@@ -95,10 +95,11 @@ public:
   std::unique_ptr<BanjaxFilter> regex_manager;
 
   IPDatabase test_ip_database;
+  SwabberIpDb swabber_ip_db;
   SwabberInterface test_swabber_interface;
 
   Test(std::string config = default_config())
-    :  test_swabber_interface(&test_ip_database)
+    :  test_swabber_interface(&swabber_ip_db)
   {
     open_config(move(config));
   }
