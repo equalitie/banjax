@@ -78,7 +78,7 @@ void RegexManager::load_config()
 pair<RegexManager::RegexResult,RatedRegex*>
 RegexManager::parse_request(string ip, string ats_record) const
 {
-  std::pair<bool, FilterState> cur_ip_state;
+  boost::optional<FilterState> cur_ip_state;
 
   for(auto it=rated_banning_regexes.begin(); it != rated_banning_regexes.end(); it++) {
     if (RE2::FullMatch(ats_record, *((*it)->re2_regex))) {
@@ -97,22 +97,22 @@ RegexManager::parse_request(string ip, string ats_record) const
         long cur_time_msec = cur_time.tv_sec * 1000 + cur_time.tv_usec / 1000.0;
 
         /* first we check if we already have retreived the state for this ip */
-        if (cur_ip_state.second.size() == 0) {
+        if (!cur_ip_state || cur_ip_state->size() == 0) {
           cur_ip_state =  ip_database->get_ip_state(ip, REGEX_BANNER_FILTER_ID);
-          if (cur_ip_state.first == false) //we failed to read the database we make no judgement
+          if (!cur_ip_state) //we failed to read the database we make no judgement
             continue;
         }
 
         //if we succeeded in retreiving but the size is zero then it meaens we don't have a record of this ip at all
-        if (cur_ip_state.second.size() == 0) {
-          cur_ip_state.second.resize(total_no_of_rules * NO_OF_STATE_UNIT_PER_REGEX);
+        if (cur_ip_state->size() == 0) {
+          cur_ip_state->resize(total_no_of_rules * NO_OF_STATE_UNIT_PER_REGEX);
         }
 
         //now we check the begining of the hit for this regex (if the vector is just created everything is 0, in case
         //this is the first regex this ip hits)
         RegexStateUnion cur_ip_and_regex_state;
-        cur_ip_and_regex_state.state_allocator[0] = cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 0];
-        cur_ip_and_regex_state.state_allocator[1] = cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 1];
+        cur_ip_and_regex_state.state_allocator[0] = (*cur_ip_state)[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 0];
+        cur_ip_and_regex_state.state_allocator[1] = (*cur_ip_state)[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 1];
 
         //if it is 0, then we don't have a record for
         //the current regex
@@ -136,8 +136,8 @@ RegexManager::parse_request(string ip, string ats_record) const
 
         TSDebug(BANJAX_PLUGIN_NAME, "with rate %f /msec", cur_ip_and_regex_state.regex_state.rate);
 
-        cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 0] = cur_ip_and_regex_state.state_allocator[0];
-        cur_ip_state.second[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 1] = cur_ip_and_regex_state.state_allocator[1];
+        (*cur_ip_state)[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 0] = cur_ip_and_regex_state.state_allocator[0];
+        (*cur_ip_state)[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 1] = cur_ip_and_regex_state.state_allocator[1];
 
         if (cur_ip_and_regex_state.regex_state.rate >= (*it)->rate) {
           TSDebug(BANJAX_PLUGIN_NAME, "exceeding excessive rate %f /msec", (*it)->rate);
@@ -155,15 +155,15 @@ RegexManager::parse_request(string ip, string ats_record) const
           //concern compared to the fact that we might ran out of
           //memory.
 
-          ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.second);
+          ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, *cur_ip_state);
           return make_pair(REGEX_MATCHED, (*it).get());
         }
     }
   }
 
   //if we managed to get/make a valid state we are going to store it
-  if (cur_ip_state.second.size() > 0)
-    ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, cur_ip_state.second);
+  if (cur_ip_state && cur_ip_state->size() > 0)
+    ip_database->set_ip_state(ip, REGEX_BANNER_FILTER_ID, *cur_ip_state);
 
   //no match
   return make_pair(REGEX_MISSED, (RatedRegex*)NULL);

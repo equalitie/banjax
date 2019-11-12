@@ -110,24 +110,24 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
   /* we are waiting for grace period before banning for inteligent gathering purpose */
   if (grace_period > 0) { //if there is no grace then ignore these steps
 
-    std::pair<bool,FilterState> cur_ip_state(ip_database->get_ip_state(bot_ip, SWABBER_INTERFACE_ID));
+    boost::optional<FilterState> cur_ip_state(ip_database->get_ip_state(bot_ip, SWABBER_INTERFACE_ID));
 
     /* If we failed to query the database then just don't report to swabber */
-    if (cur_ip_state.first == false) {
+    if (!cur_ip_state) {
       /* If it is zero size we set it to the current time */
       print::debug("Not reporting to swabber due to failure of aquiring ip db lock");
       return;
     }
 
-    if (cur_ip_state.second.size() == 0) {
+    if (cur_ip_state->size() == 0) {
       // Record the first request for banning
-      cur_ip_state.second.push_back(cur_time.tv_sec);
-      ip_database->set_ip_state(bot_ip, SWABBER_INTERFACE_ID, cur_ip_state.second);
+      cur_ip_state->push_back(cur_time.tv_sec);
+      ip_database->set_ip_state(bot_ip, SWABBER_INTERFACE_ID, *cur_ip_state);
       ban_ip_list << bot_ip << ", " << "[" << CurrentGmTime() << "], " << banning_reason << ", flagged" <<endl;
     }
 
-    /* only ban if the grace period is passed */
-    if ((cur_time.tv_sec - cur_ip_state.second[0]) < grace_period) {
+    /* Only ban if the grace period is passed */
+    if ((cur_time.tv_sec - (*cur_ip_state)[0]) < grace_period) {
       print::debug("Not reporting to swabber cause grace period has not passed yet");
       return;
     }

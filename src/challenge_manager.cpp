@@ -697,24 +697,24 @@ ChallengeManager::report_failure(const std::shared_ptr<HostChallengeSpec>& faile
   std::string client_ip = transaction_parts.at(TransactionMuncher::IP);
   std::string failed_host = transaction_parts.at(TransactionMuncher::HOST);
 
-  std::pair<bool,FilterState> cur_ip_state;
+  boost::optional<FilterState> cur_ip_state;
   bool banned(false);
   cur_ip_state =  ip_database->get_ip_state(client_ip, CHALLENGER_FILTER_ID);
-  if (cur_ip_state.first == false) //we failed to read so we can't judge
+  if (!cur_ip_state) //we failed to read so we can't judge
     return banned;
 
-  if (cur_ip_state.second.size() == 0) {
-    cur_ip_state.second.resize(1);
-    cur_ip_state.second[0] = 1;
+  if (cur_ip_state->size() == 0) {
+    cur_ip_state->resize(1);
+    (*cur_ip_state)[0] = 1;
   } else {
-    cur_ip_state.second[0]++; //incremet failure
+    (*cur_ip_state)[0]++; //incremet failure
   }
 
-  if (cur_ip_state.second[0] >= failed_challenge->fail_tolerance_threshold) {
+  if ((*cur_ip_state)[0] >= failed_challenge->fail_tolerance_threshold) {
     banned = true;
     TransactionParts ats_record_parts = transaction_parts;
 
-    string banning_reason = "failed challenge " + failed_challenge->name + " for host " + failed_host  + " " + to_string(cur_ip_state.second[0]) + " times, " +
+    string banning_reason = "failed challenge " + failed_challenge->name + " for host " + failed_host  + " " + to_string((*cur_ip_state)[0]) + " times, " +
       encapsulate_in_quotes(ats_record_parts[TransactionMuncher::URL]) + ", " +
       ats_record_parts[TransactionMuncher::HOST] + ", " +
       encapsulate_in_quotes(ats_record_parts[TransactionMuncher::UA]);
@@ -726,7 +726,7 @@ ChallengeManager::report_failure(const std::shared_ptr<HostChallengeSpec>& faile
     //cur_ip_state.detail.no_of_failures = 0;
   }
   else { //only report if we haven't report to swabber cause otherwise it nulifies the work of swabber which has forgiven the ip and delete it from db
-    ip_database->set_ip_state(client_ip, CHALLENGER_FILTER_ID, cur_ip_state.second);
+    ip_database->set_ip_state(client_ip, CHALLENGER_FILTER_ID, *cur_ip_state);
   }
 
   return banned;

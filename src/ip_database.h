@@ -13,10 +13,9 @@
 
 #include <unordered_map> //IP DB is a hash table
 #include <utility>
-
 #include <ts/ts.h> //for locking business
-
 #include <vector>
+#include <boost/optional.hpp>
 
 #include "filter_list.h"
 
@@ -73,9 +72,8 @@ public:
      
      if the boolean value is false means reading of the state
      failed due to failure of locking the database
-
   */
-  std::pair<bool,FilterState> get_ip_state(const std::string& ip, FilterIDType filter_id);
+  boost::optional<FilterState> get_ip_state(const std::string& ip, FilterIDType filter_id);
   
   /**
      Clean the ip state record mostly when it is reported to 

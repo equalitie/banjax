@@ -11,6 +11,7 @@
 
 #include "ip_database.h"
 #include "banjax.h"
+#include "defer.h"
 
 using namespace std;
 
@@ -66,34 +67,26 @@ IPDatabase::drop_ip(std::string& ip)
   return true;
 }
 
-/**
-  check if  the ip is in the db, if return 0
-  otherwise return a pair of bool and the current state
-  if the boolean value is false means reading of the state
-  failed due to failure of locking the database
-*/
-std::pair<bool, FilterState>
+boost::optional<FilterState>
 IPDatabase::get_ip_state(const std::string& ip, FilterIDType filter_id)
 {
   //We actually need to lock the database
   //because the entry might get deleted while
   //we are trying to read its data.
   std::pair<bool, FilterState> result;
+
   if (TSMutexLockTry(db_mutex) != TS_SUCCESS) {
     TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the ip db");
-    result.first = false;
-    return result; //if we fail we return an empty state
+    return boost::none;
   }
-  result.first = true;
+
+  auto on_exit = defer([&] { TSMutexUnlock(db_mutex); });
+
   IPHashTable::iterator cur_ip_it = _ip_db.find(ip);
-  if (cur_ip_it != _ip_db.end()) {
-    result.second = cur_ip_it->second.state_array[filter_to_column[filter_id]];
-  }
 
-  TSMutexUnlock(db_mutex);
-
-  return result;
-
+  return cur_ip_it != _ip_db.end()
+       ? cur_ip_it->second.state_array[filter_to_column[filter_id]]
+       : FilterState{};
 }
 
 /**
