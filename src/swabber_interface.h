@@ -44,15 +44,6 @@ public:
   };
 
 protected:
-  static const std::string SWABBER_SERVER; //default server
-  static const std::string SWABBER_PORT; //default port
-  static const long SWABBER_GRACE_PERIOD; //default grace period
-  static const std::string SWABBER_BAN;
-
-  static const std::string BAN_IP_LOG;
-
-  static const unsigned int SWABBER_MAX_MSG_SIZE;
-
   std::string local_endpoint;
   std::unique_ptr<Socket> socket;
 
@@ -72,6 +63,7 @@ protected:
   //the default value
   std::string swabber_server;
   std::string swabber_port;
+
   //the grace period where swabber will wait after it receives the
   //first ban request from the filter. It only bans if it gets another
   //ban request (from any filter) after grace period ends this is

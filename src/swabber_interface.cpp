@@ -14,24 +14,22 @@
 
 using namespace std;
 
-//Swabber connection detail
-const string SwabberInterface::SWABBER_SERVER = "*";
-const string SwabberInterface::SWABBER_PORT =  "22620";
-const long SwabberInterface::SWABBER_GRACE_PERIOD = 0;
-const string SwabberInterface::SWABBER_BAN = "swabber_bans";
+// Defaults
+static const string DEFAULT_SERVER       = "*";
+static const string DEFAULT_PORT         = "22620";
+static const long   DEFAULT_GRACE_PERIOD = 0;
 
-const unsigned int SwabberInterface::SWABBER_MAX_MSG_SIZE = 1024;
-
-const string SwabberInterface::BAN_IP_LOG("/usr/local/trafficserver/logs/ban_ip_list.log");
+static const string SWABBER_BAN = "swabber_bans";
+static const string BAN_IP_LOG  = "/usr/local/trafficserver/logs/ban_ip_list.log";
 
 SwabberInterface::SwabberInterface(IPDatabase* global_ip_db,
     std::unique_ptr<Socket> s)
   :ban_ip_list(BAN_IP_LOG.c_str(), ios::out | ios::app),
    swabber_mutex(TSMutexCreate()),
    ip_database(global_ip_db),
-   swabber_server(SWABBER_SERVER),
-   swabber_port(SWABBER_PORT),
-   grace_period(SWABBER_GRACE_PERIOD)
+   swabber_server(DEFAULT_SERVER),
+   swabber_port(DEFAULT_PORT),
+   grace_period(DEFAULT_GRACE_PERIOD)
 {
   if (s) {
     socket = move(s);
@@ -47,9 +45,9 @@ void
 SwabberInterface::load_config(FilterConfig& swabber_config)
 {
   //reset to default
-  swabber_server = SWABBER_SERVER;
-  swabber_port = SWABBER_PORT;
-  grace_period = SWABBER_GRACE_PERIOD;
+  swabber_server = DEFAULT_SERVER;
+  swabber_port   = DEFAULT_PORT;
+  grace_period   = DEFAULT_GRACE_PERIOD;
 
   print::debug("Loading swabber interface conf");
 
