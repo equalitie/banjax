@@ -84,6 +84,17 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
   print::debug("Done loading swabber conf");
 }
 
+struct CurrentGmTime {
+  friend ostream& operator<<(ostream& o, CurrentGmTime) {
+    char time_buffer[80];
+    time_t rawtime;
+    time(&rawtime);
+    tm* timeinfo = std::gmtime(&rawtime);
+    strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%dT%H:%M:%S", timeinfo);
+    return o << time_buffer;
+  }
+};
+
 /**
    Asks Swabber to ban the bot ip
 
@@ -93,9 +104,8 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
 void
 SwabberInterface::ban(string bot_ip, std::string banning_reason)
 {
-  timeval cur_time; gettimeofday(&cur_time, NULL);
-  char time_buffer[80];
-  time_t rawtime;
+  timeval cur_time;
+  gettimeofday(&cur_time, NULL);
 
   /* we are waiting for grace period before banning for inteligent gathering purpose */
   if (grace_period > 0) { //if there is no grace then ignore these steps
@@ -110,18 +120,10 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
     }
 
     if (cur_ip_state.second.size() == 0) {
-      //recording the first request for banning
-      cur_ip_state.second.resize(1);
-      cur_ip_state.second[0] = cur_time.tv_sec;
-
+      // Record the first request for banning
+      cur_ip_state.second.push_back(cur_time.tv_sec);
       ip_database->set_ip_state(bot_ip, SWABBER_INTERFACE_ID, cur_ip_state.second);
-
-      /* Format the time for log */
-      time(&rawtime);
-      tm* timeinfo = std::gmtime(&rawtime);
-      strftime(time_buffer,80,"%Y-%m-%dT%H:%M:%S",timeinfo);
-
-      ban_ip_list << bot_ip << ", " << "[" << time_buffer << "], " << banning_reason << ", flagged" <<endl;
+      ban_ip_list << bot_ip << ", " << "[" << CurrentGmTime() << "], " << banning_reason << ", flagged" <<endl;
     }
 
     /* only ban if the grace period is passed */
@@ -131,12 +133,7 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
     }
   }
 
-  //grace period pass or no grace period
-  /* Format the time for log */
-  time(&rawtime);
-  tm* timeinfo = std::gmtime(&rawtime);
-  strftime(time_buffer,80,"%Y-%m-%dT%H:%M:%S",timeinfo);
-
+  // Grace period pass or no grace period
   zmq::message_t ban_request(SWABBER_BAN.size());
   memcpy((void*)ban_request.data(), SWABBER_BAN.c_str(), SWABBER_BAN.size());
 
@@ -171,7 +168,7 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
     socket->s.send(ban_request, ZMQ_SNDMORE);
     socket->s.send(ip_to_ban);
 
-    ban_ip_list << bot_ip << ", " << "[" << time_buffer << "], " << banning_reason << ", banned" << endl;
+    ban_ip_list << bot_ip << ", " << "[" << CurrentGmTime() << "], " << banning_reason << ", banned" << endl;
   }
 
   ip_database->drop_ip(bot_ip);
