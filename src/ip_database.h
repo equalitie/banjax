@@ -55,7 +55,7 @@ public:
   IPDatabase()
     :db_mutex(TSMutexCreate())
   {
-    for(unsigned int cur_col = 0; cur_col < NUMBER_OF_STATE_KEEPER_FILTERS; cur_col++)
+    for(size_t cur_col = 0; cur_col < NUMBER_OF_STATE_KEEPER_FILTERS; cur_col++)
       filter_to_column[column_to_filter[cur_col]] = cur_col;
   }
 

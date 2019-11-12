@@ -1,5 +1,5 @@
 /**
-   This class is responsible to store global states for each requester ip. In particular 
+   This class is responsible to store global states for each requester ip. In particular
    it is supposed:
    - Memory allocation.
    - Take care of locking and unlocking.
@@ -22,7 +22,7 @@ using namespace std;
   returns true on success and false on failure (locking not possible)
   eventually the continuation need to be retried
 */
-bool 
+bool
 IPDatabase::set_ip_state(const std::string& ip, FilterIDType filter_id, FilterState state)
 {
   //we need to lock at the begining because somebody can
@@ -31,50 +31,39 @@ IPDatabase::set_ip_state(const std::string& ip, FilterIDType filter_id, FilterSt
     TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the ip db");
     return false;
   }
+
   IPHashTable::iterator cur_ip_it = _ip_db.find(ip);
   if (cur_ip_it == _ip_db.end()) {
     _ip_db[ip] = IPState();
-
   }
 
   _ip_db[ip].state_array[filter_to_column[filter_id]] = state;
 
   TSMutexUnlock(db_mutex);
-  TSDebug(BANJAX_PLUGIN_NAME, "db size %lu", _ip_db.size());
-  return true;
 
+  return true;
 }
 
 /**
-   Clean the ip state record mostly when it is reported to 
+   Clean the ip state record mostly when it is reported to
    swabber.
 */
 bool
 IPDatabase::drop_ip(std::string& ip)
 {
-  IPHashTable::iterator cur_ip_it = _ip_db.find(ip);
-  if (cur_ip_it != _ip_db.end()) {
-    if (TSMutexLockTry(db_mutex) != TS_SUCCESS) {
-      TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the ip db");
-      return false;
-    }
-    _ip_db.erase(ip);
-    TSDebug(BANJAX_PLUGIN_NAME, "db size %lu", _ip_db.size());
-    TSMutexUnlock(db_mutex);
-
+  if (TSMutexLockTry(db_mutex) != TS_SUCCESS) {
+    TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the ip db");
+    return false;
   }
 
-  return true;
+  auto on_exit = defer([&] { TSMutexUnlock(db_mutex); });
+
+  return _ip_db.erase(ip) != 0;
 }
 
 boost::optional<FilterState>
 IPDatabase::get_ip_state(const std::string& ip, FilterIDType filter_id)
 {
-  //We actually need to lock the database
-  //because the entry might get deleted while
-  //we are trying to read its data.
-  std::pair<bool, FilterState> result;
-
   if (TSMutexLockTry(db_mutex) != TS_SUCCESS) {
     TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the ip db");
     return boost::none;
