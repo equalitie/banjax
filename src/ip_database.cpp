@@ -13,15 +13,6 @@
 #include "banjax.h"
 #include "defer.h"
 
-using namespace std;
-
-/**
-  check if  the ip is in the db, if not store it and updates its states
-  related to that filter
-
-  returns true on success and false on failure (locking not possible)
-  eventually the continuation need to be retried
-*/
 bool
 IPDatabase::set_ip_state(const std::string& ip, FilterIDType filter_id, FilterState state)
 {
@@ -32,22 +23,19 @@ IPDatabase::set_ip_state(const std::string& ip, FilterIDType filter_id, FilterSt
     return false;
   }
 
-  IPHashTable::iterator cur_ip_it = _ip_db.find(ip);
-  if (cur_ip_it == _ip_db.end()) {
-    _ip_db[ip] = IPState();
+  auto on_exit = defer([&] { TSMutexUnlock(db_mutex); });
+
+  IPHashTable::iterator i = _ip_db.find(ip);
+
+  if (i == _ip_db.end()) {
+    i = _ip_db.insert({ip, {}}).first;
   }
 
-  _ip_db[ip].state_array[filter_to_column[filter_id]] = state;
-
-  TSMutexUnlock(db_mutex);
+  i->second.state_array[filter_to_column[filter_id]] = state;
 
   return true;
 }
 
-/**
-   Clean the ip state record mostly when it is reported to
-   swabber.
-*/
 bool
 IPDatabase::drop_ip(std::string& ip)
 {
@@ -71,9 +59,9 @@ IPDatabase::get_ip_state(const std::string& ip, FilterIDType filter_id)
 
   auto on_exit = defer([&] { TSMutexUnlock(db_mutex); });
 
-  IPHashTable::iterator cur_ip_it = _ip_db.find(ip);
+  IPHashTable::iterator i = _ip_db.find(ip);
 
-  return cur_ip_it != _ip_db.end()
-       ? cur_ip_it->second.state_array[filter_to_column[filter_id]]
+  return i != _ip_db.end()
+       ? i->second.state_array[filter_to_column[filter_id]]
        : FilterState{};
 }
