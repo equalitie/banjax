@@ -562,7 +562,7 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
             //record challenge failure
             FilterResponse failure_response = custom_response(cur_challenge);
 
-            auto response_data = failure_response.response_data;
+            auto& response_data = failure_response.response_data;
 
             if (cur_challenge->fail_tolerance_threshold)
               response_data->banned_ip = report_failure(cur_challenge, transaction_parts);
@@ -654,7 +654,7 @@ bool ChallengeManager::needs_authentication(const std::string& url, const HostCh
 
 std::string ChallengeManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
 {
-  ChallengerExtendedResponse* extended_response = (ChallengerExtendedResponse*) response_info.response_data;
+  ChallengerExtendedResponse* extended_response = (ChallengerExtendedResponse*) response_info.response_data.get();
 
   if (extended_response->banned_ip) {
     return too_many_failures_message;

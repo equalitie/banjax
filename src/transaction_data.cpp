@@ -145,7 +145,7 @@ TransactionData::handle_response()
     char* b = (char*) TSmalloc(buf.size());
     memcpy(b, buf.data(), buf.size());
 
-    auto* rd = response_info.response_data;
+    auto* rd = response_info.response_data.get();
 
     char* content_type = rd ? rd->get_and_release_content_type()
                             : nullptr;
@@ -215,16 +215,5 @@ TransactionData::handle_http_close(Banjax::TaskQueue& current_queue)
 
   for(auto cur_task : current_queue) {
     cur_task->on_http_close(cur_trans_parts);
-  }
-}
-/**
-   We are calling the destructor manually so we can ask 
-   TS to release the memory according to their management
- */
-TransactionData::~TransactionData()
-{
-  if (response_info.response_data != NULL && response_info.response_type == FilterResponse::I_RESPOND) {
-    delete response_info.response_data;
-    response_info.response_data = NULL;
   }
 }

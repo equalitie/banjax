@@ -103,7 +103,7 @@ public:
     if a filter needs more space for its communication they can define
     a class and put the pointer to its object into response_data.
 */
-class FilterResponse
+class FilterResponse final
 {
 public:
    enum ResponseType {
@@ -114,10 +114,7 @@ public:
    };
 
   ResponseType response_type;
-  // TODO(inetic): Where is this deleted?
-  // TODO(inetic): Check whether classes that inherit from
-  //               FilterExtendedResponse have virtual destructor.
-  FilterExtendedResponse* response_data;
+  std::shared_ptr<FilterExtendedResponse> response_data;
 
   FilterResponse(ResponseType cur_response_type = GO_AHEAD_NO_COMMENT, FilterExtendedResponse* cur_response_data = nullptr) :
     response_type(cur_response_type),

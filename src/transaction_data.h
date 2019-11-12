@@ -27,8 +27,6 @@ public:
   static
   int handle_transaction_change(TSCont contp, TSEvent event, void *edata);
 
-  ~TransactionData();
-
 private:
   std::shared_ptr<Banjax> banjax;
   TSHttpTxn txnp;
