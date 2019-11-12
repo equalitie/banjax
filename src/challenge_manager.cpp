@@ -55,13 +55,6 @@ const std::string SUB_TIME  = "$time";
 const std::string SUB_URL   = "$url";
 const std::string SUB_ZEROS = "$zeros";
 
-template<class T>
-static set<T> vector2set(const vector<T>& source) {
-    set<T> target;
-    for (auto& item : source) target.insert(item);
-    return target;
-}
-
 /**
   Overload of the load config
   reads all the regular expressions from the database.
