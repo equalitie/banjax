@@ -47,7 +47,6 @@ protected:
   IPHashTable _ip_db;
   TSMutex db_mutex;
 
-  size_t ip_state_array_size;
   size_t filter_to_column[TOTAL_NO_OF_FILTERS + NO_OF_NON_FILTER_STATE_KEEPER]; //+1 because swabber_interface
 
 public:
