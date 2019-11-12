@@ -164,10 +164,11 @@ int handle_management(TSCont contp, TSEvent event, void *edata)
 
   TSMutexLock(g_banjax_plugin->reload_mutex);
 
-  g_banjax_plugin->current_state->deactivate_swabber();
-  std::shared_ptr<Banjax> new_banjax(new Banjax(g_banjax_plugin->config_dir));
+  auto s = g_banjax_plugin->current_state->release_swabber_socket();
+  std::shared_ptr<Banjax> new_banjax(new Banjax(g_banjax_plugin->config_dir, move(s)));
 
-  // This happens atomically, so (in theory) we don't need to wrap in in mutex.
+  // This happens atomically, so (in theory) we don't need to wrap in in mutex
+  // in the handle_transaction_start hook.
   g_banjax_plugin->current_state = std::move(new_banjax);
 
   TSMutexUnlock(g_banjax_plugin->reload_mutex);
@@ -175,8 +176,8 @@ int handle_management(TSCont contp, TSEvent event, void *edata)
   return 0;
 }
 
-void Banjax::deactivate_swabber() {
-  swabber_interface.release_socket();
+std::unique_ptr<SwabberInterface::Socket> Banjax::release_swabber_socket() {
+  return swabber_interface.release_socket();
 }
 
 /**
@@ -184,11 +185,12 @@ void Banjax::deactivate_swabber() {
 
    @param banjax_config_dir path to the folder containing banjax.conf
 */
-Banjax::Banjax(const string& banjax_config_dir)
+Banjax::Banjax(const string& banjax_config_dir,
+    std::unique_ptr<SwabberInterface::Socket> swabber_socket)
   : all_filters_requested_part(0),
     all_filters_response_part(0),
     banjax_config_dir(banjax_config_dir),
-    swabber_interface(&ip_database)
+    swabber_interface(&ip_database, move(swabber_socket))
 {
   /* create an TSTextLogObject to log blacklisted requests to */
   TSReturnCode error = TSTextLogObjectCreate(BANJAX_PLUGIN_NAME, TS_LOG_MODE_ADD_TIMESTAMP, &log);

@@ -89,7 +89,7 @@ public:
   /**
      initiating the interface
   */
-  SwabberInterface(IPDatabase* global_ip_db);
+  SwabberInterface(IPDatabase* global_ip_db, std::unique_ptr<Socket> s = nullptr);
 
   /**
    * access function for grace period used by denialator

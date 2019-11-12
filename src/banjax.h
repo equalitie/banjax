@@ -97,9 +97,9 @@ public:
 
      @param banjax_config_dir path to the folder containing banjax.conf
    */
-  Banjax(const std::string& banjax_config_dir);
+  Banjax(const std::string& banjax_config_dir, std::unique_ptr<SwabberInterface::Socket> s = nullptr);
 
-  void deactivate_swabber();
+  std::unique_ptr<SwabberInterface::Socket> release_swabber_socket();
 };
 
 #endif /*banjax.h*/

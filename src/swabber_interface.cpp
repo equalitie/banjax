@@ -30,15 +30,20 @@ const unsigned int SwabberInterface::SWABBER_MAX_MSG_SIZE = 1024;
 
 const string SwabberInterface::BAN_IP_LOG("/usr/local/trafficserver/logs/ban_ip_list.log");
 
-SwabberInterface::SwabberInterface(IPDatabase* global_ip_db)
-  :socket(new Socket()),
-   ban_ip_list(BAN_IP_LOG.c_str(), ios::out | ios::app),
+SwabberInterface::SwabberInterface(IPDatabase* global_ip_db,
+    std::unique_ptr<Socket> s)
+  :ban_ip_list(BAN_IP_LOG.c_str(), ios::out | ios::app),
    swabber_mutex(TSMutexCreate()),
    ip_database(global_ip_db),
    swabber_server(SWABBER_SERVER),
    swabber_port(SWABBER_PORT),
    grace_period(SWABBER_GRACE_PERIOD)
 {
+  if (s) {
+    socket = move(s);
+  } else {
+    socket.reset(new Socket());
+  }
 }
 
 /**
@@ -75,6 +80,10 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
   }
 
   local_endpoint = "tcp://" + swabber_server + ":" + swabber_port;
+
+  if (socket->is_bound() && socket->bound_endpoint != local_endpoint) {
+    socket.reset(new Socket());
+  }
 
   if (!socket->bind(local_endpoint)) {
     TSDebug(BANJAX_PLUGIN_NAME, "Swabber: Failed to bind (we'll try to bind again later)");
@@ -158,9 +167,13 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
       return;
     }
 
-    if (!socket->is_bound() && !socket->bind(local_endpoint)) {
-      TSDebug(BANJAX_PLUGIN_NAME, "Failed to bind to %s", local_endpoint.c_str());
-      return;
+    if (!socket->is_bound()) {
+      if (socket->bind(local_endpoint)) {
+        TSDebug(BANJAX_PLUGIN_NAME, "Swabber: successuflly bound to %s", local_endpoint.c_str());
+      } else {
+        TSDebug(BANJAX_PLUGIN_NAME, "Swabber: failed to bind to %s", local_endpoint.c_str());
+        return;
+      }
     }
 
     socket->s.send(ban_request, ZMQ_SNDMORE);
