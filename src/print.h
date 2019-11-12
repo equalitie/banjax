@@ -1,6 +1,7 @@
 #pragma once
 
 #include "util.h"
+#include "banjax_common.h"
 
 namespace print {
 

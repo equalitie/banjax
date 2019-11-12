@@ -16,7 +16,9 @@
 #include <vector>
 #include <boost/optional.hpp>
 
+#include "defer.h"
 #include "filter_list.h"
+#include "print.h"
 
 // Swabber interface isn't a filter but it needs to use the IP database.
 const FilterIDType SWABBER_INTERFACE_ID = TOTAL_NO_OF_FILTERS;
@@ -77,5 +79,81 @@ public:
   */
   bool drop_ip(std::string& ip);
 };
+
+template<class IpState>
+class IpDb {
+private:
+  using IPHashTable = std::unordered_map<std::string, IpState>;
+
+public:
+  IpDb();
+
+  IpDb(const IpDb&) = delete;
+
+  bool set_ip_state(const std::string& ip, IpState);
+
+  boost::optional<IpState> get_ip_state(const std::string& ip);
+
+  bool drop_ip(std::string& ip);
+
+private:
+  IPHashTable _db;
+  TSMutex _mutex;
+};
+
+template<class IpState>
+inline
+bool
+IpDb<IpState>::set_ip_state(const std::string& ip, IpState state)
+{
+  if (TSMutexLockTry(_mutex) != TS_SUCCESS) {
+    TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the ip db");
+    return false;
+  }
+
+  auto on_exit = defer([&] { TSMutexUnlock(_mutex); });
+
+  typename IPHashTable::iterator i = _db.find(ip);
+
+  if (i == _db.end()) {
+    i = _db.insert({ip, {}}).first;
+  }
+
+  i->second = std::move(state);
+
+  return true;
+}
+
+template<class IpState>
+inline
+bool
+IpDb<IpState>::drop_ip(std::string& ip)
+{
+  if (TSMutexLockTry(_mutex) != TS_SUCCESS) {
+    TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the ip db");
+    return false;
+  }
+
+  auto on_exit = defer([&] { TSMutexUnlock(_mutex); });
+
+  return _db.erase(ip) != 0;
+}
+
+template<class IpState>
+inline
+boost::optional<IpState>
+IpDb<IpState>::get_ip_state(const std::string& ip)
+{
+  if (TSMutexLockTry(_mutex) != TS_SUCCESS) {
+    TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the ip db");
+    return boost::none;
+  }
+
+  auto on_exit = defer([&] { TSMutexUnlock(_mutex); });
+
+  typename IPHashTable::iterator i = _db.find(ip);
+
+  return i != _db.end() ? i->second : IpState{};
+}
 
 #endif
