@@ -50,10 +50,9 @@ protected:
   //requests
   TSTextLogObject log;
 
-  IPDatabase ip_database;
-
-  SwabberIpDb swabber_ip_db;
-  ChallengerIpDb challenger_ip_db;
+  SwabberIpDb     swabber_ip_db;
+  ChallengerIpDb  challenger_ip_db;
+  RegexManagerIpDb regex_manager_ip_db;
 
   SwabberInterface swabber_interface;
 

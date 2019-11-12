@@ -94,8 +94,8 @@ class Test {
 public:
   std::unique_ptr<BanjaxFilter> regex_manager;
 
-  IPDatabase test_ip_database;
   SwabberIpDb swabber_ip_db;
+  RegexManagerIpDb regex_manager_ip_db;
   SwabberInterface test_swabber_interface;
 
   Test(std::string config = default_config())
@@ -126,7 +126,7 @@ private:
     regex_manager.reset(
         new RegexManager(TEMP_DIR,
                          regex_filter_config,
-                         &test_ip_database,
+                         &regex_manager_ip_db,
                          &test_swabber_interface));
   }
 };

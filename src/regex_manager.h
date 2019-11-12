@@ -15,13 +15,13 @@
 
 struct RatedRegex
 {
-  unsigned int id;
+  size_t id;
   std::string rule_name;
   std::unique_ptr<RE2> re2_regex;
   unsigned int interval; //interval to look in mseconds
   float rate; //threshold /interval
 
-  RatedRegex(unsigned int new_id, std::string new_rule_name, RE2* regex, unsigned int observation_interval, float excessive_rate):
+  RatedRegex(size_t new_id, std::string new_rule_name, RE2* regex, unsigned int observation_interval, float excessive_rate):
     id(new_id),
     rule_name(new_rule_name),
     re2_regex(regex),
@@ -64,6 +64,7 @@ protected:
   //swabber object used for banning bots
   SwabberInterface* swabber_interface;
 
+  RegexManagerIpDb* regex_manager_ip_db;
 public:
   enum RegexResult{
     REGEX_MISSED,
@@ -88,15 +89,15 @@ public:
   */
   RegexManager(const std::string& banjax_dir,
                const FilterConfig& filter_config,
-               IPDatabase* global_ip_database,
+               RegexManagerIpDb* regex_manager_ip_db,
                SwabberInterface* global_swabber_interface) :
     BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME),
     forbidden_message("<html><header></header><body>Forbidden</body></html>"),
     forbidden_message_length(forbidden_message.length()),
-    swabber_interface(global_swabber_interface)
+    swabber_interface(global_swabber_interface),
+    regex_manager_ip_db(regex_manager_ip_db)
   {
     queued_tasks[HTTP_REQUEST] = this;
-    ip_database = global_ip_database;
     load_config();
   }
 
