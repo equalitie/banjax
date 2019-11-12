@@ -112,6 +112,14 @@ public:
   */
   void ban(std::string bot_ip, std::string banning_reason);
   
+  /**
+   * Release and return the socket that is used to send ban information to
+   * swabber agregator. Doing so will disable this Swabber interface and any
+   * bans done from that point will not send anything.
+   * Releasing the socket is necessary for when we want/need to create another
+   * Swabber interface that binds to the same local TCP endpoint. It also
+   * enables us to reuse the socket in the new Swabber interface.
+   */
   std::unique_ptr<Socket> release_socket();
 };
 

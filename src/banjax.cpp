@@ -376,7 +376,7 @@ TSPluginInit(int argc, const char *argv[])
   // Set the config folder to a default value (can be modified by argv[1])
   std::string banjax_config_dir = TSPluginDirGet();
 
-  if (argc > 1) {//then use the path specified by the arguemnt
+  if (argc > 1) {
     banjax_config_dir = argv[1];
 
     struct stat stat_buffer;
