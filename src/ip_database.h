@@ -12,7 +12,6 @@
 #define IP_DATABASE_H
 
 #include <unordered_map> // IP DB is a hash table
-#include <utility>
 #include <ts/ts.h> // TSMutex
 #include <vector>
 #include <boost/optional.hpp>
