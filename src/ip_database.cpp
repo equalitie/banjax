@@ -88,18 +88,3 @@ IPDatabase::get_ip_state(const std::string& ip, FilterIDType filter_id)
        ? cur_ip_it->second.state_array[filter_to_column[filter_id]]
        : FilterState{};
 }
-
-/**
-   Drop all the ips due to reloading the config, its blocking on gaining  a lock
-*/
-void IPDatabase::drop_everything() {
-
-  TSMutexLock(db_mutex);
-  _ip_db.clear();
-  TSMutexUnlock(db_mutex);
-
-  TSDebug(BANJAX_PLUGIN_NAME, "ip db cleared");
-
-}
-
-
