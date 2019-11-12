@@ -14,6 +14,7 @@
 
 #include "ip_database.h"
 #include "banjax_filter.h"
+
 class SwabberInterface
 {
 public:

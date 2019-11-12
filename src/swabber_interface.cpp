@@ -6,17 +6,11 @@
  * Vmon: June 2013
  */
 
-#include <string>
-#include <ctime>
 #include <sys/time.h>
-#include <utility>
-
-#include <iostream>
-#include <ts/ts.h>
 
 #include "swabber_interface.h"
-#include "banjax.h"
 #include "defer.h"
+#include "print.h"
 
 using namespace std;
 
@@ -57,7 +51,7 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
   swabber_port = SWABBER_PORT;
   grace_period = SWABBER_GRACE_PERIOD;
 
-  TSDebug(BANJAX_PLUGIN_NAME, "Loading swabber interface conf");
+  print::debug("Loading swabber interface conf");
 
   for(auto& cur_node_p : swabber_config.config_node_list) {
     try {
@@ -74,7 +68,7 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
         swabber_server = cur_node["server"].as<string>();
 
     } catch(YAML::RepresentationException& e) {
-      TSDebug(BANJAX_PLUGIN_NAME, "Error loading swabber config: %s", e.what());
+      print::debug("Error loading swabber config: ", e.what());
       throw;
     }
   }
@@ -86,10 +80,10 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
   }
 
   if (!socket->bind(local_endpoint)) {
-    TSDebug(BANJAX_PLUGIN_NAME, "Swabber: Failed to bind (we'll try to bind again later)");
+    print::debug("Swabber: Failed to bind (we'll try to bind again later)");
   }
 
-  TSDebug(BANJAX_PLUGIN_NAME, "Done loading swabber conf");
+  print::debug("Done loading swabber conf");
 }
 
 /**
@@ -113,7 +107,7 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
     /* If we failed to query the database then just don't report to swabber */
     if (cur_ip_state.first == false) {
       /* If it is zero size we set it to the current time */
-      TSDebug(BANJAX_PLUGIN_NAME, "not reporting to swabber due to failure of aquiring ip db lock ");
+      print::debug("Not reporting to swabber due to failure of aquiring ip db lock");
       return;
     }
 
@@ -134,7 +128,7 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
 
     /* only ban if the grace period is passed */
     if ((cur_time.tv_sec - cur_ip_state.second[0]) < grace_period) {
-      TSDebug(BANJAX_PLUGIN_NAME, "not reporting to swabber cause grace period has not passed yet");
+      print::debug("Not reporting to swabber cause grace period has not passed yet");
       return;
     }
   }
@@ -151,10 +145,10 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
   zmq::message_t ip_to_ban(bot_ip.size());
   memcpy((void*)ip_to_ban.data(), bot_ip.c_str(), bot_ip.size());
 
-  TSDebug(BANJAX_PLUGIN_NAME, "locking the swabber socket...");
+  print::debug("Locking the swabber socket...");
 
   if (TSMutexLockTry(swabber_mutex) != TS_SUCCESS) {
-    TSDebug(BANJAX_PLUGIN_NAME, "Unable to get lock on the swabber socket");
+    print::debug("Unable to get lock on the swabber socket");
     return;
   }
 
@@ -169,9 +163,9 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
 
     if (!socket->is_bound()) {
       if (socket->bind(local_endpoint)) {
-        TSDebug(BANJAX_PLUGIN_NAME, "Swabber: successuflly bound to %s", local_endpoint.c_str());
+        print::debug("Swabber: successuflly bound to ", local_endpoint);
       } else {
-        TSDebug(BANJAX_PLUGIN_NAME, "Swabber: failed to bind to %s", local_endpoint.c_str());
+        print::debug("Swabber: failed to bind to ", local_endpoint);
         return;
       }
     }
