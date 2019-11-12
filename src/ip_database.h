@@ -19,7 +19,6 @@
 
 #include "filter_list.h"
 
-const int NO_OF_NON_FILTER_STATE_KEEPER = 1; //swabber interface
 const FilterIDType SWABBER_INTERFACE_ID = TOTAL_NO_OF_FILTERS; //swabber interface isn't a filter but it needs use IP database.
 
 
@@ -30,29 +29,22 @@ const FilterIDType column_to_filter[] = {
   SWABBER_INTERFACE_ID
 };
 
-/* const unsigned  filters_to_column[] = { */
-/*   0 */
-/* }; */
-const unsigned int NUMBER_OF_STATE_KEEPER_FILTERS = sizeof(column_to_filter) / sizeof(int);
-
-const unsigned int NUMBER_OF_STATE_WORDS = 2;
-
 typedef long long FilterStateUnit;
 typedef std::vector<FilterStateUnit> FilterState;
-  
-struct IPState
-{
-  std::vector<FilterState> state_array;
-
-  IPState():
-  state_array(NUMBER_OF_STATE_KEEPER_FILTERS){};
-};
-
-typedef std::unordered_map<std::string, IPState> IPHashTable;
 
 class IPDatabase
 {
 protected:
+  static constexpr size_t NUMBER_OF_STATE_KEEPER_FILTERS = sizeof(column_to_filter) / sizeof(int);
+  static constexpr size_t NO_OF_NON_FILTER_STATE_KEEPER = 1; //swabber interface
+
+  struct IPState {
+    std::vector<FilterState> state_array;
+    IPState(): state_array(NUMBER_OF_STATE_KEEPER_FILTERS){};
+  };
+
+  using IPHashTable = std::unordered_map<std::string, IPState>;
+
   IPHashTable _ip_db;
   TSMutex db_mutex;
 
