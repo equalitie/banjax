@@ -82,7 +82,8 @@ jobs:
     - run: mkdir /build_trafficserver && \
         cd /build_trafficserver && curl -O $ATS_DLINK
 
-    - run: cd /build_trafficserver && \
+    - run: |
+        cd /build_trafficserver && \
         /bin/bash -c "[[ \"$(sha512sum < trafficserver-$ATS_VERSION.tar.bz2)\" = \"$ATS_SHA512  -\" ]]" && \  # XXX double check this?
         tar jxf trafficserver-$ATS_VERSION.tar.bz2)
 
