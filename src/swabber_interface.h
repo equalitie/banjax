@@ -76,12 +76,6 @@ protected:
   long grace_period;
   
 public:
-  //Error list
-  enum SWABBER_ERROR {
-    CONNECT_ERROR,
-    SEND_ERROR
-  };
-
   /**
      initiating the interface
   */
