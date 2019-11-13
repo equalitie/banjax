@@ -2,32 +2,8 @@
  * Copyright (C) eQualit.ie under GNU AGPL v3.0 or later
  */
 
-#include <stdio.h>
-#include <ts/ts.h>
-#include <regex.h>
-#include <string.h>
-#include <iostream>
-
 #include <string>
-#include <vector>
-#include <list>
-
-#include <zmq.hpp>
-
-#include <re2/re2.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include <stdlib.h>
-
-#include "banjax.h"
 #include "transaction_data.h"
-#include "transaction_muncher.h"
-#include "regex_manager.h"
-#include "challenge_manager.h"
-#include "swabber_interface.h"
-#include "util.h"
 #include "print.h"
 
 using namespace std;
