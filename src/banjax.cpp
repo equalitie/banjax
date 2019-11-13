@@ -14,7 +14,6 @@
 #include <string>
 #include <iostream>
 #include <sys/stat.h>
-#include <stdarg.h> /* va_list, va_start, va_arg, va_end */
 
 #include "transaction_data.h"
 #include "white_lister.h"
@@ -22,14 +21,9 @@
 #include "denialator.h"
 #include "banjax.h"
 #include "defer.h"
+#include "print.h"
 
 using namespace std;
-
-#define TSError_does_not_work_in_TSPluginInit
-
-#ifdef TSError_does_not_work_in_TSPluginInit
-#define TSError TSErrorAlternative
-#endif
 
 const string CONFIG_FILENAME = "banjax.conf";
 
@@ -61,16 +55,6 @@ struct BanjaxPlugin {
 
 std::shared_ptr<BanjaxPlugin> g_banjax_plugin;
 
-void TSErrorAlternative(const char* fmt, ...)
-{
-  va_list arglist;
-  va_start(arglist, fmt);
-  fprintf(stderr, "ERROR: ");
-  vfprintf(stderr, fmt, arglist);
-  fprintf(stderr, "\n");
-  va_end(arglist);
-}
-
 /**
    Read the config file and create filters whose name is
    mentioned in the config file. If you make a new filter
@@ -101,18 +85,18 @@ Banjax::build_filters()
         denialator.reset(new Denialator(cur_config, &swabber_ip_db, &swabber_interface, &global_ip_white_list));
         cur_filter = denialator.get();
       } else {
-        TSError(("don't know how to construct requested filter " + cur_filter_name.second).c_str());
+        print::debug("Don't know how to construct filter: \"", cur_filter_name.second, "\"");
         abort_traffic_server();
       }
     } catch (YAML::Exception& e) {
-      TSError(("error in intializing filter " + cur_filter_name.second).c_str());
+      print::debug("Error in intializing filter ", cur_filter_name.second);
       abort_traffic_server();
     }
 
     //at which que the filter need to be called
     for(unsigned int i = BanjaxFilter::HTTP_START; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; i++) {
       if (cur_filter->queued_tasks[i]) {
-        TSDebug(BANJAX_PLUGIN_NAME, "active task %s %u", cur_filter->BANJAX_FILTER_NAME.c_str(), i);
+        print::debug("Active task ", cur_filter->BANJAX_FILTER_NAME, " on queue:", i);
         task_queues[i].push_back(cur_filter->queued_tasks[i]);
       }
     }
@@ -127,13 +111,13 @@ int
 handle_transaction_start(TSCont contp, TSEvent event, void *edata)
 {
   if (event != TS_EVENT_HTTP_TXN_START) {
-    TSDebug(BANJAX_PLUGIN_NAME, "txn unexpected event" );
+    print::debug("Txn unexpected event");
     return TS_EVENT_NONE;
   }
 
   TSHttpTxn txnp = (TSHttpTxn) edata;
 
-  TSDebug(BANJAX_PLUGIN_NAME, "txn start");
+  print::debug("Txn start");
 
   TSCont txn_contp;
   TransactionData *cd;
@@ -158,7 +142,7 @@ static
 int handle_management(TSCont contp, TSEvent event, void *edata)
 {
   (void) contp; (void) edata;
-  TSDebug(BANJAX_PLUGIN_NAME, "reload configuration signal received");
+  print::debug("Reload configuration signal received");
   TSReleaseAssert(event == TS_EVENT_MGMT_UPDATE);
   g_banjax_plugin->reload_config();
   return 0;
@@ -190,7 +174,7 @@ Banjax::Banjax(const string& banjax_config_dir,
   /* create an TSTextLogObject to log blacklisted requests to */
   TSReturnCode error = TSTextLogObjectCreate(BANJAX_PLUGIN_NAME, TS_LOG_MODE_ADD_TIMESTAMP, &log);
   if (!log || error == TS_ERROR) {
-    TSDebug(BANJAX_PLUGIN_NAME, "error while creating log");
+    print::debug("Error while creating log");
   }
 
   read_configuration();
@@ -203,7 +187,7 @@ Banjax::read_configuration()
   static const  string sep = "/";
 
   string absolute_config_file = banjax_config_dir + sep + CONFIG_FILENAME;
-  TSDebug(BANJAX_PLUGIN_NAME, "Reading configuration from [%s]", absolute_config_file.c_str());
+  print::debug("Reading configuration from [", absolute_config_file, "]");
 
   try
   {
@@ -211,16 +195,16 @@ Banjax::read_configuration()
     process_config(cfg);
   }
   catch(YAML::BadFile& e) {
-    TSError("I/O error while reading config file [%s]: [%s]. Make sure that file exists.", absolute_config_file.c_str(), e.what());
+    print::debug("I/O error while reading config file [",absolute_config_file,"]: [",e.what(),"]. Make sure that file exists.");
     abort_traffic_server();
   }
   catch(YAML::ParserException& e)
   {
-    TSError("parsing error while reading config file [%s]: [%s].", absolute_config_file.c_str(), e.what());
+    print::debug("parsing error while reading config file [",absolute_config_file,"]: [",e.what(),"].");
     abort_traffic_server();
   }
 
-  TSDebug(BANJAX_PLUGIN_NAME, "Finished loading main conf");
+  print::debug("Finished loading main conf");
 
   int min_priority = 0, max_priority = 0;
 
@@ -232,7 +216,7 @@ Banjax::read_configuration()
       max_priority = priorities.begin()->second.as<int>();
 
     } catch( YAML::RepresentationException &e ) {
-      TSError(("bad config format " +  (string)e.what()).c_str());
+      print::debug("Bad config format ", e.what());
       abort_traffic_server();
     }
 
@@ -255,7 +239,7 @@ Banjax::read_configuration()
     }
 
     if (priority_map.count(p.second.priority)) {
-      TSError(("Priority " + to_string(p.second.priority) + " has been doubly assigned").c_str());
+      print::debug("Priority ", p.second.priority, " has been doubly assigned");
       abort_traffic_server();
     }
 
@@ -307,7 +291,7 @@ Banjax::process_config(const YAML::Node& cfg)
         // Store it as priority config.  for now we fire error if priority is
         // double defined
         if (priorities.size()) {
-          TSError("double definition of priorities. only one priority list is allowed.");
+          print::debug("Double definition of priorities. only one priority list is allowed.");
           abort_traffic_server();
         }
 
@@ -316,27 +300,27 @@ Banjax::process_config(const YAML::Node& cfg)
       else if (node_name == "include") {
         for(const auto& sub : it->second) {
           string inc_loc = banjax_config_dir + sep + sub.as<std::string>();
-          TSDebug(BANJAX_PLUGIN_NAME, "Reading configuration from [%s]", inc_loc.c_str());
+          print::debug("Reading configuration from [", inc_loc, "]");
           try {
             process_config(YAML::LoadFile(inc_loc));
           }
           catch(YAML::BadFile& e) {
-            TSError("I/O error while reading config file [%s]: [%s]. Make sure that file exists.", inc_loc.c_str(), e.what());
+            print::debug("I/O error while reading config file [",inc_loc,"]: [",e.what(),"]. Make sure that file exists.");
             abort_traffic_server();
           }
           catch(YAML::ParserException& e)  {
-            TSError("Parsing error while reading config file [%s]: [%s].", inc_loc.c_str(), e.what());
+            print::debug("Parsing error while reading config file [",inc_loc,"]: [",e.what(),"].");
             abort_traffic_server();
           }
         }
       }
       else { //unknown node
-        TSError(("unknown config node " + node_name).c_str());
+        print::debug("Unknown config node ", node_name);
         abort_traffic_server();
       }
     }
     catch( YAML::RepresentationException &e ) {
-      TSError(("bad config format " +  (string)e.what()).c_str());
+      print::debug("Bad config format ", e.what());
       abort_traffic_server();
     }
   }
@@ -356,7 +340,7 @@ TSPluginInit(int argc, const char *argv[])
   info.support_email = (char*) "info@deflect.ca";
 
   if (!check_ts_version(TSTrafficServerVersionGet())) {
-    TSError("Plugin requires Traffic Server 3.0 or later");
+    print::debug("Plugin requires Traffic Server 3.0 or later");
     return abort_traffic_server();
   }
 
@@ -366,7 +350,7 @@ TSPluginInit(int argc, const char *argv[])
       ss << "\"" << argv[i] << "\"";
       if (i != argc + 1) ss << ", ";
     }
-    TSDebug(BANJAX_PLUGIN_NAME, "TSPluginInit args: %s", ss.str().c_str());
+    print::debug("TSPluginInit args: ", ss.str());
   }
 
   // Set the config folder to a default value (can be modified by argv[1])
@@ -378,13 +362,13 @@ TSPluginInit(int argc, const char *argv[])
     struct stat stat_buffer;
     if (stat(banjax_config_dir.c_str(), &stat_buffer) < 0) {
       std::string error_str = "given banjax config directory " + banjax_config_dir + " doen't exist or is unaccessible.";
-      TSError(error_str.c_str());
+      print::debug(error_str.c_str());
       return abort_traffic_server();
     }
 
     if (!S_ISDIR(stat_buffer.st_mode)) {
       std::string error_str = "given banjax config directory " + banjax_config_dir + " doesn't seem to be an actual directory";
-      TSError(error_str.c_str());
+      print::debug(error_str.c_str());
       return abort_traffic_server();
     }
   }
@@ -395,7 +379,7 @@ TSPluginInit(int argc, const char *argv[])
 #else
   if (TSPluginRegister(&info) != TS_SUCCESS) {
 #endif
-    TSError("[version] Plugin registration failed. \n");
+    print::debug("[version] Plugin registration failed.");
     return abort_traffic_server();
   }
 
@@ -417,7 +401,7 @@ TSPluginInit(int argc, const char *argv[])
  */
 void abort_traffic_server()
 {
-  TSError("Banjax was unable to start properly");
-  TSError("preventing ATS to run cause quietly starting ats without banjax is worst possible combination");
+  print::debug("Banjax was unable to start properly.");
+  print::debug("preventing ATS to run cause quietly starting ATS without banjax is worst possible combination");
   TSReleaseAssert(false);
 }
