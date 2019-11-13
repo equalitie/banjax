@@ -36,11 +36,11 @@ BotSniffer::load_config()
     throw;
   }
 
-  string local_endpoint  = "tcp://" + botbanger_server + ":" + to_string(botbanger_port);
+  _local_endpoint = "tcp://" + botbanger_server + ":" + to_string(botbanger_port);
 
-  if (!socket || socket->local_endpoint() != local_endpoint) {
+  if (!socket || socket->local_endpoint() != _local_endpoint) {
     socket.reset(new Socket);
-    socket->bind(local_endpoint);
+    socket->bind(_local_endpoint);
 
     if (!socket->is_bound()) {
       print::debug("BotSniffer: Failed to bind socket in load_config(), "
@@ -69,6 +69,15 @@ void BotSniffer::on_http_close(const TransactionParts& transaction_parts)
     auto on_exit = defer([&] { TSMutexUnlock(mutex); });
 
     if (!socket) return;
+
+    if (!socket->is_bound()) {
+      if (socket->bind(_local_endpoint)) {
+        print::debug("BotSniffer: Success binding to ", _local_endpoint);
+      } else {
+        print::debug("BotSniffer: Failed to bind to ", _local_endpoint);
+        return;
+      }
+    }
 
     send_zmq_mess(socket->handle(), BOTBANGER_LOG, true);
 

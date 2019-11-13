@@ -27,6 +27,8 @@ private:
   //encryption key
   uint8_t encryption_key[SHA256_DIGEST_LENGTH];
 
+  std::string _local_endpoint;
+
 public:
   const std::string BOTBANGER_LOG;
 
