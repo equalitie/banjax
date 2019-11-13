@@ -21,7 +21,7 @@ class BanjaxFilter;
 #include "denialator.h"
 #include "global_white_list.h"
 #include "regex_manager.h"
-#include "challenge_manager.h"
+#include "challenger.h"
 #include "socket.h"
 
 class Banjax
@@ -57,7 +57,7 @@ protected:
   TSTextLogObject log;
 
   SwabberInterface::IpDb swabber_ip_db;
-  ChallengeManager::IpDb challenger_ip_db;
+  Challenger::IpDb challenger_ip_db;
   RegexManager::IpDb     regex_manager_ip_db;
 
   SwabberInterface swabber_interface;
@@ -65,11 +65,11 @@ protected:
   std::unique_ptr<Socket> botsniffer_socket_reuse;
 
   // Filters
-  std::unique_ptr<RegexManager>     regex_manager;
-  std::unique_ptr<ChallengeManager> challenge_manager;
-  std::unique_ptr<WhiteLister>      white_lister;
-  std::unique_ptr<BotSniffer>       bot_sniffer;
-  std::unique_ptr<Denialator>       denialator;
+  std::unique_ptr<RegexManager> regex_manager;
+  std::unique_ptr<Challenger>   challenger;
+  std::unique_ptr<WhiteLister>  white_lister;
+  std::unique_ptr<BotSniffer>   bot_sniffer;
+  std::unique_ptr<Denialator>   denialator;
 
   /**
      open the mysql database and read the configs from the database

@@ -15,16 +15,16 @@
 #define private public
 
 #include "banjax.h"
-#include "challenge_manager.h"
+#include "challenger.h"
 
 using namespace std;
 using MW = HostChallengeSpec::MagicWord;
 
 static string TEMP_DIR = "/tmp";
 
-BOOST_AUTO_TEST_SUITE(ChallengeManagerUnitTests)
+BOOST_AUTO_TEST_SUITE(ChallengerUnitTests)
 
-unique_ptr<ChallengeManager> open_config(const std::string& config)
+unique_ptr<Challenger> open_config(const std::string& config)
 {
   YAML::Node cfg = YAML::Load(config);
 
@@ -37,8 +37,8 @@ unique_ptr<ChallengeManager> open_config(const std::string& config)
       filter_config.config_node_list.push_back(i);
   }
 
-  return unique_ptr<ChallengeManager>(
-      new ChallengeManager(TEMP_DIR, filter_config, nullptr, nullptr, nullptr));
+  return unique_ptr<Challenger>(
+      new Challenger(TEMP_DIR, filter_config, nullptr, nullptr, nullptr));
 }
 
 BOOST_AUTO_TEST_CASE(load_config1) {

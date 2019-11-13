@@ -62,7 +62,7 @@ public:
  */
 class HostChallengeSpec {
 private:
-  friend class ChallengeManager;
+  friend class Challenger;
 
   struct MagicWord {
     enum Type { substr, regexp };
@@ -127,7 +127,7 @@ public:
   {};
 };
 
-class ChallengeManager : public BanjaxFilter {
+class Challenger : public BanjaxFilter {
 public:
   using IpDb = ::IpDb<Default<uint64_t, 0>>;
 
@@ -235,11 +235,11 @@ public:
 
      @param main_root the root of the configuration structure
   */
- ChallengeManager(const std::string& banjax_dir,
-                  const FilterConfig& filter_config,
-                  IpDb* challenger_ip_db,
-                  SwabberInterface* global_swabber_interface,
-                  const GlobalWhiteList* global_white_list)
+ Challenger(const std::string& banjax_dir,
+            const FilterConfig& filter_config,
+            IpDb* challenger_ip_db,
+            SwabberInterface* global_swabber_interface,
+            const GlobalWhiteList* global_white_list)
     :BanjaxFilter::BanjaxFilter(filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
     too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
     swabber_interface(global_swabber_interface),

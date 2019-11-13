@@ -90,7 +90,7 @@ include_directories(
 
 file(GLOB sources
   "${CMAKE_SOURCE_DIR}/test/unittest_main.cpp"
-  "${CMAKE_SOURCE_DIR}/test/challenge_manager_unittest.cpp"
+  "${CMAKE_SOURCE_DIR}/test/challenger_unittest.cpp"
   "${CMAKE_SOURCE_DIR}/test/regex_manager_unittest.cpp"
   "${CMAKE_SOURCE_DIR}/test/unittest_common.cpp"
   "${CMAKE_SOURCE_DIR}/test/white_lister_unittest.cpp"

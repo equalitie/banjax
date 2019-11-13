@@ -84,8 +84,8 @@ Banjax::build_filters()
         regex_manager.reset(new RegexManager(cur_config, &regex_manager_ip_db, &swabber_interface));
         cur_filter = regex_manager.get();
       } else if (cur_filter_name.second == CHALLENGER_FILTER_NAME){
-        challenge_manager.reset(new ChallengeManager(banjax_config_dir, cur_config, &challenger_ip_db, &swabber_interface, &global_ip_white_list));
-        cur_filter = challenge_manager.get();
+        challenger.reset(new Challenger(banjax_config_dir, cur_config, &challenger_ip_db, &swabber_interface, &global_ip_white_list));
+        cur_filter = challenger.get();
       } else if (cur_filter_name.second == WHITE_LISTER_FILTER_NAME){
         white_lister.reset(new WhiteLister(cur_config, global_ip_white_list));
         cur_filter = white_lister.get();

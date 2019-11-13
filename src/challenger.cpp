@@ -30,14 +30,15 @@
 
 #include <assert.h>
 #include "libcaptcha.c"
-using namespace std;
 
 #include "util.h"
 #include "base64.h"
 #include "cookie.h"
-#include "challenge_manager.h"
+#include "challenger.h"
 #include "cookiehash.h"
 #include "print.h"
+
+using namespace std;
 
 #define COOKIE_SIZE 100
 
@@ -61,7 +62,7 @@ const std::string SUB_ZEROS = "$zeros";
   and compile them
 */
 void
-ChallengeManager::load_config(const std::string& banjax_dir)
+Challenger::load_config(const std::string& banjax_dir)
 {
   //TODO: we should read the auth password from config and store it somewhere
   DEBUG("Loading challenger manager conf");
@@ -198,21 +199,21 @@ ChallengeManager::load_config(const std::string& banjax_dir)
   //ifstream ifs("../challenger/solver.html");
   //TODO: Should not re-read the fiel upon each request
   //We need to read the whole string from the database infact
-  //  ifstream ifs(ChallengeManager::solver_page.c_str());
+  //  ifstream ifs(Challenger::solver_page.c_str());
   //  solver_page.assign( (istreambuf_iterator<char>(ifs)), istreambuf_iterator<char>());
 
   // // set the time in the correct format
   // stringstream ss(challenge_html.c_str());
   // string page( (istreambuf_iterator<char>(ss) ), (istreambuf_iterator<char>()) );
   // TSDebug(BANJAX_PLUGIN_NAME,
-  //         "ChallengeManager::generate_html lookup for host [%s] found %d bytes of html.",
+  //         "Challenger::generate_html lookup for host [%s] found %d bytes of html.",
   //         host_header.c_str(), (int)page.size());
 }
 
 /**
  * Splits a string according to a delimiter
  */
-vector<string> ChallengeManager::split(const string &s, char delim) {
+vector<string> Challenger::split(const string &s, char delim) {
   std::vector<std::string> elems;
   std::stringstream ss(s);
   std::string item;
@@ -227,7 +228,7 @@ vector<string> ChallengeManager::split(const string &s, char delim) {
  * @param  cookie the value of the cookie
  * @return        true if the SHA256 of the cookie verifies the challenge
  */
-bool ChallengeManager::check_sha(const char* cookiestr) const {
+bool Challenger::check_sha(const char* cookiestr) const {
 
   unsigned char hash[SHA256_DIGEST_LENGTH];
   SHA256_CTX sha256;
@@ -268,7 +269,7 @@ bool ChallengeManager::check_sha(const char* cookiestr) const {
  * @param  cookie the value of the cookie
  * @return  true if the cookie verifies the challenge
  */
-bool ChallengeManager::check_auth_validity(const char* cookiestr, const std::string password_hash)
+bool Challenger::check_auth_validity(const char* cookiestr, const std::string password_hash)
 {
   unsigned long cookie_len = strlen(cookiestr);
 
@@ -298,11 +299,11 @@ bool ChallengeManager::check_auth_validity(const char* cookiestr, const std::str
  * @param  ip     the client ip
  * @return        true if the cookie is valid
  */
-bool ChallengeManager::check_cookie(string answer, const TransactionParts& transaction_parts, const HostChallengeSpec& cookied_challenge) const {
+bool Challenger::check_cookie(string answer, const TransactionParts& transaction_parts, const HostChallengeSpec& cookied_challenge) const {
   string cookie_jar = transaction_parts.at(TransactionMuncher::COOKIE);
   string ip         = transaction_parts.at(TransactionMuncher::IP);
 
-  DEBUG("ChallengeManager::check_cookie: cookie_jar = ", cookie_jar);
+  DEBUG("Challenger::check_cookie: cookie_jar = ", cookie_jar);
 
   boost::string_view cookie_jar_s = cookie_jar;
 
@@ -339,7 +340,7 @@ bool ChallengeManager::check_cookie(string answer, const TransactionParts& trans
     }
   }
 
-  DEBUG("ChallengeManager::check_cookie: 'deflect' cookie not found");
+  DEBUG("Challenger::check_cookie: 'deflect' cookie not found");
   return false;
 }
 
@@ -350,7 +351,7 @@ bool ChallengeManager::check_cookie(string answer, const TransactionParts& trans
  * @param to       what to replace by
  */
 /* static */
-bool ChallengeManager::replace(string &original, const string& from, const string& to){
+bool Challenger::replace(string &original, const string& from, const string& to){
   size_t start_pos = original.find(from);
   if(start_pos == string::npos)
     return false;
@@ -358,14 +359,14 @@ bool ChallengeManager::replace(string &original, const string& from, const strin
   return true;
 }
 
-string ChallengeManager::generate_html(
+string Challenger::generate_html(
              string ip,
              long t,
              string url,
              const TransactionParts& transaction_parts,
              ChallengerExtendedResponse* response_info)
 {
-  if (ChallengeManager::is_captcha_url(url)) {
+  if (Challenger::is_captcha_url(url)) {
     unsigned char text[6];
     memset(text, 0, 6);
 
@@ -387,7 +388,7 @@ string ChallengeManager::generate_html(
     header.append("; path=/; HttpOnly");
     response_info->set_cookie_header.append(header.c_str());
     return std::string((const char*)gif, (int)gifsize);
-  } else if (ChallengeManager::is_captcha_answer(url)) {
+  } else if (Challenger::is_captcha_answer(url)) {
     response_info->response_code = 200;
     response_info->set_content_type("text/html");
     std::string url = transaction_parts.at(TransactionMuncher::URL_WITH_HOST);
@@ -396,7 +397,7 @@ string ChallengeManager::generate_html(
     std::string answer = url.substr(found + strlen("__validate/"));
     response_info->response_code = 403;
 
-    if (ChallengeManager::check_cookie(answer, transaction_parts, *response_info->responding_challenge)) {
+    if (Challenger::check_cookie(answer, transaction_parts, *response_info->responding_challenge)) {
       response_info->response_code = 200;
       uchar cookie[COOKIE_SIZE];
       GenerateCookie((uchar*)"", (uchar*)hashed_key, t, (uchar*)ip.c_str(), cookie);
@@ -447,7 +448,7 @@ string ChallengeManager::generate_html(
  */
 /* static */
 string
-ChallengeManager::format_validity_time_for_cookie(long validity_time)
+Challenger::format_validity_time_for_cookie(long validity_time)
 {
   // set the time in the correct format
   time_t rawtime = (time_t) validity_time;
@@ -460,17 +461,17 @@ ChallengeManager::format_validity_time_for_cookie(long validity_time)
 }
 
 /* static */
-bool ChallengeManager::is_captcha_url(const std::string& url) {
+bool Challenger::is_captcha_url(const std::string& url) {
   size_t found = url.rfind("__captcha");
   return found != std::string::npos;
 }
 /* static */
-bool ChallengeManager::is_captcha_answer(const std::string& url) {
+bool Challenger::is_captcha_answer(const std::string& url) {
   size_t found = url.rfind("__validate/");
   return found != std::string::npos;
 }
 
-bool ChallengeManager::is_globally_white_listed(const std::string& ip) const {
+bool Challenger::is_globally_white_listed(const std::string& ip) const {
   if (!global_white_list) return false;
   return bool(global_white_list->is_white_listed(ip));
 }
@@ -480,7 +481,7 @@ bool ChallengeManager::is_globally_white_listed(const std::string& ip) const {
    and if it fails ask for responding by the filter.
 */
 FilterResponse
-ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
+Challenger::on_http_request(const TransactionParts& transaction_parts)
 {
   const auto& host = transaction_parts.at(TransactionMuncher::HOST);
 
@@ -526,7 +527,7 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
           }
 
           TSDebug(BANJAX_PLUGIN_NAME, "captch url is %s", transaction_parts.at(TransactionMuncher::URL_WITH_HOST).c_str());
-          if (ChallengeManager::is_captcha_url(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
+          if (Challenger::is_captcha_url(transaction_parts.at(TransactionMuncher::URL_WITH_HOST))) {
           //FIXME: This opens the door to attack edge using the captcha url, we probably need to
           //count captcha urls as failures as well.
             return custom_response(cur_challenge);
@@ -534,7 +535,7 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
             return custom_response(cur_challenge);
           }
 
-          if (ChallengeManager::check_cookie("", transaction_parts, *cur_challenge)) {
+          if (Challenger::check_cookie("", transaction_parts, *cur_challenge)) {
             report_success(ip);
             //rather go to next challenge
             continue;
@@ -555,7 +556,7 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
           break;
         }
 
-        if(!ChallengeManager::check_cookie("", transaction_parts, *cur_challenge))
+        if(!Challenger::check_cookie("", transaction_parts, *cur_challenge))
           {
             TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, sending challenge");
 
@@ -577,7 +578,7 @@ ChallengeManager::on_http_request(const TransactionParts& transaction_parts)
 
       case ChallengeDefinition::CHALLENGE_AUTH:
         DEBUG(">>> Running challenge CHALLENGE_AUTH");
-        if(ChallengeManager::check_cookie("", transaction_parts, *cur_challenge)) {
+        if(Challenger::check_cookie("", transaction_parts, *cur_challenge)) {
           // Success response in auth means don't serve
           report_success(ip);
           return FilterResponse(FilterResponse::SERVE_FRESH);
@@ -621,7 +622,7 @@ bool HostChallengeSpec::MagicWord::is_match(const std::string& url) const {
   return false;
 }
 
-bool ChallengeManager::needs_authentication(const std::string& url, const HostChallengeSpec& challenge) const {
+bool Challenger::needs_authentication(const std::string& url, const HostChallengeSpec& challenge) const {
     // If the url of the content contains 'magic_word', then the content is protected
     // unless the url also contains a word from 'magic_word_exceptions'.
     bool is_protected = false;
@@ -652,7 +653,7 @@ bool ChallengeManager::needs_authentication(const std::string& url, const HostCh
     return true;
 }
 
-std::string ChallengeManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
+std::string Challenger::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
 {
   ChallengerExtendedResponse* extended_response = (ChallengerExtendedResponse*) response_info.response_data.get();
 
@@ -685,7 +686,7 @@ std::string ChallengeManager::generate_response(const TransactionParts& transact
  * @return true if no_of_failures exceeded the threshold
  */
 bool
-ChallengeManager::report_failure(const std::shared_ptr<HostChallengeSpec>& failed_challenge, const TransactionParts& transaction_parts)
+Challenger::report_failure(const std::shared_ptr<HostChallengeSpec>& failed_challenge, const TransactionParts& transaction_parts)
 {
   std::string client_ip = transaction_parts.at(TransactionMuncher::IP);
   std::string failed_host = transaction_parts.at(TransactionMuncher::HOST);
@@ -724,7 +725,7 @@ ChallengeManager::report_failure(const std::shared_ptr<HostChallengeSpec>& faile
  * @param client_ip: string representing the failed requester ip
  */
 void
-ChallengeManager::report_success(std::string client_ip)
+Challenger::report_success(std::string client_ip)
 {
   IpDb::IpState ip_state(1);
   challenger_ip_db->set_ip_state(client_ip, ip_state);
