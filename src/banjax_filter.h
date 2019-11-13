@@ -171,18 +171,15 @@ public:
      it also merge scattered config in one node
 
   */
-  BanjaxFilter(const std::string& banjax_dir, const FilterConfig& filter_config, unsigned int child_id, std::string child_name) :
+  BanjaxFilter(const FilterConfig& filter_config, unsigned int child_id, std::string child_name) :
     BANJAX_FILTER_ID(child_id),
     BANJAX_FILTER_NAME(child_name)
   {
-    (void) banjax_dir;
-
     for (size_t i = 0; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; ++i) {
       queued_tasks[i] = nullptr;
     }
 
-    for(const auto& cur_node : filter_config.config_node_list)
-    {
+    for(const auto& cur_node : filter_config.config_node_list) {
       cfg = merge_nodes(cfg, cur_node->second);
     }
   }

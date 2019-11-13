@@ -84,19 +84,19 @@ Banjax::build_filters()
 
     try {
       if (cur_filter_name.second == REGEX_BANNER_FILTER_NAME) {
-        regex_manager.reset(new RegexManager(banjax_config_dir, cur_config, &regex_manager_ip_db, &swabber_interface));
+        regex_manager.reset(new RegexManager(cur_config, &regex_manager_ip_db, &swabber_interface));
         cur_filter = regex_manager.get();
       } else if (cur_filter_name.second == CHALLENGER_FILTER_NAME){
         challenge_manager.reset(new ChallengeManager(banjax_config_dir, cur_config, &challenger_ip_db, &swabber_interface, &global_ip_white_list));
         cur_filter = challenge_manager.get();
       } else if (cur_filter_name.second == WHITE_LISTER_FILTER_NAME){
-        white_lister.reset(new WhiteLister(banjax_config_dir, cur_config, global_ip_white_list));
+        white_lister.reset(new WhiteLister(cur_config, global_ip_white_list));
         cur_filter = white_lister.get();
       } else if (cur_filter_name.second == BOT_SNIFFER_FILTER_NAME){
-        bot_sniffer.reset(new BotSniffer(banjax_config_dir, cur_config));
+        bot_sniffer.reset(new BotSniffer(cur_config));
         cur_filter = bot_sniffer.get();
       } else if (cur_filter_name.second == DENIALATOR_FILTER_NAME){
-        denialator.reset(new Denialator(banjax_config_dir, cur_config, &swabber_ip_db, &swabber_interface, &global_ip_white_list));
+        denialator.reset(new Denialator(cur_config, &swabber_ip_db, &swabber_interface, &global_ip_white_list));
         cur_filter = denialator.get();
       } else {
         TSError(("don't know how to construct requested filter " + cur_filter_name.second).c_str());

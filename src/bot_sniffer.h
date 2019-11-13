@@ -36,8 +36,8 @@ public:
    *  receives the config object need to read the ip list,
    *  subsequently it reads all the ips
    */
- BotSniffer(const std::string& banjax_dir, const FilterConfig& filter_config)
-   :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME), 
+ BotSniffer(const FilterConfig& filter_config)
+   :BanjaxFilter::BanjaxFilter(filter_config, BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME), 
     botbanger_server("*"), 
     /* When assigning a local address to a socket using zmq_bind() with the tcp
        transport, the endpoint shall be interpreted as an interface followed by
