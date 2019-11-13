@@ -14,7 +14,6 @@
 #include "filter_list.h"
 #include "ip_db.h"
 
-class BanjaxFilter;
 class FilterResponse;
 
 using ResponseGenerator = std::function<std::string(const TransactionParts&, const FilterResponse&)>;
@@ -111,16 +110,6 @@ public:
     response_type(I_RESPOND),
     response_data(new FilterExtendedResponse(cur_response_generator))
   {}
-};
-
-typedef FilterResponse (BanjaxFilter::*FilterTaskFunction) (const TransactionParts& transactionp_parts);
-
-struct  FilterTask
-{
-  BanjaxFilter* filter;
-
-  FilterTask() : filter(NULL) {}
-  FilterTask(BanjaxFilter* cur_filter) : filter(cur_filter) {}
 };
 
 class BanjaxFilter
