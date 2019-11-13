@@ -34,7 +34,8 @@ jobs:
     - run: apt-get upgrade -qq
     - run: apt-get install -qqy
 
-    - run: apt-get install -qy \
+    - run: |
+        apt-get install -qy \
         apt-transport-https \
         sudo \
         curl \
