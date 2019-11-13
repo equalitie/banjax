@@ -36,25 +36,15 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/test/unit_test.hpp>
-#include <iostream>
-#include <fstream>
 #include <string>
-#include <map>
-#include <zmq.hpp>
-
-#include <re2/re2.h> //google re2
-
 #include <yaml-cpp/yaml.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <ts/ts.h>
 
-#include "util.h"
 #include "banjax.h"
 #include "unittest_common.h"
 #include "regex_manager.h"
-
 #include "swabber_interface.h"
 #include "ip_db.h"
 

@@ -1,38 +1,10 @@
 #include <string>
-#include <ts/ts.h>
-#include <iostream>
 #include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
+#include <assert.h>
 
-using namespace std;
-
-#include "banjax.h"
 #include "unittest_common.h"
 
-/**
- * Small utility function for easier debugging of anything that is
- * a range. Usage:
- *   set<string> my_set({"foo", "bar"});
- *   cout << "my_set: " << debug_range(my_set) << endl;
- *
- * Outputs: "my_set: [foo, bar]"
- */
-template<class T> struct DebugRange { const T& inner; };
-
-template<class T>
-std::ostream& operator<<(std::ostream& os, const DebugRange<T>& r) {
-  os << "[";
-
-  for (auto i = r.inner.begin(); i != r.inner.end();) {
-    os << *i;
-    if (++i != r.inner.end()) os << ", ";
-  }
-
-  return os << "]";
-}
-
-template<class T> DebugRange<T> debug_range(const T& r) {
-  return DebugRange<T>{r};
-}
+using namespace std;
 
 /**
    mock TSDebug for the sake of compiling tests independence from ATS
