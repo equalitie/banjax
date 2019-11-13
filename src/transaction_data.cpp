@@ -24,7 +24,7 @@ TransactionData::handle_transaction_change(TSCont contp, TSEvent event, void *ed
     return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_SEND_REQUEST_HDR:
-    TSDebug(BANJAX_PLUGIN_NAME, "miss");
+    print::debug("Miss");
     self->transaction_muncher.miss();
     TSHttpTxnReenable(txnp, TS_EVENT_HTTP_CONTINUE);
     return TS_EVENT_NONE;
@@ -34,7 +34,7 @@ TransactionData::handle_transaction_change(TSCont contp, TSEvent event, void *ed
     return TS_EVENT_NONE;
 
   case TS_EVENT_HTTP_TXN_CLOSE:
-    TSDebug(BANJAX_PLUGIN_NAME, "txn close");
+    print::debug("Txn close");
     self->handle_http_close(self->banjax->task_queues[BanjaxFilter::HTTP_CLOSE]);
     self->~TransactionData();
     TSfree(self);
@@ -43,10 +43,10 @@ TransactionData::handle_transaction_change(TSCont contp, TSEvent event, void *ed
     break;
 
   case TS_EVENT_TIMEOUT:
-    TSDebug("banjaxtimeout", "timeout" );
+    print::debug("Timeout");
 
   default:
-    TSDebug(BANJAX_PLUGIN_NAME, "Unsolicitated event call?" );
+    print::debug("Unsolicitated event call.");
     break;
   }
 
@@ -74,7 +74,7 @@ TransactionData::handle_request()
       case FilterResponse::SERVE_IMMIDIATELY_DONT_CACHE:
         //This is when the requester is white listed
         if (TSHttpTxnServerRespNoStoreSet(txnp, true) != TS_SUCCESS) {
-          TSDebug(BANJAX_PLUGIN_NAME, "Unable to make the response uncachable" );
+          print::debug("Unable to make the response uncachable.");
         }
 
         continue_filtering = false;
@@ -86,7 +86,7 @@ TransactionData::handle_request()
         //TODO: One might need to investigate TSHttpTxnRespCacheableSet()
         if (TSHttpTxnServerRespNoStoreSet(txnp, true) != TS_SUCCESS
             || TSHttpTxnConfigIntSet(txnp, TS_CONFIG_HTTP_CACHE_HTTP, 0) != TS_SUCCESS)
-          TSDebug(BANJAX_PLUGIN_NAME, "Unable to make the response uncachable" );
+          print::debug("Unable to make the response uncachable.");
         break;
 
       case FilterResponse::I_RESPOND:
