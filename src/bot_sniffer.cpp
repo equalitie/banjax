@@ -21,6 +21,8 @@ using namespace std;
 
 #define VALID_OR_EMPTY(validity, part) ((validity & part) ? Base64::Encode(transaction_parts.at(part)) : "")
 
+static const string LOG = "botbanger_log";
+
 void
 BotSniffer::load_config()
 {
@@ -79,7 +81,7 @@ void BotSniffer::on_http_close(const TransactionParts& transaction_parts)
       }
     }
 
-    send_zmq_mess(socket->handle(), BOTBANGER_LOG, true);
+    send_zmq_mess(socket->handle(), LOG, true);
 
     std::string hit_mis_str = (transaction_parts.count(TransactionMuncher::MISS) ? b64_hit : b64_miss);
 

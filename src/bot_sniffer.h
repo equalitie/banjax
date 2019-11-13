@@ -30,15 +30,15 @@ private:
   std::string _local_endpoint;
 
 public:
-  const std::string BOTBANGER_LOG;
-
   /**
    *  receives the config object need to read the ip list,
    *  subsequently it reads all the ips
    */
- BotSniffer(const FilterConfig& filter_config)
-   :BanjaxFilter::BanjaxFilter(filter_config, BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME), 
-    botbanger_server("*"), 
+ BotSniffer( const FilterConfig& filter_config
+           , std::unique_ptr<Socket> socket = nullptr)
+   : BanjaxFilter::BanjaxFilter(filter_config, BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME)
+   , socket(std::move(socket))
+   , botbanger_server("*")
     /* When assigning a local address to a socket using zmq_bind() with the tcp
        transport, the endpoint shall be interpreted as an interface followed by
        a colon and the TCP port number to use.
@@ -47,8 +47,7 @@ public:
        The wild-card *, meaning all available interfaces.
        The primary IPv4 address assigned to the interface, in its numeric representation.
        The interface name as defined by the operating system. */
-    mutex(TSMutexCreate()),
-    BOTBANGER_LOG("botbanger_log")
+   , mutex(TSMutexCreate())
   {
     queued_tasks[HTTP_CLOSE] = this;
     load_config();
