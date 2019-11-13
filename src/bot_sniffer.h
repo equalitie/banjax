@@ -11,43 +11,34 @@
 #include <zmq.hpp>
 
 #include <openssl/sha.h>
-#include <yaml-cpp/yaml.h>
 #include "banjax_filter.h"
+#include "socket.h"
 
 class BotSniffer : public BanjaxFilter
 {
- protected:
-
-  //socket stuff
-  zmq::context_t context;
-  zmq::socket_t* p_zmqsock = nullptr;
+private:
+  std::unique_ptr<Socket> socket;
 
   unsigned int botbanger_port;
-  //static const unsigned int BOTBANGER_DEFAULT_PORT = 22621;
   std::string botbanger_server;
 
-  std::string _binding_string;
-
-  //lock for writing into the socket
-  //TODO:: this is a temp measure probably
-  //We should move to fifo queue or something
-  TSMutex bot_sniffer_mutex;
+  TSMutex mutex;
 
   //encryption key
   uint8_t encryption_key[SHA256_DIGEST_LENGTH];
 
-public:
-  const std::string BOTBANGER_LOG;
+  std::string _local_endpoint;
 
+public:
   /**
    *  receives the config object need to read the ip list,
    *  subsequently it reads all the ips
    */
- BotSniffer(const std::string& banjax_dir, const FilterConfig& filter_config)
-   :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME), 
-    context (1),
-    //botbanger_port(BOTBANGER_DEFAULT_PORT),
-    botbanger_server("*"), 
+ BotSniffer( const FilterConfig& filter_config
+           , std::unique_ptr<Socket> socket = nullptr)
+   : BanjaxFilter::BanjaxFilter(filter_config, BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME)
+   , socket(std::move(socket))
+   , botbanger_server("*")
     /* When assigning a local address to a socket using zmq_bind() with the tcp
        transport, the endpoint shall be interpreted as an interface followed by
        a colon and the TCP port number to use.
@@ -56,9 +47,7 @@ public:
        The wild-card *, meaning all available interfaces.
        The primary IPv4 address assigned to the interface, in its numeric representation.
        The interface name as defined by the operating system. */
-
-    bot_sniffer_mutex(TSMutexCreate()),
-    BOTBANGER_LOG("botbanger_log")
+   , mutex(TSMutexCreate())
   {
     queued_tasks[HTTP_CLOSE] = this;
     load_config();
@@ -101,16 +90,13 @@ public:
 
   void on_http_close(const TransactionParts& transaction_parts) override;
 
+  // Return the socket we're using. This will effectively
+  // disable this bot sniffer.
+  std::unique_ptr<Socket> release_socket();
+
   /**
      we do not overload generate_respons cause we have no response to generate
   */
-
-  /**
-   * destructor to delete the zmq socket
-   */
-  ~BotSniffer() {
-    delete p_zmqsock;
-  }
 };
 
 #endif /* bot_sniffer.h */

@@ -62,6 +62,8 @@ protected:
 
   SwabberInterface swabber_interface;
 
+  std::unique_ptr<Socket> botsniffer_socket_reuse;
+
   // Filters
   std::unique_ptr<RegexManager>     regex_manager;
   std::unique_ptr<ChallengeManager> challenge_manager;
@@ -110,9 +112,12 @@ public:
 
      @param banjax_config_dir path to the folder containing banjax.conf
    */
-  Banjax(const std::string& banjax_config_dir, std::unique_ptr<Socket> s = nullptr);
+  Banjax( const std::string& banjax_config_dir
+        , std::unique_ptr<Socket> swabber_s = nullptr
+        , std::unique_ptr<Socket> botsniffer_s = nullptr);
 
   std::unique_ptr<Socket> release_swabber_socket();
+  std::unique_ptr<Socket> release_botsniffer_socket();
 };
 
 #endif /*banjax.h*/

@@ -83,8 +83,6 @@ static std::string default_config() {
     "    hits_per_interval: 10\n";
 }
 
-string TEMP_DIR = "/tmp";
-
 /**
    Mainly fill an string stream buffer with a predefined configuration
    and to check if the regex manager has picked them correctly and
@@ -124,8 +122,7 @@ private:
     }
 
     regex_manager.reset(
-        new RegexManager(TEMP_DIR,
-                         regex_filter_config,
+        new RegexManager(regex_filter_config,
                          &regex_manager_ip_db,
                          &test_swabber_interface));
   }

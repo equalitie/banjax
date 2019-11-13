@@ -240,7 +240,7 @@ public:
                   IpDb* challenger_ip_db,
                   SwabberInterface* global_swabber_interface,
                   const GlobalWhiteList* global_white_list)
-    :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
+    :BanjaxFilter::BanjaxFilter(filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
     too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
     swabber_interface(global_swabber_interface),
     global_white_list(global_white_list),

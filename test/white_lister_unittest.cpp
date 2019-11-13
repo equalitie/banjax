@@ -59,8 +59,6 @@
 BOOST_AUTO_TEST_SUITE(WhiteListerManagerUnitTests)
 using namespace std;
 
-string TEMP_DIR = "/tmp";
-
 static std::unique_ptr<BanjaxFilter> open_config(GlobalWhiteList& db, std::string config)
 {
   YAML::Node cfg = YAML::Load(config);
@@ -79,7 +77,7 @@ static std::unique_ptr<BanjaxFilter> open_config(GlobalWhiteList& db, std::strin
     BOOST_REQUIRE(false);
   }
 
-  return unique_ptr<WhiteLister>(new WhiteLister(TEMP_DIR, filter_config, db));
+  return unique_ptr<WhiteLister>(new WhiteLister(filter_config, db));
 }
 
 /**

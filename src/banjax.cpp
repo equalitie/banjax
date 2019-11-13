@@ -48,8 +48,10 @@ struct BanjaxPlugin {
     TSMutexLock(reload_mutex);
     auto on_exit = defer([&] { TSMutexUnlock(reload_mutex); });
 
-    auto s = current_state->release_swabber_socket();
-    std::shared_ptr<Banjax> new_banjax(new Banjax(config_dir, move(s)));
+    auto swab_s = current_state->release_swabber_socket();
+    auto snif_s = current_state->release_botsniffer_socket();
+
+    std::shared_ptr<Banjax> new_banjax(new Banjax(config_dir, move(swab_s), move(snif_s)));
 
     // This happens atomically, so (in theory) we don't need to wrap in in mutex
     // in the handle_transaction_start hook.
@@ -84,19 +86,19 @@ Banjax::build_filters()
 
     try {
       if (cur_filter_name.second == REGEX_BANNER_FILTER_NAME) {
-        regex_manager.reset(new RegexManager(banjax_config_dir, cur_config, &regex_manager_ip_db, &swabber_interface));
+        regex_manager.reset(new RegexManager(cur_config, &regex_manager_ip_db, &swabber_interface));
         cur_filter = regex_manager.get();
       } else if (cur_filter_name.second == CHALLENGER_FILTER_NAME){
         challenge_manager.reset(new ChallengeManager(banjax_config_dir, cur_config, &challenger_ip_db, &swabber_interface, &global_ip_white_list));
         cur_filter = challenge_manager.get();
       } else if (cur_filter_name.second == WHITE_LISTER_FILTER_NAME){
-        white_lister.reset(new WhiteLister(banjax_config_dir, cur_config, global_ip_white_list));
+        white_lister.reset(new WhiteLister(cur_config, global_ip_white_list));
         cur_filter = white_lister.get();
       } else if (cur_filter_name.second == BOT_SNIFFER_FILTER_NAME){
-        bot_sniffer.reset(new BotSniffer(banjax_config_dir, cur_config));
+        bot_sniffer.reset(new BotSniffer(cur_config, move(botsniffer_socket_reuse)));
         cur_filter = bot_sniffer.get();
       } else if (cur_filter_name.second == DENIALATOR_FILTER_NAME){
-        denialator.reset(new Denialator(banjax_config_dir, cur_config, &swabber_ip_db, &swabber_interface, &global_ip_white_list));
+        denialator.reset(new Denialator(cur_config, &swabber_ip_db, &swabber_interface, &global_ip_white_list));
         cur_filter = denialator.get();
       } else {
         TSError(("don't know how to construct requested filter " + cur_filter_name.second).c_str());
@@ -166,17 +168,24 @@ std::unique_ptr<Socket> Banjax::release_swabber_socket() {
   return swabber_interface.release_socket();
 }
 
+std::unique_ptr<Socket> Banjax::release_botsniffer_socket() {
+  if (!bot_sniffer) return nullptr;
+  return bot_sniffer->release_socket();
+}
+
 /**
    Constructor
 
    @param banjax_config_dir path to the folder containing banjax.conf
 */
 Banjax::Banjax(const string& banjax_config_dir,
-    std::unique_ptr<Socket> swabber_socket)
+    std::unique_ptr<Socket> swabber_socket,
+    std::unique_ptr<Socket> bot_sniffer_socket)
   : all_filters_requested_part(0),
     all_filters_response_part(0),
     banjax_config_dir(banjax_config_dir),
-    swabber_interface(&swabber_ip_db, move(swabber_socket))
+    swabber_interface(&swabber_ip_db, move(swabber_socket)),
+    botsniffer_socket_reuse(move(bot_sniffer_socket))
 {
   /* create an TSTextLogObject to log blacklisted requests to */
   TSReturnCode error = TSTextLogObjectCreate(BANJAX_PLUGIN_NAME, TS_LOG_MODE_ADD_TIMESTAMP, &log);
@@ -184,9 +193,6 @@ Banjax::Banjax(const string& banjax_config_dir,
     TSDebug(BANJAX_PLUGIN_NAME, "error while creating log");
   }
 
-  TSDebug(BANJAX_PLUGIN_NAME, "reading configuration");
-
-  // Creation of filters happen here
   read_configuration();
 }
 

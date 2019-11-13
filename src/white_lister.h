@@ -23,10 +23,9 @@ public:
      receives the config object need to read the ip list,
      subsequently it reads all the ips
   */
-  WhiteLister(const std::string& banjax_dir,
-              const FilterConfig& filter_config,
+  WhiteLister(const FilterConfig& filter_config,
               GlobalWhiteList& white_list) :
-    BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME),
+    BanjaxFilter::BanjaxFilter(filter_config, WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME),
     white_list(white_list)
   {
     queued_tasks[HTTP_REQUEST] = this;

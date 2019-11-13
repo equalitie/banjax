@@ -6,73 +6,55 @@
 *  Vmon: Oct 2013: Initial version.
 */
 #include <string>
-#include <list>
-#include <vector>
 #include <ctime>
-
 #include <stdio.h>
-#include <zmq.hpp>
-
-#include <re2/re2.h> //google re2
-
 #include <ts/ts.h>
-
-using namespace std;
 
 #include "banjax_common.h"
 #include "util.h"
 #include "bot_sniffer.h"
-#include "ip_db.h"
-
 #include "base64.h"
+#include "print.h"
+#include "defer.h"
+
+using namespace std;
 
 #define VALID_OR_EMPTY(validity, part) ((validity & part) ? Base64::Encode(transaction_parts.at(part)) : "")
-/**
-  Reads botbanger's port from the config
- */
+
+static const string LOG = "botbanger_log";
+
 void
 BotSniffer::load_config()
 {
+  print::debug("BotSniffer::load_config()");
+
   try {
     botbanger_port = cfg["botbanger_port"].as<unsigned int>();
-
     string passphrase = cfg["key"].as<std::string>();
-
     SHA256((const unsigned char*)passphrase.c_str(), passphrase.length(), encryption_key);
   }
   catch(YAML::RepresentationException& e) {
-    TSDebug(BANJAX_PLUGIN_NAME, "Error loading bot sniffer conf [%s].", e.what());
+    print::debug("Error loading bot sniffer conf [%s].", e.what());
     throw;
   }
 
-  string new_binding_string  = "tcp://"+botbanger_server +":"+to_string(botbanger_port);
-  if (!p_zmqsock) { //we haven't got connected to anywhere before
-    p_zmqsock = new zmq::socket_t(context, ZMQ_PUB),
-    p_zmqsock->bind(new_binding_string.c_str());
-    //just get connected
-  } else if (new_binding_string != _binding_string) { //we are getting connected to a new end point just drop the last point and connect to new point
-    TSDebug(BANJAX_PLUGIN_NAME, "unbinding from %s",  _binding_string.c_str());
-    delete p_zmqsock;
-    TSDebug(BANJAX_PLUGIN_NAME,"connecting to %s...",  new_binding_string.c_str());
-    p_zmqsock = new zmq::socket_t(context, ZMQ_PUB),
-    p_zmqsock->bind(new_binding_string.c_str());
-    _binding_string = new_binding_string;
-  }; //else  {re-connecting to the same point do nothing} //unbind bind doesn't work
+  _local_endpoint = "tcp://" + botbanger_server + ":" + to_string(botbanger_port);
 
-  TSDebug(BANJAX_PLUGIN_NAME, "Done connecting to botbanger server...");
+  if (!socket || socket->local_endpoint() != _local_endpoint) {
+    socket.reset(new Socket);
+    socket->bind(_local_endpoint);
+
+    if (!socket->is_bound()) {
+      print::debug("BotSniffer: Failed to bind socket in load_config() "
+                   "to ", _local_endpoint, " "
+                   "we'll try again later");
+    }
+  }
 }
 
 void BotSniffer::on_http_close(const TransactionParts& transaction_parts)
 {
-
-  /*TSDebug("banjax", "sending log to botbanger");
-  TSDebug("banjax", "ip = %s", cd->client_ip);
-  TSDebug("banjax", "url = %s", cd->url);
-  TSDebug("banjax", "ua = %s", cd->ua);
-  TSDebug("banjax", "size = %d", (int) cd->request_len);
-  TSDebug("banjax", "status = %d", stat);
-  TSDebug("banjax", "protocol = %s", cd->protocol);
-  TSDebug("banjax", "hit = %d", cd->hit);*/
+  print::debug("BotSniffer: on_http_close(...)");
 
   std::time_t rawtime;
   std::time(&rawtime);
@@ -86,46 +68,43 @@ void BotSniffer::on_http_close(const TransactionParts& transaction_parts)
 
   uint64_t* cur_validity = (uint64_t*)transaction_parts.at(TransactionMuncher::VALIDITY_STAT).data();
 
-  //TODO: This is a temp solution, we can't afford losing logs due 
-  //to failing acquiring the lock
-  //really?
-  TSDebug(BANJAX_PLUGIN_NAME, "locking the botsniffer socket...");
-  if (TSMutexLockTry(bot_sniffer_mutex) == TS_SUCCESS) {
-    
-    string plaintext_log;
-    send_zmq_mess(*p_zmqsock, BOTBANGER_LOG, true);
+  if (TSMutexLockTry(mutex) == TS_SUCCESS) {
+    auto on_exit = defer([&] { TSMutexUnlock(mutex); });
 
-    //send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP), true);
-    plaintext_log += VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP);
+    if (!socket) return;
 
-    //send_zmq_mess(zmqsock, time_buffer, true);
-    plaintext_log += "," + Base64::Encode(string(time_buffer));
+    if (!socket->is_bound()) {
+      if (socket->bind(_local_endpoint)) {
+        print::debug("BotSniffer: Success binding to ", _local_endpoint);
+      } else {
+        print::debug("BotSniffer: Failed to bind to ", _local_endpoint);
+        return;
+      }
+    }
 
-    //send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::URL_WITH_HOST), true);
-    plaintext_log += "," +  VALID_OR_EMPTY(*cur_validity, TransactionMuncher::URL_WITH_HOST);
+    send_zmq_mess(socket->handle(), LOG, true);
 
-    //send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::PROTOCOL), true);
-    plaintext_log += "," + VALID_OR_EMPTY(*cur_validity, TransactionMuncher::PROTOCOL);
-      
-    //send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::STATUS), true);
-    plaintext_log += "," + VALID_OR_EMPTY(*cur_validity, TransactionMuncher::STATUS);
-
-    //send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::CONTENT_LENGTH), true);
-    plaintext_log += "," + VALID_OR_EMPTY(*cur_validity, TransactionMuncher::CONTENT_LENGTH);
-
-    //send_zmq_mess(zmqsock, VALID_OR_EMPTY(*cur_validity, TransactionMuncher::UA), true);
-    plaintext_log += "," + VALID_OR_EMPTY(*cur_validity, TransactionMuncher::UA);
-
-    //send_zmq_mess(zmqsock, transaction_parts.count(TransactionMuncher::MISS) ? "MISS" : "HIT");
     std::string hit_mis_str = (transaction_parts.count(TransactionMuncher::MISS) ? b64_hit : b64_miss);
-    plaintext_log += "," + hit_mis_str;
 
-    send_zmq_encrypted_message(*p_zmqsock, plaintext_log, encryption_key);
+    string plaintext_log
+      = VALID_OR_EMPTY(*cur_validity, TransactionMuncher::IP)
+      + "," + Base64::Encode(time_buffer)
+      + "," + VALID_OR_EMPTY(*cur_validity, TransactionMuncher::URL_WITH_HOST)
+      + "," + VALID_OR_EMPTY(*cur_validity, TransactionMuncher::PROTOCOL)
+      + "," + VALID_OR_EMPTY(*cur_validity, TransactionMuncher::STATUS)
+      + "," + VALID_OR_EMPTY(*cur_validity, TransactionMuncher::CONTENT_LENGTH)
+      + "," + VALID_OR_EMPTY(*cur_validity, TransactionMuncher::UA)
+      + "," + hit_mis_str;
 
-    TSMutexUnlock(bot_sniffer_mutex);
+    send_zmq_encrypted_message(socket->handle(), plaintext_log, encryption_key);
   }
   //botbanger_interface.add_log(transaction_parts[IP], cd->url, cd->protocol, stat, (long) cd->request_len, cd->ua, cd->hit);
   //botbanger_interface.add_log(cd->client_ip, time_str, cd->url, protocol, status, size, cd->ua, hit);
 }
 
-
+std::unique_ptr<Socket> BotSniffer::release_socket()
+{
+  TSMutexLock(mutex);
+  auto on_exit = defer([&] { TSMutexUnlock(mutex); });
+  return std::move(socket);
+}

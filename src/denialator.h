@@ -28,13 +28,11 @@ class Denialator : public BanjaxFilter
      subsequently it reads all the ips
 
   */
- Denialator(const std::string& banjax_dir,
-            const FilterConfig& filter_config,
+ Denialator(const FilterConfig& filter_config,
             SwabberInterface::IpDb* swabber_ip_db,
             SwabberInterface* global_swabber_interface,
             GlobalWhiteList* global_white_list)
-   : BanjaxFilter(banjax_dir,
-                  filter_config,
+   : BanjaxFilter(filter_config,
                   DENIALATOR_FILTER_ID,
                   DENIALATOR_FILTER_NAME),
      swabber_interface(global_swabber_interface),
