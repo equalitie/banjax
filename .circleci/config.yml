@@ -30,9 +30,9 @@ jobs:
     # 'See docs on artifact collection here https://circleci.com/docs/2.0/artifacts/'
     - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
 
-    - run: apt-get update -qq
-    - run: apt-get upgrade -qq
-    - run: apt-get install -qqy
+    - run: |
+        apt-get update -qq &&
+        apt-get upgrade -qq
 
     - run: |
         apt-get install -qy \
@@ -49,7 +49,8 @@ jobs:
         bzip2 \
         gawk
 
-    - run: apt-get install -qy \
+    - run: |
+        apt-get install -qy \
         git-core \
         build-essential \
         automake \
@@ -59,7 +60,8 @@ jobs:
         bison \
         cmake
 
-    - run: apt-get install -qy \
+    - run: |
+        apt-get install -qy \
         libssl-dev \
         libhwloc-dev \
         libcap-dev \
@@ -76,10 +78,12 @@ jobs:
         libboost-test-dev \
         libconfig++-dev
 
-    - run: groupadd --gid $TSGID $TSGROUP && \
+    - run: |
+        groupadd --gid $TSGID $TSGROUP && \
         useradd --uid $TSUID -s /bin/bash -g $TSGROUP -c "Apache Traffic Server" -M $TSUSER
 
-    - run: mkdir /build_trafficserver && \
+    - run: |
+        mkdir /build_trafficserver && \
         cd /build_trafficserver && curl -O $ATS_DLINK
 
     - run: |
@@ -87,7 +91,8 @@ jobs:
         /bin/bash -c "[[ \"$(sha512sum < trafficserver-$ATS_VERSION.tar.bz2)\" = \"$ATS_SHA512  -\" ]]" && \  # XXX double check this?
         tar jxf trafficserver-$ATS_VERSION.tar.bz2)
 
-    - run: cd /build_trafficserver/trafficserver-$ATS_VERSION && \
+    - run: |
+        cd /build_trafficserver/trafficserver-$ATS_VERSION && \
         ./configure --prefix=$TSPATH \
         --enable-layout=Apache \
         --with-user=$TSUSER \
@@ -97,15 +102,18 @@ jobs:
         --with-ncurses \
         --enable-wccp
 
-    - run: cd /build_trafficserver/trafficserver-$ATS_VERSION && \
+    - run: |
+        cd /build_trafficserver/trafficserver-$ATS_VERSION && \
         make -j$(nproc) && \
         make install
 
-    - run: cd $TSPATH && \
+    - run: |
+        cd $TSPATH && \
         rm modules/*.la ; \
         rm lib/*.la
 
-    - run: mv $TSPATH/conf $TSPATH/dist-conf && \
+    - run: |
+        mv $TSPATH/conf $TSPATH/dist-conf && \
         mkdir -m 0755 $TSPATH/conf && \
         mkdir -m 0755 $TSPATH/conf/conf.d && \
         mkdir -m 0755 $TSPATH/conf/banjax && \
@@ -114,16 +122,19 @@ jobs:
         mkdir -m 0755 $TSPATH/modules/banjax && \
         mkdir -m 0750 $TSPATH/conf/ssl
 
-    - run: cd "$BANJAX_DIR" && \
+    - run: |
+        cd "$BANJAX_DIR" && \
         mkdir build && cd build && \
         cmake ../ -DCMAKE_CXX_FLAGS="-I$TSPATH/include" && \
         make -j$(nproc)
 
-    - run: cd "$BANJAX_DIR" && \
+    - run: |
+        cd "$BANJAX_DIR" && \
         cp build/banjax.so $TSPATH/modules/banjax/banjax.so && \
         chmod 0755 $TSPATH/modules/banjax/banjax.so
 
-    - run: cd "$BANJAX_DIR"/config && \
+    - run: |
+        cd "$BANJAX_DIR"/config && \
         cp auth.html captcha.html solver.html $TSPATH/modules/banjax/
 
     - run: cp "$TSPATH"/dist-conf/*.config "$TSPATH"/conf/
