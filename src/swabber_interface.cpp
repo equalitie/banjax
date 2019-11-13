@@ -22,7 +22,7 @@ static const long   DEFAULT_GRACE_PERIOD = 0;
 static const string SWABBER_BAN = "swabber_bans";
 static const string BAN_IP_LOG  = "/usr/local/trafficserver/logs/ban_ip_list.log";
 
-SwabberInterface::SwabberInterface(SwabberIpDb* swabber_ip_db,
+SwabberInterface::SwabberInterface(IpDb* swabber_ip_db,
     std::unique_ptr<Socket> s)
   :ban_ip_list(BAN_IP_LOG.c_str(), ios::out | ios::app),
    swabber_mutex(TSMutexCreate()),
@@ -110,7 +110,7 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
   /* we are waiting for grace period before banning for inteligent gathering purpose */
   if (grace_period > 0) { //if there is no grace then ignore these steps
 
-    boost::optional<SwabberIpDb::IpState> cur_ip_state = swabber_ip_db->get_ip_state(bot_ip);
+    boost::optional<IpDb::IpState> cur_ip_state = swabber_ip_db->get_ip_state(bot_ip);
 
     /* If we failed to query the database then just don't report to swabber */
     if (!cur_ip_state) {

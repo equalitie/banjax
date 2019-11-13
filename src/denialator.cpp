@@ -25,7 +25,7 @@ FilterResponse Denialator::on_http_request(const TransactionParts& transaction_p
     return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
   }
 
-  boost::optional<SwabberIpDb::IpState> ip_state = swabber_ip_db->get_ip_state(cur_ip);
+  boost::optional<SwabberInterface::IpDb::IpState> ip_state = swabber_ip_db->get_ip_state(cur_ip);
 
   if (!ip_state) {
     print::debug("Denialator: doing nothing due to a failure to acquire ip db lock");

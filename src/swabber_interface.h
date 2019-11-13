@@ -18,6 +18,8 @@
 class SwabberInterface
 {
 public:
+  using IpDb = ::IpDb<Default<time_t, 0>>;
+
   struct Socket {
     zmq::context_t ctx;
     zmq::socket_t s;
@@ -56,7 +58,7 @@ protected:
   TSMutex swabber_mutex;
 
   //to forgive ips after being banned
-  SwabberIpDb* swabber_ip_db;
+  IpDb* swabber_ip_db;
 
   //server and the port that swabber is going to connect to
   //if they are not specified in the config, they be set to
@@ -82,7 +84,7 @@ public:
   /**
      initiating the interface
   */
-  SwabberInterface(SwabberIpDb*, std::unique_ptr<Socket> s = nullptr);
+  SwabberInterface(IpDb*, std::unique_ptr<Socket> s = nullptr);
 
   /**
    * access function for grace period used by denialator

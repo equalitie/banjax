@@ -21,7 +21,7 @@ class Denialator : public BanjaxFilter
 
   long banning_grace_period = 0;
 
-  SwabberIpDb* swabber_ip_db;
+  SwabberInterface::IpDb* swabber_ip_db;
  public:
   /**
      receives the config object need to read the ip list,
@@ -30,7 +30,7 @@ class Denialator : public BanjaxFilter
   */
  Denialator(const std::string& banjax_dir,
             const FilterConfig& filter_config,
-            SwabberIpDb* swabber_ip_db,
+            SwabberInterface::IpDb* swabber_ip_db,
             SwabberInterface* global_swabber_interface,
             GlobalWhiteList* global_white_list)
    : BanjaxFilter(banjax_dir,

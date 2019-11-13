@@ -51,7 +51,7 @@ protected:
   //requests
   TSTextLogObject log;
 
-  SwabberIpDb     swabber_ip_db;
+  SwabberInterface::IpDb   swabber_ip_db;
   ChallengerIpDb  challenger_ip_db;
   RegexManager::IpDb regex_manager_ip_db;
 

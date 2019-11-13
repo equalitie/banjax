@@ -94,7 +94,7 @@ class Test {
 public:
   std::unique_ptr<BanjaxFilter> regex_manager;
 
-  SwabberIpDb swabber_ip_db;
+  SwabberInterface::IpDb swabber_ip_db;
   RegexManager::IpDb regex_manager_ip_db;
   SwabberInterface test_swabber_interface;
 
