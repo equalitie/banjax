@@ -32,26 +32,6 @@ public:
   FilterConfig() : priority(0) {}
 };
 
-namespace YAML {
-  static Node operator|(const Node& a, const Node &b) {
-    Node result;
-    if (b.IsMap()) {
-      result = a;
-      for (auto n0 : b) {
-        result[n0.first.Scalar()] =  result[n0.first.Scalar()] | n0.second;
-      }
-    } else if (a.IsSequence() && b.IsSequence()) {
-      result = a;
-      for (auto n0 : b) {
-        result.push_back(n0);
-      }
-    } else {
-      result = b;
-    }
-    return result;
-  }
-}
-
 /**
    this is the standard extended response that the event handler expect to
    process.
@@ -146,10 +126,10 @@ struct  FilterTask
 
 class BanjaxFilter
 {
- protected:
+protected:
   YAML::Node cfg;
 
- public:
+public:
   const unsigned int BANJAX_FILTER_ID;
   const std::string BANJAX_FILTER_NAME;
 
@@ -203,7 +183,7 @@ class BanjaxFilter
 
     for(const auto& cur_node : filter_config.config_node_list)
     {
-      cfg = cfg | cur_node->second;
+      cfg = merge_nodes(cfg, cur_node->second);
     }
   }
 
@@ -258,6 +238,25 @@ class BanjaxFilter
     TSDebug(BANJAX_PLUGIN_NAME, "You shouldn't have called me at the first place.");
     assert(NULL);
     return "";
+  }
+
+private:
+  static YAML::Node merge_nodes(const YAML::Node& a, const YAML::Node &b) {
+    YAML::Node result;
+    if (b.IsMap()) {
+      result = a;
+      for (auto n0 : b) {
+        result[n0.first.Scalar()] =  merge_nodes(result[n0.first.Scalar()], n0.second);
+      }
+    } else if (a.IsSequence() && b.IsSequence()) {
+      result = a;
+      for (auto n0 : b) {
+        result.push_back(n0);
+      }
+    } else {
+      result = b;
+    }
+    return result;
   }
 };
 
