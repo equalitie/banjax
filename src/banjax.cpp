@@ -13,16 +13,15 @@
 #include <ts/ts.h>
 #include <string>
 #include <iostream>
-
-//check if the banjax.conf folder exists and is a folder indeed
 #include <sys/stat.h>
-#include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
+#include <stdarg.h> /* va_list, va_start, va_arg, va_end */
 
 #include "transaction_data.h"
 #include "white_lister.h"
 #include "bot_sniffer.h"
 #include "denialator.h"
 #include "banjax.h"
+#include "defer.h"
 
 using namespace std;
 
@@ -44,6 +43,18 @@ struct BanjaxPlugin {
     , reload_mutex(TSMutexCreate())
     , current_state(make_shared<Banjax>(this->config_dir))
   {}
+
+  void reload_config() {
+    TSMutexLock(reload_mutex);
+    auto on_exit = defer([&] { TSMutexUnlock(reload_mutex); });
+
+    auto s = current_state->release_swabber_socket();
+    std::shared_ptr<Banjax> new_banjax(new Banjax(config_dir, move(s)));
+
+    // This happens atomically, so (in theory) we don't need to wrap in in mutex
+    // in the handle_transaction_start hook.
+    current_state = std::move(new_banjax);
+  }
 };
 
 std::shared_ptr<BanjaxPlugin> g_banjax_plugin;
@@ -149,18 +160,7 @@ int handle_management(TSCont contp, TSEvent event, void *edata)
   (void) contp; (void) edata;
   TSDebug(BANJAX_PLUGIN_NAME, "reload configuration signal received");
   TSReleaseAssert(event == TS_EVENT_MGMT_UPDATE);
-
-  TSMutexLock(g_banjax_plugin->reload_mutex);
-
-  auto s = g_banjax_plugin->current_state->release_swabber_socket();
-  std::shared_ptr<Banjax> new_banjax(new Banjax(g_banjax_plugin->config_dir, move(s)));
-
-  // This happens atomically, so (in theory) we don't need to wrap in in mutex
-  // in the handle_transaction_start hook.
-  g_banjax_plugin->current_state = std::move(new_banjax);
-
-  TSMutexUnlock(g_banjax_plugin->reload_mutex);
-
+  g_banjax_plugin->reload_config();
   return 0;
 }
 
