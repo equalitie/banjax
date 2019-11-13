@@ -8,7 +8,6 @@
 #include <sys/time.h>
 
 #include "denialator.h"
-#include "ip_database.h"
 #include "global_white_list.h"
 #include "print.h"
 

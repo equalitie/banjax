@@ -12,7 +12,7 @@
 
 class BanjaxFilter;
 
-#include "ip_database.h"
+#include "ip_db.h"
 #include "swabber_interface.h"
 #include "transaction_muncher.h"
 #include "banjax_filter.h"

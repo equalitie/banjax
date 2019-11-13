@@ -12,7 +12,7 @@
 #include <zmq.hpp>
 #include <fstream>
 
-#include "ip_database.h"
+#include "ip_db.h"
 #include "banjax_filter.h"
 #include "default.h"
 

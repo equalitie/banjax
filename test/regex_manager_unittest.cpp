@@ -56,7 +56,7 @@
 #include "regex_manager.h"
 
 #include "swabber_interface.h"
-#include "ip_database.h"
+#include "ip_db.h"
 
 using namespace std;
 

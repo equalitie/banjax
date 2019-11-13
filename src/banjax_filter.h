@@ -13,7 +13,7 @@
 #include "banjax_common.h"
 #include "transaction_muncher.h"
 #include "filter_list.h"
-#include "ip_database.h"
+#include "ip_db.h"
 
 class BanjaxFilter;
 class FilterResponse;
