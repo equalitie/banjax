@@ -32,8 +32,6 @@ jobs:
 
     - run: apt-get update -qq
     - run: apt-get install -qqy
-    - run: apt-utils dialog
-    - run: apt-get dist-upgrade -qqy
 
     - run: apt-get install -qy \
         apt-transport-https \
