@@ -13,7 +13,7 @@
 #include <yaml-cpp/yaml.h>
 #include <openssl/sha.h>
 
-#include "swabber_interface.h"
+#include "swabber.h"
 #include "banjax_filter.h"
 #include "global_white_list.h"
 #include "default.h"
@@ -184,7 +184,7 @@ protected:
   //ATS barf if you give it the message in const memory
   const std::string too_many_failures_message;
 
-  SwabberInterface* swabber_interface;
+  Swabber* swabber;
 
   const GlobalWhiteList* global_white_list;
 
@@ -238,11 +238,11 @@ public:
  Challenger(const std::string& banjax_dir,
             const FilterConfig& filter_config,
             IpDb* challenger_ip_db,
-            SwabberInterface* global_swabber_interface,
+            Swabber* swabber,
             const GlobalWhiteList* global_white_list)
     :BanjaxFilter::BanjaxFilter(filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
     too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
-    swabber_interface(global_swabber_interface),
+    swabber(swabber),
     global_white_list(global_white_list),
     challenger_ip_db(challenger_ip_db)
   {

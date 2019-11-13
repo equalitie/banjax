@@ -8,7 +8,7 @@
 
 #include <sys/time.h>
 
-#include "swabber_interface.h"
+#include "swabber.h"
 #include "defer.h"
 #include "print.h"
 
@@ -22,7 +22,7 @@ static const long   DEFAULT_GRACE_PERIOD = 0;
 static const string SWABBER_BAN = "swabber_bans";
 static const string BAN_IP_LOG  = "/usr/local/trafficserver/logs/ban_ip_list.log";
 
-SwabberInterface::SwabberInterface(IpDb* swabber_ip_db,
+Swabber::Swabber(IpDb* swabber_ip_db,
     std::unique_ptr<Socket> s)
   :ban_ip_list(BAN_IP_LOG.c_str(), ios::out | ios::app),
    swabber_mutex(TSMutexCreate()),
@@ -42,7 +42,7 @@ SwabberInterface::SwabberInterface(IpDb* swabber_ip_db,
   reads the grace period and swabber listening port and bind to it
  */
 void
-SwabberInterface::load_config(FilterConfig& swabber_config)
+Swabber::load_config(FilterConfig& swabber_config)
 {
   //reset to default
   swabber_server = DEFAULT_SERVER;
@@ -104,7 +104,7 @@ struct CurrentGmTime {
    @param banning_reason the reason for the request to be stored in the log
 */
 void
-SwabberInterface::ban(string bot_ip, std::string banning_reason)
+Swabber::ban(string bot_ip, std::string banning_reason)
 {
   timeval cur_time;
   gettimeofday(&cur_time, NULL);
@@ -176,7 +176,7 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
   swabber_ip_db->drop_ip(bot_ip);
 }
 
-std::unique_ptr<Socket> SwabberInterface::release_socket()
+std::unique_ptr<Socket> Swabber::release_socket()
 {
   TSMutexLock(swabber_mutex);
   auto s = std::move(socket);

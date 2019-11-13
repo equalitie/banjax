@@ -186,7 +186,7 @@ FilterResponse RegexManager::on_http_request(const TransactionParts& transaction
 
     string banning_reason = "matched regex rule " + result.second->rule_name + ", " + ats_rec_comma_sep;
 
-    swabber_interface->ban(ats_record_parts[TransactionMuncher::IP], banning_reason);
+    swabber->ban(ats_record_parts[TransactionMuncher::IP], banning_reason);
     return FilterResponse([&](const TransactionParts& a, const FilterResponse& b) { return this->generate_response(a, b); });
 
   } else if (result.first != REGEX_MISSED) {

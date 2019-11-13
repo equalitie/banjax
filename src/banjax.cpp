@@ -81,10 +81,10 @@ Banjax::build_filters()
 
     try {
       if (cur_filter_name.second == REGEX_BANNER_FILTER_NAME) {
-        regex_manager.reset(new RegexManager(cur_config, &regex_manager_ip_db, &swabber_interface));
+        regex_manager.reset(new RegexManager(cur_config, &regex_manager_ip_db, &swabber));
         cur_filter = regex_manager.get();
       } else if (cur_filter_name.second == CHALLENGER_FILTER_NAME){
-        challenger.reset(new Challenger(banjax_config_dir, cur_config, &challenger_ip_db, &swabber_interface, &global_ip_white_list));
+        challenger.reset(new Challenger(banjax_config_dir, cur_config, &challenger_ip_db, &swabber, &global_ip_white_list));
         cur_filter = challenger.get();
       } else if (cur_filter_name.second == WHITE_LISTER_FILTER_NAME){
         white_lister.reset(new WhiteLister(cur_config, global_ip_white_list));
@@ -93,7 +93,7 @@ Banjax::build_filters()
         bot_sniffer.reset(new BotSniffer(cur_config, move(botsniffer_socket_reuse)));
         cur_filter = bot_sniffer.get();
       } else if (cur_filter_name.second == DENIALATOR_FILTER_NAME){
-        denialator.reset(new Denialator(cur_config, &swabber_ip_db, &swabber_interface, &global_ip_white_list));
+        denialator.reset(new Denialator(cur_config, &swabber_ip_db, &swabber, &global_ip_white_list));
         cur_filter = denialator.get();
       } else {
         print::debug("Don't know how to construct filter: \"", cur_filter_name.second, "\"");
@@ -160,7 +160,7 @@ int handle_management(TSCont contp, TSEvent event, void *edata)
 }
 
 std::unique_ptr<Socket> Banjax::release_swabber_socket() {
-  return swabber_interface.release_socket();
+  return swabber.release_socket();
 }
 
 std::unique_ptr<Socket> Banjax::release_botsniffer_socket() {
@@ -179,7 +179,7 @@ Banjax::Banjax(const string& banjax_config_dir,
   : all_filters_requested_part(0),
     all_filters_response_part(0),
     banjax_config_dir(banjax_config_dir),
-    swabber_interface(&swabber_ip_db, move(swabber_socket)),
+    swabber(&swabber_ip_db, move(swabber_socket)),
     botsniffer_socket_reuse(move(bot_sniffer_socket))
 {
   /* create an TSTextLogObject to log blacklisted requests to */
@@ -259,7 +259,7 @@ Banjax::read_configuration()
 
   //(re)set swabber configuration if there is no swabber node
   //in the configuration we reset the configuration
-  swabber_interface.load_config(swabber_conf);
+  swabber.load_config(swabber_conf);
 
   //now we can make the filters
   build_filters();

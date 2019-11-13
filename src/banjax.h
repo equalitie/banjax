@@ -13,7 +13,7 @@
 class BanjaxFilter;
 
 #include "ip_db.h"
-#include "swabber_interface.h"
+#include "swabber.h"
 #include "transaction_muncher.h"
 #include "banjax_filter.h"
 #include "white_lister.h"
@@ -56,11 +56,11 @@ protected:
   //requests
   TSTextLogObject log;
 
-  SwabberInterface::IpDb swabber_ip_db;
-  Challenger::IpDb challenger_ip_db;
-  RegexManager::IpDb     regex_manager_ip_db;
+  Swabber::IpDb      swabber_ip_db;
+  Challenger::IpDb   challenger_ip_db;
+  RegexManager::IpDb regex_manager_ip_db;
 
-  SwabberInterface swabber_interface;
+  Swabber swabber;
 
   std::unique_ptr<Socket> botsniffer_socket_reuse;
 

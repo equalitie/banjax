@@ -17,7 +17,7 @@
 #include "default.h"
 #include "socket.h"
 
-class SwabberInterface
+class Swabber
 {
 public:
   using IpDb = ::IpDb<Default<time_t, 0>>;
@@ -55,7 +55,7 @@ public:
   /**
      initiating the interface
   */
-  SwabberInterface(IpDb*, std::unique_ptr<Socket> s = nullptr);
+  Swabber(IpDb*, std::unique_ptr<Socket> s = nullptr);
 
   /**
    * access function for grace period used by denialator

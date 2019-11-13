@@ -705,7 +705,7 @@ Challenger::report_failure(const std::shared_ptr<HostChallengeSpec>& failed_chal
       ats_record_parts[TransactionMuncher::HOST] + ", " +
       encapsulate_in_quotes(ats_record_parts[TransactionMuncher::UA]);
 
-    swabber_interface->ban(client_ip.c_str(), banning_reason);
+    swabber->ban(client_ip.c_str(), banning_reason);
     //reset the number of failures for future
     //we are not clearing the state cause it is not for sure that
     //swabber ban the ip due to possible failure of acquiring lock

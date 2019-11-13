@@ -10,7 +10,7 @@
 #include <re2/re2.h>
 
 #include "banjax_filter.h"
-#include "swabber_interface.h"
+#include "swabber.h"
 
 class RegexManager : public BanjaxFilter
 {
@@ -57,7 +57,7 @@ protected:
   unsigned int total_no_of_rules;
 
   //swabber object used for banning bots
-  SwabberInterface* swabber_interface;
+  Swabber* swabber;
 
   IpDb* regex_manager_ip_db;
 
@@ -85,11 +85,11 @@ public:
   */
   RegexManager(const FilterConfig& filter_config,
                IpDb* regex_manager_ip_db,
-               SwabberInterface* global_swabber_interface) :
+               Swabber* swabber) :
     BanjaxFilter::BanjaxFilter(filter_config, REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME),
     forbidden_message("<html><header></header><body>Forbidden</body></html>"),
     forbidden_message_length(forbidden_message.length()),
-    swabber_interface(global_swabber_interface),
+    swabber(swabber),
     regex_manager_ip_db(regex_manager_ip_db)
   {
     queued_tasks[HTTP_REQUEST] = this;
