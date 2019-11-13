@@ -15,36 +15,12 @@
 #include "ip_db.h"
 #include "banjax_filter.h"
 #include "default.h"
+#include "socket.h"
 
 class SwabberInterface
 {
 public:
   using IpDb = ::IpDb<Default<time_t, 0>>;
-
-  struct Socket {
-    zmq::context_t ctx;
-    zmq::socket_t s;
-    std::string bound_endpoint;
-
-    Socket()
-      : ctx(1 /* thread count */)
-      , s(ctx, ZMQ_PUB)
-    {}
-
-    bool bind(std::string endpoint) {
-      try {
-        s.bind(endpoint.c_str());
-        bound_endpoint = std::move(endpoint);
-      } catch(const zmq::error_t&) {
-        return false;
-      }
-      return true;
-    }
-
-    bool is_bound() const {
-      return !bound_endpoint.empty();
-    }
-  };
 
 protected:
   std::string local_endpoint;

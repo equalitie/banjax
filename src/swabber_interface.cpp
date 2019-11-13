@@ -73,7 +73,7 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
 
   local_endpoint = "tcp://" + swabber_server + ":" + swabber_port;
 
-  if (socket->is_bound() && socket->bound_endpoint != local_endpoint) {
+  if (socket->local_endpoint() != local_endpoint) {
     socket.reset(new Socket());
   }
 
@@ -165,8 +165,8 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
       }
     }
 
-    socket->s.send(ban_request, ZMQ_SNDMORE);
-    socket->s.send(ip_to_ban);
+    socket->handle().send(ban_request, ZMQ_SNDMORE);
+    socket->handle().send(ip_to_ban);
 
     ban_ip_list << bot_ip << ", " << "[" << CurrentGmTime() << "], " << banning_reason << ", banned" << endl;
   }
@@ -174,7 +174,7 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
   swabber_ip_db->drop_ip(bot_ip);
 }
 
-std::unique_ptr<SwabberInterface::Socket> SwabberInterface::release_socket()
+std::unique_ptr<Socket> SwabberInterface::release_socket()
 {
   TSMutexLock(swabber_mutex);
   auto s = std::move(socket);

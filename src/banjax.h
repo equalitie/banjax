@@ -19,6 +19,7 @@ class BanjaxFilter;
 #include "global_white_list.h"
 #include "regex_manager.h"
 #include "challenge_manager.h"
+#include "socket.h"
 
 class Banjax
 {
@@ -102,9 +103,9 @@ public:
 
      @param banjax_config_dir path to the folder containing banjax.conf
    */
-  Banjax(const std::string& banjax_config_dir, std::unique_ptr<SwabberInterface::Socket> s = nullptr);
+  Banjax(const std::string& banjax_config_dir, std::unique_ptr<Socket> s = nullptr);
 
-  std::unique_ptr<SwabberInterface::Socket> release_swabber_socket();
+  std::unique_ptr<Socket> release_swabber_socket();
 };
 
 #endif /*banjax.h*/

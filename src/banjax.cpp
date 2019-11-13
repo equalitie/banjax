@@ -164,7 +164,7 @@ int handle_management(TSCont contp, TSEvent event, void *edata)
   return 0;
 }
 
-std::unique_ptr<SwabberInterface::Socket> Banjax::release_swabber_socket() {
+std::unique_ptr<Socket> Banjax::release_swabber_socket() {
   return swabber_interface.release_socket();
 }
 
@@ -174,7 +174,7 @@ std::unique_ptr<SwabberInterface::Socket> Banjax::release_swabber_socket() {
    @param banjax_config_dir path to the folder containing banjax.conf
 */
 Banjax::Banjax(const string& banjax_config_dir,
-    std::unique_ptr<SwabberInterface::Socket> swabber_socket)
+    std::unique_ptr<Socket> swabber_socket)
   : all_filters_requested_part(0),
     all_filters_response_part(0),
     banjax_config_dir(banjax_config_dir),
