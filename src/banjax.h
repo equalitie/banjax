@@ -16,6 +16,9 @@ class BanjaxFilter;
 #include "swabber_interface.h"
 #include "transaction_muncher.h"
 #include "banjax_filter.h"
+#include "white_lister.h"
+#include "bot_sniffer.h"
+#include "denialator.h"
 #include "global_white_list.h"
 #include "regex_manager.h"
 #include "challenge_manager.h"
@@ -59,9 +62,13 @@ protected:
 
   SwabberInterface swabber_interface;
 
-  // This keeps the list of all created filter objects so we can delete them on
-  // re-load.
-  std::list<std::unique_ptr<BanjaxFilter>> filters;
+  // Filters
+  std::unique_ptr<RegexManager>     regex_manager;
+  std::unique_ptr<ChallengeManager> challenge_manager;
+  std::unique_ptr<WhiteLister>      white_lister;
+  std::unique_ptr<BotSniffer>       bot_sniffer;
+  std::unique_ptr<Denialator>       denialator;
+
   /**
      open the mysql database and read the configs from the database
      this include the regex and l2b models
@@ -82,7 +89,7 @@ protected:
      @param main_root is libconfig++ ref to the root of
                       config file
   */
-  void filter_factory();
+  void build_filters();
 
   /**
      reload config and remake filters when traffic_line -x is executed

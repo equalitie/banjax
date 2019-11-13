@@ -75,7 +75,7 @@ void TSErrorAlternative(const char* fmt, ...)
    you need to add it inside this function
 */
 void
-Banjax::filter_factory()
+Banjax::build_filters()
 {
   BanjaxFilter* cur_filter;
 
@@ -84,15 +84,20 @@ Banjax::filter_factory()
 
     try {
       if (cur_filter_name.second == REGEX_BANNER_FILTER_NAME) {
-        cur_filter = new RegexManager(banjax_config_dir, cur_config, &regex_manager_ip_db, &swabber_interface);
+        regex_manager.reset(new RegexManager(banjax_config_dir, cur_config, &regex_manager_ip_db, &swabber_interface));
+        cur_filter = regex_manager.get();
       } else if (cur_filter_name.second == CHALLENGER_FILTER_NAME){
-        cur_filter = new ChallengeManager(banjax_config_dir, cur_config, &challenger_ip_db, &swabber_interface, &global_ip_white_list);
+        challenge_manager.reset(new ChallengeManager(banjax_config_dir, cur_config, &challenger_ip_db, &swabber_interface, &global_ip_white_list));
+        cur_filter = challenge_manager.get();
       } else if (cur_filter_name.second == WHITE_LISTER_FILTER_NAME){
-        cur_filter = new WhiteLister(banjax_config_dir, cur_config, global_ip_white_list);
+        white_lister.reset(new WhiteLister(banjax_config_dir, cur_config, global_ip_white_list));
+        cur_filter = white_lister.get();
       } else if (cur_filter_name.second == BOT_SNIFFER_FILTER_NAME){
-        cur_filter = new BotSniffer(banjax_config_dir, cur_config);
+        bot_sniffer.reset(new BotSniffer(banjax_config_dir, cur_config));
+        cur_filter = bot_sniffer.get();
       } else if (cur_filter_name.second == DENIALATOR_FILTER_NAME){
-        cur_filter = new Denialator(banjax_config_dir, cur_config, &swabber_ip_db, &swabber_interface, &global_ip_white_list);
+        denialator.reset(new Denialator(banjax_config_dir, cur_config, &swabber_ip_db, &swabber_interface, &global_ip_white_list));
+        cur_filter = denialator.get();
       } else {
         TSError(("don't know how to construct requested filter " + cur_filter_name.second).c_str());
         abort_traffic_server();
@@ -110,13 +115,6 @@ Banjax::filter_factory()
       }
     }
 
-    if(cur_filter){
-      filters.emplace_back(cur_filter);
-    }
-  }
-
-  // Ask each filter what part of http transaction they are interested in
-  for(const auto& cur_filter : filters) {
     all_filters_requested_part |= cur_filter->requested_info();
     all_filters_response_part  |= cur_filter->response_info();
   }
@@ -261,8 +259,9 @@ Banjax::read_configuration()
   //(re)set swabber configuration if there is no swabber node
   //in the configuration we reset the configuration
   swabber_interface.load_config(swabber_conf);
+
   //now we can make the filters
-  filter_factory();
+  build_filters();
 }
 
 
