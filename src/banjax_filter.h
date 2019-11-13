@@ -10,7 +10,6 @@
 #include <yaml-cpp/yaml.h>
 #include <functional>
 
-#include "banjax_common.h"
 #include "transaction_muncher.h"
 #include "filter_list.h"
 #include "ip_db.h"

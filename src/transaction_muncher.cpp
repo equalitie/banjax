@@ -12,22 +12,14 @@
    Vmon: Sept 2013: Initial version
  */
 
-#include <map>
-#include <string.h>
-
 #include <assert.h>
-
 #include <ts/ts.h>
-//to retrieve the client ip
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include "banjax_common.h"
 #include "util.h"
+#include "print.h"
 #include "transaction_muncher.h"
 
 using namespace std;
+
 /**
    checks if the parts are already retrieved and if not ask ATS 
    to fullfill the part. Through exception if it fails

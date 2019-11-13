@@ -55,6 +55,17 @@ struct BanjaxPlugin {
 
 std::shared_ptr<BanjaxPlugin> g_banjax_plugin;
 
+
+/**
+ *  stop ats due to banjax config problem
+ */
+static void abort_traffic_server()
+{
+  print::debug("Banjax was unable to start properly.");
+  print::debug("preventing ATS to run cause quietly starting ATS without banjax is worst possible combination");
+  TSReleaseAssert(false);
+}
+
 /**
    Read the config file and create filters whose name is
    mentioned in the config file. If you make a new filter
@@ -394,14 +405,4 @@ TSPluginInit(int argc, const char *argv[])
   // Handle reload by traffic_line -x
   TSCont management_contp = TSContCreate(handle_management, nullptr);
   TSMgmtUpdateRegister(management_contp, BANJAX_PLUGIN_NAME);
-}
-
-/**
- *  stop ats due to banjax config problem
- */
-void abort_traffic_server()
-{
-  print::debug("Banjax was unable to start properly.");
-  print::debug("preventing ATS to run cause quietly starting ATS without banjax is worst possible combination");
-  TSReleaseAssert(false);
 }

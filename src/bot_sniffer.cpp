@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <ts/ts.h>
 
-#include "banjax_common.h"
 #include "util.h"
 #include "bot_sniffer.h"
 #include "base64.h"

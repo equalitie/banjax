@@ -5,7 +5,6 @@
 
 using namespace std;
 
-#include "banjax_common.h"
 #include "banjax.h"
 #include "unittest_common.h"
 

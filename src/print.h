@@ -1,7 +1,10 @@
 #pragma once
 
+#include <string>
+#include <sstream>
 #include "util.h"
-#include "banjax_common.h"
+
+static const char* BANJAX_PLUGIN_NAME = "banjax";
 
 namespace print {
 
