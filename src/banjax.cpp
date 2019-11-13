@@ -12,31 +12,19 @@
 
 #include <ts/ts.h>
 #include <string>
-#include <vector>
-#include <list>
 #include <iostream>
-#include <iomanip>
 
 //check if the banjax.conf folder exists and is a folder indeed
 #include <sys/stat.h>
-
-using namespace std;
-
-#include <re2/re2.h>
-#include <zmq.hpp>
 #include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
 
-#include "util.h"
 #include "transaction_data.h"
-
-#include "regex_manager.h"
-#include "challenge_manager.h"
 #include "white_lister.h"
 #include "bot_sniffer.h"
 #include "denialator.h"
-
 #include "banjax.h"
-#include "swabber_interface.h"
+
+using namespace std;
 
 #define TSError_does_not_work_in_TSPluginInit
 

@@ -16,19 +16,8 @@
 #include <zmq.hpp>
 #include <string>
 #include <climits>
-#include <algorithm>
-#include <sstream>
-#include <iostream>
-
 #include<openssl/aes.h>
-#include <utility>
-
 #include <arpa/inet.h>
-
-enum ZMQ_ERROR {
-    CONNECT_ERROR,
-    SEND_ERROR
-};
 
 unsigned int const c_cipher_block_size = AES_BLOCK_SIZE;
 unsigned int const c_cipher_key_size = 32;
