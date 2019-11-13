@@ -30,11 +30,10 @@ jobs:
     # 'See docs on artifact collection here https://circleci.com/docs/2.0/artifacts/'
     - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
 
-    - run: |
-        apt-get update -qq &&
-        apt-get install -qqy &&
-        apt-utils dialog &&
-        apt-get dist-upgrade -qqy
+    - run: apt-get update -qq
+    - run: apt-get install -qqy
+    - run: apt-utils dialog
+    - run: apt-get dist-upgrade -qqy
 
     - run: apt-get install -qy \
         apt-transport-https \
