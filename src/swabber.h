@@ -9,7 +9,6 @@
 #ifndef SWABBER_INTERFACE_H
 #define SWABBER_INTERFACE_H
 
-#include <zmq.hpp>
 #include <fstream>
 
 #include "ip_db.h"

@@ -8,8 +8,6 @@
 #ifndef BOT_SNIFFER_H
 #define BOT_SNIFFER_H
 
-#include <zmq.hpp>
-
 #include <openssl/sha.h>
 #include "banjax_filter.h"
 #include "socket.h"
