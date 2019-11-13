@@ -5,12 +5,8 @@
  *
  *  Vmon: June 2013, Initial version
  */
-#include <string>
-#include <list>
 #include <vector>
 #include <sys/time.h>
-#include <re2/re2.h>
-#include <ts/ts.h>
 
 #include "regex_manager.h"
 
