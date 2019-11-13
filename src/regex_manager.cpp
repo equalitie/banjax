@@ -105,41 +105,39 @@ RegexManager::parse_request(string ip, string ats_record) const
 
         //if we succeeded in retreiving but the size is zero then it meaens we don't have a record of this ip at all
         if (ip_state->size() == 0) {
-          ip_state->resize(total_no_of_rules * NO_OF_STATE_UNIT_PER_REGEX);
+          ip_state->resize(total_no_of_rules);
         }
 
         //now we check the begining of the hit for this regex (if the vector is just created everything is 0, in case
         //this is the first regex this ip hits)
-        RegexStateUnion cur_ip_and_regex_state;
-        cur_ip_and_regex_state.state_allocator[0] = (*ip_state)[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 0];
-        cur_ip_and_regex_state.state_allocator[1] = (*ip_state)[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 1];
+        RegexState cur_ip_and_regex_state;
+        cur_ip_and_regex_state = (*ip_state)[(*it)->id];
 
         //if it is 0, then we don't have a record for
         //the current regex
-        if (cur_ip_and_regex_state.regex_state.begin_msec == 0) {
-          cur_ip_and_regex_state.regex_state.begin_msec = cur_time_msec;
+        if (cur_ip_and_regex_state.begin_msec == 0) {
+          cur_ip_and_regex_state.begin_msec = cur_time_msec;
         }
 
         //now we have a record, update the rate and ban if necessary.
         //we move the interval by the differences of the "begin_in_ms - cur_time_msec - interval*1000"
         //if it is less than zero we don't do anything just augument the rate
-        long time_window_movement = cur_time_msec - cur_ip_and_regex_state.regex_state.begin_msec - (*it)->interval;
+        long time_window_movement = cur_time_msec - cur_ip_and_regex_state.begin_msec - (*it)->interval;
         if (time_window_movement > 0) { //we need to move
-           cur_ip_and_regex_state.regex_state.begin_msec += time_window_movement;
-           cur_ip_and_regex_state.regex_state.rate = cur_ip_and_regex_state.regex_state.rate - (cur_ip_and_regex_state.regex_state.rate * time_window_movement - 1)/(double) (*it)->interval;
-           cur_ip_and_regex_state.regex_state.rate = cur_ip_and_regex_state.regex_state.rate < 0 ? 1/(double) (*it)->interval : cur_ip_and_regex_state.regex_state.rate; //if time_window_movement > time_window_movement(*it)->interval, then we just wipe history and start as a new interval
+           cur_ip_and_regex_state.begin_msec += time_window_movement;
+           cur_ip_and_regex_state.rate = cur_ip_and_regex_state.rate - (cur_ip_and_regex_state.rate * time_window_movement - 1)/(double) (*it)->interval;
+           cur_ip_and_regex_state.rate = cur_ip_and_regex_state.rate < 0 ? 1/(double) (*it)->interval : cur_ip_and_regex_state.rate; //if time_window_movement > time_window_movement(*it)->interval, then we just wipe history and start as a new interval
          }
          else {
            //we are still in the same interval so just increase the hit by 1
-           cur_ip_and_regex_state.regex_state.rate += 1/(double) (*it)->interval;
+           cur_ip_and_regex_state.rate += 1/(double) (*it)->interval;
          }
 
-        TSDebug(BANJAX_PLUGIN_NAME, "with rate %f /msec", cur_ip_and_regex_state.regex_state.rate);
+        TSDebug(BANJAX_PLUGIN_NAME, "with rate %f /msec", cur_ip_and_regex_state.rate);
 
-        (*ip_state)[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 0] = cur_ip_and_regex_state.state_allocator[0];
-        (*ip_state)[(*it)->id * NO_OF_STATE_UNIT_PER_REGEX + 1] = cur_ip_and_regex_state.state_allocator[1];
+        (*ip_state)[(*it)->id] = cur_ip_and_regex_state;
 
-        if (cur_ip_and_regex_state.regex_state.rate >= (*it)->rate) {
+        if (cur_ip_and_regex_state.rate >= (*it)->rate) {
           TSDebug(BANJAX_PLUGIN_NAME, "exceeding excessive rate %f /msec", (*it)->rate);
           //clear the record to avoid multiple reporting to swabber
           //we are not clearing the state cause it is not for sure that

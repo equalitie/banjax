@@ -6,9 +6,8 @@
 #ifndef REGEX_MANAGER_H
 #define REGEX_MANAGER_H
 
-#include <utility> //for pair
-#include <yaml-cpp/yaml.h>
 #include <vector>
+#include <re2/re2.h>
 
 #include "banjax_filter.h"
 #include "swabber_interface.h"
@@ -29,23 +28,13 @@ struct RatedRegex
     rate(excessive_rate) {}
 };
 
-const size_t NO_OF_STATE_UNIT_PER_REGEX = 2;
-const uint8_t BEGIN_MSEC_OFFSET = 0;
-const uint8_t RATE_OFFSET = 0;
-
 struct RegexState {
   unsigned long begin_msec;
   float rate;
-
-  RegexState():begin_msec(0), rate(0.0) {};
+  RegexState() : begin_msec(0) , rate(0.0) {};
 };
 
-union RegexStateUnion {
-  long long state_allocator[NO_OF_STATE_UNIT_PER_REGEX];
-  RegexState regex_state;
-
-  RegexStateUnion(): state_allocator() {}
-};
+using RegexManagerIpDb = IpDb<std::vector<RegexState>>;
 
 class RegexManager : public BanjaxFilter
 {
@@ -66,6 +55,7 @@ protected:
   SwabberInterface* swabber_interface;
 
   RegexManagerIpDb* regex_manager_ip_db;
+
 public:
   enum RegexResult{
     REGEX_MISSED,

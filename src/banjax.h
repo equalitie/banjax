@@ -17,6 +17,7 @@ class BanjaxFilter;
 #include "transaction_muncher.h"
 #include "banjax_filter.h"
 #include "global_white_list.h"
+#include "regex_manager.h"
 
 class Banjax
 {
