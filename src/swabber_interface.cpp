@@ -77,7 +77,9 @@ SwabberInterface::load_config(FilterConfig& swabber_config)
     socket.reset(new Socket());
   }
 
-  if (!socket->bind(local_endpoint)) {
+  if (socket->bind(local_endpoint)) {
+    print::debug("Swabber: Bound to endpoint ", local_endpoint);
+  } else {
     print::debug("Swabber: Failed to bind (we'll try to bind again later)");
   }
 

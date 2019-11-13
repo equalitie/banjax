@@ -45,7 +45,8 @@ BotSniffer::load_config()
     socket->bind(_local_endpoint);
 
     if (!socket->is_bound()) {
-      print::debug("BotSniffer: Failed to bind socket in load_config(), "
+      print::debug("BotSniffer: Failed to bind socket in load_config() "
+                   "to ", _local_endpoint, " "
                    "we'll try again later");
     }
   }
