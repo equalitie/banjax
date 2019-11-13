@@ -8,22 +8,13 @@
 #include <string>
 #include <list>
 #include <vector>
-#include <stdio.h>
 #include <sys/time.h>
-#include <zmq.hpp>
-#include <iostream>
-#include <utility>
-#include <re2/re2.h> //google re2
-
-#include <typeinfo>
-
+#include <re2/re2.h>
 #include <ts/ts.h>
 
-using namespace std;
-
-#include "util.h"
 #include "regex_manager.h"
-#include "ip_database.h"
+
+using namespace std;
 
 /**
   reads all the regular expressions from the database.
@@ -75,10 +66,10 @@ void RegexManager::load_config()
   @param ats_record: the full request record including time url agent etc
   @return: 1 match 0 not match < 0 error.
 */
-pair<RegexManager::RegexResult,RatedRegex*>
+pair<RegexManager::RegexResult,RegexManager::RatedRegex*>
 RegexManager::parse_request(string ip, string ats_record) const
 {
-  boost::optional<RegexManagerIpDb::IpState> ip_state;
+  boost::optional<IpDb::IpState> ip_state;
 
   for(auto it=rated_banning_regexes.begin(); it != rated_banning_regexes.end(); it++) {
     if (RE2::FullMatch(ats_record, *((*it)->re2_regex))) {

@@ -12,32 +12,37 @@
 #include "banjax_filter.h"
 #include "swabber_interface.h"
 
-struct RatedRegex
-{
-  size_t id;
-  std::string rule_name;
-  std::unique_ptr<RE2> re2_regex;
-  unsigned int interval; //interval to look in mseconds
-  float rate; //threshold /interval
-
-  RatedRegex(size_t new_id, std::string new_rule_name, RE2* regex, unsigned int observation_interval, float excessive_rate):
-    id(new_id),
-    rule_name(new_rule_name),
-    re2_regex(regex),
-    interval(observation_interval),
-    rate(excessive_rate) {}
-};
-
-struct RegexState {
-  unsigned long begin_msec;
-  float rate;
-  RegexState() : begin_msec(0) , rate(0.0) {};
-};
-
-using RegexManagerIpDb = IpDb<std::vector<RegexState>>;
-
 class RegexManager : public BanjaxFilter
 {
+private:
+  struct RegexState {
+    unsigned long begin_msec;
+    float rate;
+    RegexState() : begin_msec(0) , rate(0.0) {};
+  };
+
+  struct RatedRegex {
+    size_t id;
+    std::string rule_name;
+    std::unique_ptr<RE2> re2_regex;
+    unsigned int interval; //interval to look in mseconds
+    float rate; //threshold /interval
+  
+    RatedRegex(size_t new_id,
+        std::string new_rule_name,
+        RE2* regex,
+        unsigned int observation_interval,
+        float excessive_rate):
+      id(new_id),
+      rule_name(new_rule_name),
+      re2_regex(regex),
+      interval(observation_interval),
+      rate(excessive_rate) {}
+  };
+
+public:
+  using IpDb = ::IpDb<std::vector<RegexState>>;
+
 protected:
   //We store the forbidden message at the begining so we can copy it fast
   //everytime. It is being stored here for being used again
@@ -54,7 +59,7 @@ protected:
   //swabber object used for banning bots
   SwabberInterface* swabber_interface;
 
-  RegexManagerIpDb* regex_manager_ip_db;
+  IpDb* regex_manager_ip_db;
 
 public:
   enum RegexResult{
@@ -80,7 +85,7 @@ public:
   */
   RegexManager(const std::string& banjax_dir,
                const FilterConfig& filter_config,
-               RegexManagerIpDb* regex_manager_ip_db,
+               IpDb* regex_manager_ip_db,
                SwabberInterface* global_swabber_interface) :
     BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME),
     forbidden_message("<html><header></header><body>Forbidden</body></html>"),

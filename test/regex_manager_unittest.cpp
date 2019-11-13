@@ -95,7 +95,7 @@ public:
   std::unique_ptr<BanjaxFilter> regex_manager;
 
   SwabberIpDb swabber_ip_db;
-  RegexManagerIpDb regex_manager_ip_db;
+  RegexManager::IpDb regex_manager_ip_db;
   SwabberInterface test_swabber_interface;
 
   Test(std::string config = default_config())

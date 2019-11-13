@@ -53,7 +53,7 @@ protected:
 
   SwabberIpDb     swabber_ip_db;
   ChallengerIpDb  challenger_ip_db;
-  RegexManagerIpDb regex_manager_ip_db;
+  RegexManager::IpDb regex_manager_ip_db;
 
   SwabberInterface swabber_interface;
 
