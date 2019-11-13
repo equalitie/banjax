@@ -20,18 +20,17 @@ void RegexManager::load_config()
 {
   try
   {
-    TSDebug(BANJAX_PLUGIN_NAME, "Setting regex re2 options");
+    print::debug("RegexManager::load_config");
+
     RE2::Options opt;
     opt.set_log_errors(false);
     opt.set_perl_classes(true);
     opt.set_posix_syntax(true);
 
-    TSDebug(BANJAX_PLUGIN_NAME, "Loading regex manager conf");
-
     for (const auto& node : cfg) {
       string cur_rule = node["rule"].as<std::string>();
 
-      TSDebug(BANJAX_PLUGIN_NAME, "initiating rule %s", cur_rule.c_str());
+      print::debug("RegexManager: Initiating rule ", cur_rule);
 
       unsigned int observation_interval = node["interval"].as<unsigned int>();
       unsigned int threshold = node["hits_per_interval"].as<unsigned int>();
@@ -48,11 +47,9 @@ void RegexManager::load_config()
   }
   catch(YAML::RepresentationException& e)
   {
-    TSDebug(BANJAX_PLUGIN_NAME, "Error loading regex manager conf [%s].", e.what());
+    print::debug("RegexManager: Error loading regex manager conf [",e.what(),"].");
     throw;
   }
-
-  TSDebug(BANJAX_PLUGIN_NAME, "Done loading regex manager conf");
 }
 
 /**
@@ -68,11 +65,11 @@ RegexManager::parse_request(string ip, string ats_record) const
 
   for(const auto& rule : rated_banning_regexes) {
     if (RE2::FullMatch(ats_record, *(rule->re2_regex))) {
-      TSDebug(BANJAX_PLUGIN_NAME, "requests matched %s", (rule->re2_regex->pattern()).c_str());
+      print::debug("RegexManager: Request matched ", rule->re2_regex->pattern());
       //if it is a simple regex i.e. with rate 0 we bans immidiately without
       //wasting time and mem
       if (rule->rate == 0) {
-        TSDebug(BANJAX_PLUGIN_NAME, "simple regex, ban immediately");
+        print::debug("RegexManager: Simple regex, ban immediately");
         return make_pair(REGEX_MATCHED, rule.get());
       }
       //select appropriate rate, dependent on whether GET or POST request
@@ -109,21 +106,21 @@ RegexManager::parse_request(string ip, string ats_record) const
       //if it is less than zero we don't do anything just augument the rate
       long time_window_movement = cur_time_msec - state.begin_msec - rule->interval;
       if (time_window_movement > 0) { //we need to move
-         state.begin_msec += time_window_movement;
-         state.rate = state.rate - (state.rate * time_window_movement - 1)/(double) rule->interval;
-         state.rate = state.rate < 0 ? 1/(double) rule->interval : state.rate; //if time_window_movement > time_window_movementrule->interval, then we just wipe history and start as a new interval
-       }
-       else {
-         //we are still in the same interval so just increase the hit by 1
-         state.rate += 1/(double) rule->interval;
-       }
+        state.begin_msec += time_window_movement;
+        state.rate = state.rate - (state.rate * time_window_movement - 1)/(double) rule->interval;
+        state.rate = state.rate < 0 ? 1/(double) rule->interval : state.rate; //if time_window_movement > time_window_movementrule->interval, then we just wipe history and start as a new interval
+      }
+      else {
+        //we are still in the same interval so just increase the hit by 1
+        state.rate += 1/(double) rule->interval;
+      }
 
-      TSDebug(BANJAX_PLUGIN_NAME, "with rate %f /msec", state.rate);
+      print::debug("RegexManager: with rate ",state.rate," /msec");
 
       (*ip_state)[rule->id] = state;
 
       if (state.rate >= rule->rate) {
-        TSDebug(BANJAX_PLUGIN_NAME, "exceeding excessive rate %f /msec", rule->rate);
+        print::debug("Exceeding excessive rate ",rule->rate," /msec");
         //clear the record to avoid multiple reporting to swabber
         //we are not clearing the state cause it is not for sure that
         //swabber ban the ip due to possible failure of acquiring lock
@@ -162,14 +159,15 @@ FilterResponse RegexManager::on_http_request(const TransactionParts& transaction
   ats_record+= ats_record_parts[TransactionMuncher::HOST] + sep;
   ats_record+= ats_record_parts[TransactionMuncher::UA];
 
-  TSDebug(BANJAX_PLUGIN_NAME, "Examining '%s' for banned matches", ats_record.c_str());
+  print::debug("RegexManager: Examining '",ats_record,"' for banned matches");
+
   pair<RegexResult,RatedRegex*> result = parse_request(
 						ats_record_parts[TransactionMuncher::IP],
 						ats_record
 						);
 
   if (result.first == REGEX_MATCHED) {
-    TSDebug(BANJAX_PLUGIN_NAME, "asking swabber to ban client ip: %s", ats_record_parts[TransactionMuncher::IP].c_str());
+    print::debug("Asking swabber to ban client ip: ", ats_record_parts[TransactionMuncher::IP]);
 
     //here instead we are calling nosmos's banning client
     string ats_rec_comma_sep =
@@ -184,11 +182,10 @@ FilterResponse RegexManager::on_http_request(const TransactionParts& transaction
     return FilterResponse([&](const TransactionParts& a, const FilterResponse& b) { return this->generate_response(a, b); });
 
   } else if (result.first != REGEX_MISSED) {
-    TSError("Regex failed with error: %d\n", result.first);
+    print::debug("Regex failed with error: ", result.first);
   }
 
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
-
 }
 
 std::string RegexManager::generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info)
