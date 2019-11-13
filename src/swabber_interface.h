@@ -12,12 +12,15 @@
 #include <zmq.hpp>
 #include <fstream>
 
-#include "ip_database.h"
+#include "ip_db.h"
 #include "banjax_filter.h"
+#include "default.h"
 
 class SwabberInterface
 {
 public:
+  using IpDb = ::IpDb<Default<time_t, 0>>;
+
   struct Socket {
     zmq::context_t ctx;
     zmq::socket_t s;
@@ -56,7 +59,7 @@ protected:
   TSMutex swabber_mutex;
 
   //to forgive ips after being banned
-  IPDatabase* ip_database;
+  IpDb* swabber_ip_db;
 
   //server and the port that swabber is going to connect to
   //if they are not specified in the config, they be set to
@@ -82,7 +85,7 @@ public:
   /**
      initiating the interface
   */
-  SwabberInterface(IPDatabase* global_ip_db, std::unique_ptr<Socket> s = nullptr);
+  SwabberInterface(IpDb*, std::unique_ptr<Socket> s = nullptr);
 
   /**
    * access function for grace period used by denialator

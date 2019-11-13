@@ -56,7 +56,7 @@
 #include "regex_manager.h"
 
 #include "swabber_interface.h"
-#include "ip_database.h"
+#include "ip_db.h"
 
 using namespace std;
 
@@ -94,11 +94,12 @@ class Test {
 public:
   std::unique_ptr<BanjaxFilter> regex_manager;
 
-  IPDatabase test_ip_database;
+  SwabberInterface::IpDb swabber_ip_db;
+  RegexManager::IpDb regex_manager_ip_db;
   SwabberInterface test_swabber_interface;
 
   Test(std::string config = default_config())
-    :  test_swabber_interface(&test_ip_database)
+    :  test_swabber_interface(&swabber_ip_db)
   {
     open_config(move(config));
   }
@@ -125,7 +126,7 @@ private:
     regex_manager.reset(
         new RegexManager(TEMP_DIR,
                          regex_filter_config,
-                         &test_ip_database,
+                         &regex_manager_ip_db,
                          &test_swabber_interface));
   }
 };

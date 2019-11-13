@@ -22,7 +22,7 @@ using namespace std;
 #include "banjax_common.h"
 #include "util.h"
 #include "bot_sniffer.h"
-#include "ip_database.h"
+#include "ip_db.h"
 
 #include "base64.h"
 

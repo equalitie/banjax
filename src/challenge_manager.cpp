@@ -678,7 +678,7 @@ std::string ChallengeManager::generate_response(const TransactionParts& transact
 }
 
 /**
- * Should be called upon failure of providing solution. Checks the ip_database
+ * Should be called upon failure of providing solution. Checks the challenger_ip_db
  * for current number of failure of solution for an ip, increament and store it
  * report to swabber in case of excessive failure
  *
@@ -690,24 +690,16 @@ ChallengeManager::report_failure(const std::shared_ptr<HostChallengeSpec>& faile
   std::string client_ip = transaction_parts.at(TransactionMuncher::IP);
   std::string failed_host = transaction_parts.at(TransactionMuncher::HOST);
 
-  boost::optional<FilterState> cur_ip_state;
-  bool banned(false);
-  cur_ip_state =  ip_database->get_ip_state(client_ip, CHALLENGER_FILTER_ID);
-  if (!cur_ip_state) //we failed to read so we can't judge
-    return banned;
+  boost::optional<IpDb::IpState> ip_state = challenger_ip_db->get_ip_state(client_ip);
+  if (!ip_state) //we failed to read so we can't judge
+    return false;
 
-  if (cur_ip_state->size() == 0) {
-    cur_ip_state->resize(1);
-    (*cur_ip_state)[0] = 1;
-  } else {
-    (*cur_ip_state)[0]++; //incremet failure
-  }
+  (**ip_state)++;
 
-  if ((*cur_ip_state)[0] >= failed_challenge->fail_tolerance_threshold) {
-    banned = true;
+  if (*ip_state >= failed_challenge->fail_tolerance_threshold) {
     TransactionParts ats_record_parts = transaction_parts;
 
-    string banning_reason = "failed challenge " + failed_challenge->name + " for host " + failed_host  + " " + to_string((*cur_ip_state)[0]) + " times, " +
+    string banning_reason = "failed challenge " + failed_challenge->name + " for host " + failed_host  + " " + to_string(*ip_state) + " times, " +
       encapsulate_in_quotes(ats_record_parts[TransactionMuncher::URL]) + ", " +
       ats_record_parts[TransactionMuncher::HOST] + ", " +
       encapsulate_in_quotes(ats_record_parts[TransactionMuncher::UA]);
@@ -716,13 +708,13 @@ ChallengeManager::report_failure(const std::shared_ptr<HostChallengeSpec>& faile
     //reset the number of failures for future
     //we are not clearing the state cause it is not for sure that
     //swabber ban the ip due to possible failure of acquiring lock
-    //cur_ip_state.detail.no_of_failures = 0;
+    //ip_state.detail.no_of_failures = 0;
+    return true;
   }
   else { //only report if we haven't report to swabber cause otherwise it nulifies the work of swabber which has forgiven the ip and delete it from db
-    ip_database->set_ip_state(client_ip, CHALLENGER_FILTER_ID, *cur_ip_state);
+    challenger_ip_db->set_ip_state(client_ip, *ip_state);
+    return false;
   }
-
-  return banned;
 }
 
 /**
@@ -734,6 +726,6 @@ ChallengeManager::report_failure(const std::shared_ptr<HostChallengeSpec>& faile
 void
 ChallengeManager::report_success(std::string client_ip)
 {
-  FilterState cur_ip_state(1);
-  ip_database->set_ip_state(client_ip, CHALLENGER_FILTER_ID, cur_ip_state);
+  IpDb::IpState ip_state(1);
+  challenger_ip_db->set_ip_state(client_ip, ip_state);
 }

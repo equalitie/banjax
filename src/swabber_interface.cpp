@@ -22,11 +22,11 @@ static const long   DEFAULT_GRACE_PERIOD = 0;
 static const string SWABBER_BAN = "swabber_bans";
 static const string BAN_IP_LOG  = "/usr/local/trafficserver/logs/ban_ip_list.log";
 
-SwabberInterface::SwabberInterface(IPDatabase* global_ip_db,
+SwabberInterface::SwabberInterface(IpDb* swabber_ip_db,
     std::unique_ptr<Socket> s)
   :ban_ip_list(BAN_IP_LOG.c_str(), ios::out | ios::app),
    swabber_mutex(TSMutexCreate()),
-   ip_database(global_ip_db),
+   swabber_ip_db(swabber_ip_db),
    swabber_server(DEFAULT_SERVER),
    swabber_port(DEFAULT_PORT),
    grace_period(DEFAULT_GRACE_PERIOD)
@@ -110,7 +110,7 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
   /* we are waiting for grace period before banning for inteligent gathering purpose */
   if (grace_period > 0) { //if there is no grace then ignore these steps
 
-    boost::optional<FilterState> cur_ip_state(ip_database->get_ip_state(bot_ip, SWABBER_INTERFACE_ID));
+    boost::optional<IpDb::IpState> cur_ip_state = swabber_ip_db->get_ip_state(bot_ip);
 
     /* If we failed to query the database then just don't report to swabber */
     if (!cur_ip_state) {
@@ -119,15 +119,15 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
       return;
     }
 
-    if (cur_ip_state->size() == 0) {
+    if (*cur_ip_state == 0) {
       // Record the first request for banning
-      cur_ip_state->push_back(cur_time.tv_sec);
-      ip_database->set_ip_state(bot_ip, SWABBER_INTERFACE_ID, *cur_ip_state);
+      cur_ip_state = cur_time.tv_sec;
+      swabber_ip_db->set_ip_state(bot_ip, *cur_ip_state);
       ban_ip_list << bot_ip << ", " << "[" << CurrentGmTime() << "], " << banning_reason << ", flagged" <<endl;
     }
 
     /* Only ban if the grace period is passed */
-    if ((cur_time.tv_sec - (*cur_ip_state)[0]) < grace_period) {
+    if ((cur_time.tv_sec - *cur_ip_state) < grace_period) {
       print::debug("Not reporting to swabber cause grace period has not passed yet");
       return;
     }
@@ -171,7 +171,7 @@ SwabberInterface::ban(string bot_ip, std::string banning_reason)
     ban_ip_list << bot_ip << ", " << "[" << CurrentGmTime() << "], " << banning_reason << ", banned" << endl;
   }
 
-  ip_database->drop_ip(bot_ip);
+  swabber_ip_db->drop_ip(bot_ip);
 }
 
 std::unique_ptr<SwabberInterface::Socket> SwabberInterface::release_socket()

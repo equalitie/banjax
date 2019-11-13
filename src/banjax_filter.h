@@ -13,7 +13,7 @@
 #include "banjax_common.h"
 #include "transaction_muncher.h"
 #include "filter_list.h"
-#include "ip_database.h"
+#include "ip_db.h"
 
 class BanjaxFilter;
 class FilterResponse;
@@ -147,7 +147,6 @@ struct  FilterTask
 class BanjaxFilter
 {
  protected:
-  IPDatabase* ip_database;
   YAML::Node cfg;
 
  public:
@@ -196,7 +195,7 @@ class BanjaxFilter
     BANJAX_FILTER_ID(child_id),
     BANJAX_FILTER_NAME(child_name)
   {
-    (void) banjax_dir; ip_database = NULL;
+    (void) banjax_dir;
 
     for (size_t i = 0; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; ++i) {
       queued_tasks[i] = nullptr;

@@ -12,11 +12,13 @@
 
 class BanjaxFilter;
 
-#include "ip_database.h"
+#include "ip_db.h"
 #include "swabber_interface.h"
 #include "transaction_muncher.h"
 #include "banjax_filter.h"
 #include "global_white_list.h"
+#include "regex_manager.h"
+#include "challenge_manager.h"
 
 class Banjax
 {
@@ -50,7 +52,10 @@ protected:
   //requests
   TSTextLogObject log;
 
-  IPDatabase ip_database;
+  SwabberInterface::IpDb swabber_ip_db;
+  ChallengeManager::IpDb challenger_ip_db;
+  RegexManager::IpDb     regex_manager_ip_db;
+
   SwabberInterface swabber_interface;
 
   // This keeps the list of all created filter objects so we can delete them on
