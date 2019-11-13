@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE(load_config1) {
 
   auto mgr = open_config(config);
   auto challenges = mgr->host_challenges.at("example.co");
-  BOOST_CHECK_EQUAL(challenges.size(), 1);
+  BOOST_CHECK_EQUAL(challenges.size(), 1u);
 
   set<MW> expected({MW::make_substr("old_style_back_compat")});
 
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(load_config2) {
 
   auto mgr = open_config(config);
   auto challenges = mgr->host_challenges.at("example.co");
-  BOOST_CHECK_EQUAL(challenges.size(), 1);
+  BOOST_CHECK_EQUAL(challenges.size(), 1u);
 
   set<MW> expected({MW::make_substr("wp-admin"),
                     MW::make_substr("wp-login.php")});
@@ -173,7 +173,7 @@ BOOST_AUTO_TEST_CASE(load_config3) {
 
   auto mgr = open_config(config);
   auto challenges = mgr->host_challenges.at("example.co");
-  BOOST_CHECK_EQUAL(challenges.size(), 1);
+  BOOST_CHECK_EQUAL(challenges.size(), 1u);
 
   set<MW> expected({MW::make_substr("wp-admin"),
                     MW::make_substr("wp-login.php")});
@@ -209,7 +209,7 @@ BOOST_AUTO_TEST_CASE(challenger_magic_word_mixed) {
 
   auto mgr = open_config(config);
   auto challenges = mgr->host_challenges.at("example.co");
-  BOOST_CHECK_EQUAL(challenges.size(), 1);
+  BOOST_CHECK_EQUAL(challenges.size(), 1u);
 
   set<MW> expected({MW::make_substr("wp-login0.php"),
                     MW::make_substr("wp-login1.php"),

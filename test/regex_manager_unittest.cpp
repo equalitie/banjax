@@ -136,6 +136,9 @@ private:
    as expected for the regex manager
  */
 BOOST_AUTO_TEST_CASE(load_config) {
+  // Avoid warnings that there is no check in this test as we're checking
+  // whether the initialization dies or not.
+  BOOST_CHECK(true);
   Test test;
 }
 
