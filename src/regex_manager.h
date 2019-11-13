@@ -61,21 +61,11 @@ protected:
 
   IpDb* regex_manager_ip_db;
 
-public:
-  enum RegexResult{
-    REGEX_MISSED,
-    REGEX_MATCHED
-  };
-
 protected:
   /**
     applies all regex to an ATS record
-
-    @param ats_record: the full request record including time url agent etc
-    @return: pair of 1 match 0 not match < 0 error and
-             the matched regex (for loging) or NULL in miss
   */
-  std::pair<RegexResult,RatedRegex*> parse_request(std::string ip, std::string ats_record) const;
+  RatedRegex* try_match(std::string ip, std::string ats_record) const;
 
 public:
   /**

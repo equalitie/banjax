@@ -52,14 +52,8 @@ void RegexManager::load_config()
   }
 }
 
-/**
-  applies all regex to an ATS record
-
-  @param ats_record: the full request record including time url agent etc
-  @return: 1 match 0 not match < 0 error.
-*/
-pair<RegexManager::RegexResult,RegexManager::RatedRegex*>
-RegexManager::parse_request(string ip, string ats_record) const
+RegexManager::RatedRegex*
+RegexManager::try_match(string ip, string ats_record) const
 {
   boost::optional<IpDb::IpState> ip_state;
 
@@ -70,7 +64,7 @@ RegexManager::parse_request(string ip, string ats_record) const
       //wasting time and mem
       if (rule->rate == 0) {
         print::debug("RegexManager: Simple regex, ban immediately");
-        return make_pair(REGEX_MATCHED, rule.get());
+        return rule.get();
       }
       //select appropriate rate, dependent on whether GET or POST request
 
@@ -136,7 +130,7 @@ RegexManager::parse_request(string ip, string ats_record) const
         //memory.
 
         regex_manager_ip_db->set_ip_state(ip, *ip_state);
-        return make_pair(REGEX_MATCHED, rule.get());
+        return rule.get();
       }
     }
   }
@@ -146,43 +140,38 @@ RegexManager::parse_request(string ip, string ats_record) const
     regex_manager_ip_db->set_ip_state(ip, *ip_state);
 
   //no match
-  return make_pair(REGEX_MISSED, (RatedRegex*)NULL);
+  return nullptr;
 }
 
 FilterResponse RegexManager::on_http_request(const TransactionParts& transaction_parts)
 {
-  const string sep(" ");
   TransactionParts ats_record_parts = (TransactionParts) transaction_parts;
 
-  string ats_record =  ats_record_parts[TransactionMuncher::METHOD] + sep;
-  ats_record+= ats_record_parts[TransactionMuncher::URL] + sep;
-  ats_record+= ats_record_parts[TransactionMuncher::HOST] + sep;
-  ats_record+= ats_record_parts[TransactionMuncher::UA];
+  string ats_record = ats_record_parts[TransactionMuncher::METHOD] + " "
+                    + ats_record_parts[TransactionMuncher::URL]    + " "
+                    + ats_record_parts[TransactionMuncher::HOST]   + " "
+                    + ats_record_parts[TransactionMuncher::UA];
 
   print::debug("RegexManager: Examining '",ats_record,"' for banned matches");
 
-  pair<RegexResult,RatedRegex*> result = parse_request(
+  RatedRegex* result = try_match(
 						ats_record_parts[TransactionMuncher::IP],
-						ats_record
-						);
+						ats_record);
 
-  if (result.first == REGEX_MATCHED) {
+  if (result) {
     print::debug("Asking swabber to ban client ip: ", ats_record_parts[TransactionMuncher::IP]);
 
     //here instead we are calling nosmos's banning client
-    string ats_rec_comma_sep =
-      ats_record_parts[TransactionMuncher::METHOD] + ", " +
-      encapsulate_in_quotes(ats_record_parts[TransactionMuncher::URL]) + ", " +
-      ats_record_parts[TransactionMuncher::HOST] + ", " +
-      encapsulate_in_quotes(ats_record_parts[TransactionMuncher::UA]);
-
-    string banning_reason = "matched regex rule " + result.second->rule_name + ", " + ats_rec_comma_sep;
+    string banning_reason
+      = "matched regex rule " + result->rule_name + ", "
+      + ats_record_parts[TransactionMuncher::METHOD] + ", "
+      + encapsulate_in_quotes(ats_record_parts[TransactionMuncher::URL]) + ", "
+      + ats_record_parts[TransactionMuncher::HOST] + ", "
+      + encapsulate_in_quotes(ats_record_parts[TransactionMuncher::UA]);
 
     swabber->ban(ats_record_parts[TransactionMuncher::IP], banning_reason);
-    return FilterResponse([&](const TransactionParts& a, const FilterResponse& b) { return this->generate_response(a, b); });
 
-  } else if (result.first != REGEX_MISSED) {
-    print::debug("Regex failed with error: ", result.first);
+    return FilterResponse([&](const TransactionParts& a, const FilterResponse& b) { return this->generate_response(a, b); });
   }
 
   return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
