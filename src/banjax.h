@@ -52,9 +52,9 @@ protected:
   //requests
   TSTextLogObject log;
 
-  SwabberInterface::IpDb   swabber_ip_db;
-  ChallengeManager::IpDb  challenger_ip_db;
-  RegexManager::IpDb regex_manager_ip_db;
+  SwabberInterface::IpDb swabber_ip_db;
+  ChallengeManager::IpDb challenger_ip_db;
+  RegexManager::IpDb     regex_manager_ip_db;
 
   SwabberInterface swabber_interface;
 

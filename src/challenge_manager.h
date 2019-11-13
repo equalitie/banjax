@@ -16,6 +16,7 @@
 #include "swabber_interface.h"
 #include "banjax_filter.h"
 #include "global_white_list.h"
+#include "default.h"
 
 const size_t AES_KEY_LENGTH = 16;
 //const size_t AES_BLOCK_SIZE;
