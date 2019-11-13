@@ -18,6 +18,7 @@ class BanjaxFilter;
 #include "banjax_filter.h"
 #include "global_white_list.h"
 #include "regex_manager.h"
+#include "challenge_manager.h"
 
 class Banjax
 {
@@ -52,7 +53,7 @@ protected:
   TSTextLogObject log;
 
   SwabberInterface::IpDb   swabber_ip_db;
-  ChallengerIpDb  challenger_ip_db;
+  ChallengeManager::IpDb  challenger_ip_db;
   RegexManager::IpDb regex_manager_ip_db;
 
   SwabberInterface swabber_interface;

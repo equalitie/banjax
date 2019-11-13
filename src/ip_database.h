@@ -116,6 +116,4 @@ private:
 };
 
 //------------------------------------------------------------
-using ChallengerIpDb = IpDb<Default<uint64_t, 0>>;
-
 #endif

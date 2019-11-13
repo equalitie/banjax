@@ -690,7 +690,7 @@ ChallengeManager::report_failure(const std::shared_ptr<HostChallengeSpec>& faile
   std::string client_ip = transaction_parts.at(TransactionMuncher::IP);
   std::string failed_host = transaction_parts.at(TransactionMuncher::HOST);
 
-  boost::optional<ChallengerIpDb::IpState> ip_state = challenger_ip_db->get_ip_state(client_ip);
+  boost::optional<IpDb::IpState> ip_state = challenger_ip_db->get_ip_state(client_ip);
   if (!ip_state) //we failed to read so we can't judge
     return false;
 
@@ -726,6 +726,6 @@ ChallengeManager::report_failure(const std::shared_ptr<HostChallengeSpec>& faile
 void
 ChallengeManager::report_success(std::string client_ip)
 {
-  ChallengerIpDb::IpState ip_state(1);
+  IpDb::IpState ip_state(1);
   challenger_ip_db->set_ip_state(client_ip, ip_state);
 }

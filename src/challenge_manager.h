@@ -127,6 +127,9 @@ public:
 };
 
 class ChallengeManager : public BanjaxFilter {
+public:
+  using IpDb = ::IpDb<Default<uint64_t, 0>>;
+
 protected:
   // MAC key.
   unsigned char hashed_key[SHA256_DIGEST_LENGTH];
@@ -184,7 +187,7 @@ protected:
 
   const GlobalWhiteList* global_white_list;
 
-  ChallengerIpDb* challenger_ip_db;
+  IpDb* challenger_ip_db;
 
   /**
    * Should be called upon failure of providing solution. Checks the ip_database
@@ -233,7 +236,7 @@ public:
   */
  ChallengeManager(const std::string& banjax_dir,
                   const FilterConfig& filter_config,
-                  ChallengerIpDb* challenger_ip_db,
+                  IpDb* challenger_ip_db,
                   SwabberInterface* global_swabber_interface,
                   const GlobalWhiteList* global_white_list)
     :BanjaxFilter::BanjaxFilter(banjax_dir, filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
