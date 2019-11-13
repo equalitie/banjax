@@ -15,13 +15,12 @@
 #include "bot_sniffer.h"
 #include "base64.h"
 #include "print.h"
+#include "defer.h"
 
 using namespace std;
 
 #define VALID_OR_EMPTY(validity, part) ((validity & part) ? Base64::Encode(transaction_parts.at(part)) : "")
-/**
-  Reads botbanger's port from the config
- */
+
 void
 BotSniffer::load_config()
 {
@@ -39,28 +38,20 @@ BotSniffer::load_config()
 
   string local_endpoint  = "tcp://" + botbanger_server + ":" + to_string(botbanger_port);
 
-  if (!socket) {
+  if (!socket || socket->local_endpoint() != local_endpoint) {
     socket.reset(new Socket);
     socket->bind(local_endpoint);
-  } else if (local_endpoint != socket->local_endpoint()) {
-    socket.reset(new Socket);
-    socket->bind(local_endpoint);
-  }
 
-  print::debug("Done connecting to botbanger server...");
+    if (!socket->is_bound()) {
+      print::debug("BotSniffer: Failed to bind socket in load_config(), "
+                   "we'll try again later");
+    }
+  }
 }
 
 void BotSniffer::on_http_close(const TransactionParts& transaction_parts)
 {
-
-  /*TSDebug("banjax", "sending log to botbanger");
-  TSDebug("banjax", "ip = %s", cd->client_ip);
-  TSDebug("banjax", "url = %s", cd->url);
-  TSDebug("banjax", "ua = %s", cd->ua);
-  TSDebug("banjax", "size = %d", (int) cd->request_len);
-  TSDebug("banjax", "status = %d", stat);
-  TSDebug("banjax", "protocol = %s", cd->protocol);
-  TSDebug("banjax", "hit = %d", cd->hit);*/
+  print::debug("BotSniffer: on_http_close(...)");
 
   std::time_t rawtime;
   std::time(&rawtime);
@@ -74,9 +65,11 @@ void BotSniffer::on_http_close(const TransactionParts& transaction_parts)
 
   uint64_t* cur_validity = (uint64_t*)transaction_parts.at(TransactionMuncher::VALIDITY_STAT).data();
 
-  print::debug("Locking the botsniffer socket...");
+  if (TSMutexLockTry(mutex) == TS_SUCCESS) {
+    auto on_exit = defer([&] { TSMutexUnlock(mutex); });
 
-  if (TSMutexLockTry(bot_sniffer_mutex) == TS_SUCCESS) {
+    if (!socket) return;
+
     send_zmq_mess(socket->handle(), BOTBANGER_LOG, true);
 
     std::string hit_mis_str = (transaction_parts.count(TransactionMuncher::MISS) ? b64_hit : b64_miss);
@@ -92,10 +85,14 @@ void BotSniffer::on_http_close(const TransactionParts& transaction_parts)
       + "," + hit_mis_str;
 
     send_zmq_encrypted_message(socket->handle(), plaintext_log, encryption_key);
-
-    TSMutexUnlock(bot_sniffer_mutex);
   }
   //botbanger_interface.add_log(transaction_parts[IP], cd->url, cd->protocol, stat, (long) cd->request_len, cd->ua, cd->hit);
   //botbanger_interface.add_log(cd->client_ip, time_str, cd->url, protocol, status, size, cd->ua, hit);
 }
 
+std::unique_ptr<Socket> BotSniffer::release_socket()
+{
+  TSMutexLock(mutex);
+  auto on_exit = defer([&] { TSMutexUnlock(mutex); });
+  return std::move(socket);
+}

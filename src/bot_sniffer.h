@@ -22,7 +22,7 @@ private:
   unsigned int botbanger_port;
   std::string botbanger_server;
 
-  TSMutex bot_sniffer_mutex;
+  TSMutex mutex;
 
   //encryption key
   uint8_t encryption_key[SHA256_DIGEST_LENGTH];
@@ -45,8 +45,7 @@ public:
        The wild-card *, meaning all available interfaces.
        The primary IPv4 address assigned to the interface, in its numeric representation.
        The interface name as defined by the operating system. */
-
-    bot_sniffer_mutex(TSMutexCreate()),
+    mutex(TSMutexCreate()),
     BOTBANGER_LOG("botbanger_log")
   {
     queued_tasks[HTTP_CLOSE] = this;
@@ -89,6 +88,10 @@ public:
   }
 
   void on_http_close(const TransactionParts& transaction_parts) override;
+
+  // Return the socket we're using. This will effectively
+  // disable this bot sniffer.
+  std::unique_ptr<Socket> release_socket();
 
   /**
      we do not overload generate_respons cause we have no response to generate
