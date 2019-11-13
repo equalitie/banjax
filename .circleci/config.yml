@@ -9,6 +9,15 @@ jobs:
     environment:
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
+      ATS_VERSION: "7.1.8"
+      ATS_SHA512: "1064a67fe4212868445a92fab7f5b2c330b561421de181c9798b7342d7b93d022376831169e212a86f2b3d32c3437ac8338e51a4c8abc8b31049ea9310f82798"
+      ATS_DLINK: "http://archive.apache.org/dist/trafficserver/trafficserver-7.1.8.tar.bz2"  # XXX ATS_VERSION duplicated here. did not understand the above link about interpolating...
+      TSPATH: "/usr/local/trafficserver"
+      TSUSER: "trafserv"
+      TSGROUP: "trafserv"
+      TSUID: "99"
+      TSGID: "99"
+      BANJAX_DIR: "/root/equalitie/banjax"
     docker:
       - image: debian:stretch
     steps:
@@ -20,27 +29,110 @@ jobs:
     # In many cases you can simplify this from what is generated here.
     # 'See docs on artifact collection here https://circleci.com/docs/2.0/artifacts/'
     - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
-    # This is based on your 1.0 configuration file or project settings
-    - run: add-apt-repository --yes ppa:ubuntu-toolchain-r/test
-    - run: apt-get update
-    - run: apt-get install g++-5 tcl-dev libyaml-cpp-dev libzmq-dev libboost-dev libconfig++-dev libssl-dev libboost-system-dev libboost-test-dev
-    - run: update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 1
-    - run: ls; pwd; nproc
-    - run: cd ~/; git clone git@github.com:google/re2.git && cd re2; make && make install
-    - run: cp ~/re2/obj/so/lib* /lib/
-    - run: cd ~/; wget http://tux.rainside.sk/apache/trafficserver/trafficserver-7.1.8.tar.bz2
-    - run: cd ~/; tar xf trafficserver-7.1.8.tar.bz2
-    - run: cd ~/trafficserver-7.1.8 && ./configure --prefix=`pwd`/../ts7 && make -j`nproc` && make install
-    - run: echo "banjax/banjax.so $HOME/ts7/libexec/trafficserver/banjax/" >> ~/ts7/etc/trafficserver/plugin.config
-    - run: echo "regex_map http://^127.0.0.1:8080$/ http://127.0.0.1:8000/" >> ~/ts7/etc/trafficserver/remap.config
-    - run: perl -pi -e 's/CONFIG proxy.config.http.cache.required_headers INT .+/CONFIG proxy.config.http.cache.required_headers INT 0/g' ~/ts7/etc/trafficserver/records.config
-    - run: cat ~/ts7/etc/trafficserver/records.config
-    - run: mkdir build7
-    - run: cd build7 && cmake ../ -DCMAKE_CXX_FLAGS="-I$HOME/ts7/include"
-    - run: cd build7 && make -j3
-    - run: mkdir ~/ts7/libexec/trafficserver/banjax
-    - run: cp config/{auth,solver}.html ~/ts7/libexec/trafficserver/banjax/
-    - run: cp build7/banjax.so ~/ts7/libexec/trafficserver/banjax/
-    # Run tests
-    - run: ./build7/unit-tests
-    - run: python ./test/banjax_behavior_test.py --ts-prefix=$HOME/ts7 --ts-layout="standard"
+
+    - run: apt-get update -qq && \
+        apt-get install -qqy \
+        apt-utils dialog && \
+        apt-get dist-upgrade -qqy
+
+    - run: apt-get install -qy \
+        apt-transport-https \
+        sudo \
+        curl \
+        rsync \
+        psmisc \
+        python3 \
+        python2.7 \
+        tzdata \
+        unzip \
+        zip \
+        bzip2 \
+        gawk
+
+    - run: apt-get install -qy \
+        git-core \
+        build-essential \
+        automake \
+        autoconf \
+        libtool \
+        flex \
+        bison \
+        cmake
+
+    - run: apt-get install -qy \
+        libssl-dev \
+        libhwloc-dev \
+        libcap-dev \
+        tcl-dev \
+        libpcre3-dev \
+        libncurses5-dev \
+        libcurl4-openssl-dev \
+        libyaml-cpp-dev \
+        libyaml-cpp0.5v5 \
+        libre2-dev \
+        libzmq3-dev \
+        libboost-dev \
+        libboost-system-dev \
+        libboost-test-dev \
+        libconfig++-dev
+
+    - run: groupadd --gid $TSGID $TSGROUP && \
+        useradd --uid $TSUID -s /bin/bash -g $TSGROUP -c "Apache Traffic Server" -M $TSUSER
+
+    - run: mkdir /build_trafficserver && \
+        cd /build_trafficserver && curl -O $ATS_DLINK
+
+    - run: cd /build_trafficserver && \
+        /bin/bash -c "[[ \"$(sha512sum < trafficserver-$ATS_VERSION.tar.bz2)\" = \"$ATS_SHA512  -\" ]]" && \  # XXX double check this?
+        tar jxf trafficserver-$ATS_VERSION.tar.bz2)
+
+    - run: cd /build_trafficserver/trafficserver-$ATS_VERSION && \
+        ./configure --prefix=$TSPATH \
+        --enable-layout=Apache \
+        --with-user=$TSUSER \
+        --with-group=$TSGROUP \
+        --enable-experimental-plugins \
+        --enable-example-plugins \
+        --with-ncurses \
+        --enable-wccp
+
+    - run: cd /build_trafficserver/trafficserver-$ATS_VERSION && \
+        make -j$(nproc) && \
+        make install
+
+    - run: cd $TSPATH && \
+        rm modules/*.la ; \
+        rm lib/*.la
+
+    - run: mv $TSPATH/conf $TSPATH/dist-conf && \
+        mkdir -m 0755 $TSPATH/conf && \
+        mkdir -m 0755 $TSPATH/conf/conf.d && \
+        mkdir -m 0755 $TSPATH/conf/banjax && \
+        mkdir -m 0755 $TSPATH/conf/banjax/banjax.d && \
+        mkdir -m 0755 $TSPATH/conf/snapshots && \
+        mkdir -m 0755 $TSPATH/modules/banjax && \
+        mkdir -m 0750 $TSPATH/conf/ssl
+
+    - run: cd "$BANJAX_DIR" && \
+        mkdir build && cd build && \
+        cmake ../ -DCMAKE_CXX_FLAGS="-I$TSPATH/include" && \
+        make -j$(nproc)
+
+    - run: cd "$BANJAX_DIR" && \
+        cp build/banjax.so $TSPATH/modules/banjax/banjax.so && \
+        chmod 0755 $TSPATH/modules/banjax/banjax.so
+
+    - run: cd "$BANJAX_DIR"/config && \
+        cp auth.html captcha.html solver.html $TSPATH/modules/banjax/
+
+    - run: cp "$TSPATH"/dist-conf/*.config "$TSPATH"/conf/
+    - run: touch "$TSPATH"/conf/icp.config
+    - run: echo "banjax/banjax.so $TSPATH/modules/banjax/" >> "$TSPATH"/conf/plugin.config
+    - run: echo "regex_map http://^127.0.0.1:8080$/ http://127.0.0.1:8000/" >> "$TSPATH"/conf/remap.config
+    - run: cp "$TSPATH"/dist-conf/records.config "$TSPATH"/conf/
+    - run: perl -pi -e 's/CONFIG proxy.config.http.cache.required_headers INT .+/CONFIG proxy.config.http.cache.required_headers INT 0/g' "$TSPATH"/conf/records.config
+
+    - run: "$TSPATH"/bin/trafficserver restart
+    - run: cd "$BANJAX_DIR" && ./build/unit-tests  # XXX not sure if these are working
+    - run: cd "$BANJAX_DIR" && python2.7 ./test/banjax_behavior_test.py --ts-prefix=$TSPATH --ts-layout="apache"
+
