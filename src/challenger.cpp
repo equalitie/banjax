@@ -7,31 +7,11 @@
  *  Otto: Nov 2013: Captcha challenge
  *  Vmon: Nov 2013: merging Otto's code
  */
-#include <iostream>
-#include <string.h>
-#include <vector>
-#include <sstream>
-#include <fstream>
-#include <streambuf>
-#include <cmath>
-#include <algorithm>
-#include <utility>
 
-#include <cassert>
-#include <limits>
-#include <stdexcept>
-#include <cctype>
 
-#include <openssl/evp.h>
-#include <openssl/rand.h>
-
-#include <ts/ts.h>
 #include <re2/re2.h>
 
-#include <assert.h>
 #include "libcaptcha.c"
-
-#include "util.h"
 #include "base64.h"
 #include "cookie.h"
 #include "challenger.h"
