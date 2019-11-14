@@ -71,7 +71,13 @@ public:
     response_code(403)
   {}
 
-  virtual ~FilterExtendedResponse() {}
+  virtual ~FilterExtendedResponse() {
+    if (content_type_) {
+      // This shouldn't happen as content_type_ should have been released by
+      // the time this destructor is run, but let's just make sure.
+      TSfree(content_type_);
+    }
+  }
 };
 
 /** we want to keep the FilterResponse struture as light as possible.
