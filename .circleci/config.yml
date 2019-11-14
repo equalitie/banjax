@@ -108,15 +108,15 @@ jobs:
         make -j3  # nproc says like 36 but i don't think we can actually use them all
         make install
 
-    - run: |
-        mv $TSPATH/conf $TSPATH/dist-conf
-        mkdir -m 0755 $TSPATH/conf
-        mkdir -m 0755 $TSPATH/conf/conf.d
-        mkdir -m 0755 $TSPATH/conf/banjax
-        mkdir -m 0755 $TSPATH/conf/banjax/banjax.d
-        mkdir -m 0755 $TSPATH/conf/snapshots
-        mkdir -m 0755 $TSPATH/modules/banjax
-        mkdir -m 0750 $TSPATH/conf/ssl
+    # - run: |
+    # - rumv $TSPATH/conf $TSPATH/dist-conf
+    # - rumkdir -m 0755 $TSPATH/conf
+    # - rumkdir -m 0755 $TSPATH/conf/conf.d
+    # - rumkdir -m 0755 $TSPATH/conf/banjax
+    # - rumkdir -m 0755 $TSPATH/conf/banjax/banjax.d
+    # - rumkdir -m 0755 $TSPATH/conf/snapshots
+    # - rumkdir -m 0755 $TSPATH/modules/banjax
+    # - rumkdir -m 0750 $TSPATH/conf/ssl
 
     - run: |
         cd "$BANJAX_DIR"
@@ -132,7 +132,7 @@ jobs:
         cd "$BANJAX_DIR"/config
         cp auth.html captcha.html solver.html $TSPATH/modules/banjax/
 
-    - run: cp "$TSPATH"/dist-conf/*.config "$TSPATH"/conf/
+    # - run: cp "$TSPATH"/dist-conf/*.config "$TSPATH"/conf/
     - run: touch "$TSPATH"/conf/icp.config
     - run: echo "banjax/banjax.so $TSPATH/modules/banjax/" >> "$TSPATH"/conf/plugin.config
     - run: echo "regex_map http://^127.0.0.1:8080$/ http://127.0.0.1:8000/" >> "$TSPATH"/conf/remap.config
