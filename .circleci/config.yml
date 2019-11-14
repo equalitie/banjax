@@ -10,7 +10,7 @@ jobs:
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
       ATS_VERSION: "7.1.8"
-      ATS_SHA512: "1064a67fe4212868445a92fab7f5b2c330b561421de181c9798b7342d7b93d022376831169e212a86f2b3d32c3437ac8338e51a4c8abc8b31049ea9310f82798"
+      ATS_SHA512: "wrong1064a67fe4212868445a92fab7f5b2c330b561421de181c9798b7342d7b93d022376831169e212a86f2b3d32c3437ac8338e51a4c8abc8b31049ea9310f82798"
       ATS_DLINK: "http://archive.apache.org/dist/trafficserver/trafficserver-7.1.8.tar.bz2"  # XXX ATS_VERSION duplicated here. did not understand the above link about interpolating...
       TSPATH: "/usr/local/trafficserver"
       TSUSER: "trafserv"
