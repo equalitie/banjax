@@ -129,6 +129,6 @@ jobs:
         perl -pi -e 's/CONFIG proxy.config.http.cache.required_headers INT .+/CONFIG proxy.config.http.cache.required_headers INT 0/g' "$TSPATH"/conf/records.config
 
     - run: cd "$TSPATH" && ./bin/trafficserver restart
-    - run: cd "$BANJAX_DIR" && ./build/unit-tests  --log-level=test_suite  # XXX not sure if these are working
+    - run: cd "$BANJAX_DIR" && ./build/unit-tests  --log_level=test_suite  # XXX not sure if these are working
     - run: cd "$BANJAX_DIR" && python2.7 ./test/banjax_behavior_test.py --ts-prefix=$TSPATH --ts-layout="apache"
 
