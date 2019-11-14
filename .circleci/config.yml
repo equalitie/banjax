@@ -108,9 +108,6 @@ jobs:
         make -j3  # nproc says like 36 but i don't think we can actually use them all
         make install
 
-    # - run: |
-    # - rumv $TSPATH/conf $TSPATH/dist-conf
-    # - rumkdir -m 0755 $TSPATH/conf
     - run: |
         mkdir -m 0755 $TSPATH/conf/conf.d
         mkdir -m 0755 $TSPATH/conf/banjax
@@ -118,6 +115,7 @@ jobs:
         mkdir -m 0755 $TSPATH/conf/snapshots
         mkdir -m 0755 $TSPATH/modules/banjax
         mkdir -m 0750 $TSPATH/conf/ssl
+        touch "$TSPATH"/conf/icp.config
 
     - run: |
         cd "$BANJAX_DIR"
@@ -128,16 +126,11 @@ jobs:
     - run: |
         cd "$BANJAX_DIR"
         cp build/banjax.so $TSPATH/modules/banjax/banjax.so
-
-    - run: |
-        cd "$BANJAX_DIR"/config
+        cd config
         cp auth.html captcha.html solver.html $TSPATH/modules/banjax/
 
-    # - run: cp "$TSPATH"/dist-conf/*.config "$TSPATH"/conf/
-    - run: touch "$TSPATH"/conf/icp.config
     - run: echo "banjax/banjax.so $TSPATH/modules/banjax/" >> "$TSPATH"/conf/plugin.config
     - run: echo "regex_map http://^127.0.0.1:8080$/ http://127.0.0.1:8000/" >> "$TSPATH"/conf/remap.config
-    - run: cp "$TSPATH"/dist-conf/records.config "$TSPATH"/conf/
     - run: perl -pi -e 's/CONFIG proxy.config.http.cache.required_headers INT .+/CONFIG proxy.config.http.cache.required_headers INT 0/g' "$TSPATH"/conf/records.config
 
     - run: cd "$TSPATH" && ./bin/trafficserver restart
