@@ -83,7 +83,7 @@ jobs:
     # XXX ATS_VERSION duplicated here
     - run: |
         cd /build_trafficserver
-        [[ "$(sha512sum < trafficserver-7.1.8.tar.bz2)" == "$ATS_SHA512  -" ]]  # XXX double check this?
+        [[ "$(sha512sum < trafficserver-${ATS_VERSION}.tar.bz2)" == "$ATS_SHA512  -" ]]  # XXX double check this?
         tar jxf trafficserver-$ATS_VERSION.tar.bz2
 
     - run: |
@@ -99,7 +99,7 @@ jobs:
 
     - run: |
         cd /build_trafficserver/trafficserver-$ATS_VERSION
-        make -j3  # nproc says like 36 but i don't think we can actually use them all
+        make -j4  # nproc says like 36 but i don't think we can actually use them all
         make install
 
     - run: |
@@ -109,13 +109,13 @@ jobs:
         mkdir -m 0755 $TSPATH/conf/snapshots
         mkdir -m 0755 $TSPATH/modules/banjax
         mkdir -m 0750 $TSPATH/conf/ssl
-        touch "$TSPATH"/conf/icp.config
+        touch "$TSPATH"/conf/icp.config  # for some reason ATS complained if this didn't exist...
 
     - run: |
         cd "$BANJAX_DIR"
         mkdir build && cd build
         cmake ../ -DCMAKE_CXX_FLAGS="-I$TSPATH/include"
-        make -j3
+        make -j4
 
     - run: |
         cd "$BANJAX_DIR"
@@ -123,11 +123,12 @@ jobs:
         cd config
         cp auth.html captcha.html solver.html $TSPATH/modules/banjax/
 
-    - run: echo "banjax/banjax.so $TSPATH/modules/banjax/" >> "$TSPATH"/conf/plugin.config
-    - run: echo "regex_map http://^127.0.0.1:8080$/ http://127.0.0.1:8000/" >> "$TSPATH"/conf/remap.config
-    - run: perl -pi -e 's/CONFIG proxy.config.http.cache.required_headers INT .+/CONFIG proxy.config.http.cache.required_headers INT 0/g' "$TSPATH"/conf/records.config
+    - run: |
+        echo "banjax/banjax.so $TSPATH/modules/banjax/" >> "$TSPATH"/conf/plugin.config
+        echo "regex_map http://^127.0.0.1:8080$/ http://127.0.0.1:8000/" >> "$TSPATH"/conf/remap.config
+        perl -pi -e 's/CONFIG proxy.config.http.cache.required_headers INT .+/CONFIG proxy.config.http.cache.required_headers INT 0/g' "$TSPATH"/conf/records.config
 
     - run: cd "$TSPATH" && ./bin/trafficserver restart
-    - run: cd "$BANJAX_DIR" && ./build/unit-tests  # XXX not sure if these are working
+    - run: cd "$BANJAX_DIR" && ./build/unit-tests  --log-level=test_suite  # XXX not sure if these are working
     - run: cd "$BANJAX_DIR" && python2.7 ./test/banjax_behavior_test.py --ts-prefix=$TSPATH --ts-layout="apache"
 
