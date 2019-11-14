@@ -31,111 +31,105 @@ jobs:
     - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
 
     - run: |
-        apt-get update -qq &&
+        apt-get update -qq
         apt-get upgrade -qq
 
     - run: |
         apt-get install -qy \
-        apt-transport-https \
-        sudo \
-        curl \
-        rsync \
-        psmisc \
-        python3 \
-        python2.7 \
-        tzdata \
-        unzip \
-        zip \
-        bzip2 \
-        gawk
+            apt-transport-https \
+            sudo \
+            curl \
+            rsync \
+            psmisc \
+            python3 \
+            python2.7 \
+            tzdata \
+            unzip \
+            zip \
+            bzip2 \
+            gawk
 
     - run: |
         apt-get install -qy \
-        git-core \
-        build-essential \
-        automake \
-        autoconf \
-        libtool \
-        flex \
-        bison \
-        cmake
+            git-core \
+            build-essential \
+            automake \
+            autoconf \
+            libtool \
+            flex \
+            bison \
+            cmake
 
     - run: |
         apt-get install -qy \
-        libssl-dev \
-        libhwloc-dev \
-        libcap-dev \
-        tcl-dev \
-        libpcre3-dev \
-        libncurses5-dev \
-        libcurl4-openssl-dev \
-        libyaml-cpp-dev \
-        libyaml-cpp0.5v5 \
-        libre2-dev \
-        libzmq3-dev \
-        libboost-dev \
-        libboost-system-dev \
-        libboost-test-dev \
-        libconfig++-dev
+            libssl-dev \
+            libhwloc-dev \
+            libcap-dev \
+            tcl-dev \
+            libpcre3-dev \
+            libncurses5-dev \
+            libcurl4-openssl-dev \
+            libyaml-cpp-dev \
+            libyaml-cpp0.5v5 \
+            libre2-dev \
+            libzmq3-dev \
+            libboost-dev \
+            libboost-system-dev \
+            libboost-test-dev \
+            libconfig++-dev
 
     - run: |
-        groupadd --gid $TSGID $TSGROUP && \
+        groupadd --gid $TSGID $TSGROUP
         useradd --uid $TSUID -s /bin/bash -g $TSGROUP -c "Apache Traffic Server" -M $TSUSER
 
     - run: |
-        mkdir /build_trafficserver && \
+        mkdir /build_trafficserver
         cd /build_trafficserver && curl -O $ATS_DLINK
 
     # XXX ATS_VERSION duplicated here
     - run: |
-        cd /build_trafficserver && \
-        [[ "$(sha512sum < trafficserver-7.1.8.tar.bz2)" == "$ATS_SHA512  -" ]] && \  # XXX double check this?
+        cd /build_trafficserver
+        [[ "$(sha512sum < trafficserver-7.1.8.tar.bz2)" == "$ATS_SHA512  -" ]]  # XXX double check this?
         tar jxf trafficserver-$ATS_VERSION.tar.bz2
 
     - run: |
-        cd /build_trafficserver/trafficserver-$ATS_VERSION && \
+        cd /build_trafficserver/trafficserver-$ATS_VERSION
         ./configure --prefix=$TSPATH \
-        --enable-layout=Apache \
-        --with-user=$TSUSER \
-        --with-group=$TSGROUP \
-        --enable-experimental-plugins \
-        --enable-example-plugins \
-        --with-ncurses \
-        --enable-wccp
+            --enable-layout=Apache \
+            --with-user=$TSUSER \
+            --with-group=$TSGROUP \
+            --enable-experimental-plugins \
+            --enable-example-plugins \
+            --with-ncurses \
+            --enable-wccp
 
     - run: |
-        cd /build_trafficserver/trafficserver-$ATS_VERSION && \
-        make -j$(nproc) && \
+        cd /build_trafficserver/trafficserver-$ATS_VERSION
+        make -j3  # nproc says like 36 but i don't think we can actually use them all
         make install
 
     - run: |
-        cd $TSPATH && \
-        rm modules/*.la ; \
-        rm lib/*.la
-
-    - run: |
-        mv $TSPATH/conf $TSPATH/dist-conf && \
-        mkdir -m 0755 $TSPATH/conf && \
-        mkdir -m 0755 $TSPATH/conf/conf.d && \
-        mkdir -m 0755 $TSPATH/conf/banjax && \
-        mkdir -m 0755 $TSPATH/conf/banjax/banjax.d && \
-        mkdir -m 0755 $TSPATH/conf/snapshots && \
-        mkdir -m 0755 $TSPATH/modules/banjax && \
+        mv $TSPATH/conf $TSPATH/dist-conf
+        mkdir -m 0755 $TSPATH/conf
+        mkdir -m 0755 $TSPATH/conf/conf.d
+        mkdir -m 0755 $TSPATH/conf/banjax
+        mkdir -m 0755 $TSPATH/conf/banjax/banjax.d
+        mkdir -m 0755 $TSPATH/conf/snapshots
+        mkdir -m 0755 $TSPATH/modules/banjax
         mkdir -m 0750 $TSPATH/conf/ssl
 
     - run: |
-        cd "$BANJAX_DIR" && \
-        mkdir build && cd build && \
-        cmake ../ -DCMAKE_CXX_FLAGS="-I$TSPATH/include" && \
-        make -j$(nproc)
+        cd "$BANJAX_DIR"
+        mkdir build && cd build
+        cmake ../ -DCMAKE_CXX_FLAGS="-I$TSPATH/include"
+        make -j3
 
     - run: |
-        cd "$BANJAX_DIR" && \
-        cp build/banjax.so $TSPATH/modules/banjax/banjax.so && \
-        chmod 0755 $TSPATH/modules/banjax/banjax.so
+        cd "$BANJAX_DIR"
+        cp build/banjax.so $TSPATH/modules/banjax/banjax.so
 
     - run: |
-        cd "$BANJAX_DIR"/config && \
+        cd "$BANJAX_DIR"/config
         cp auth.html captcha.html solver.html $TSPATH/modules/banjax/
 
     - run: cp "$TSPATH"/dist-conf/*.config "$TSPATH"/conf/
