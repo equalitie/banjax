@@ -83,6 +83,7 @@ jobs:
     # XXX ATS_VERSION duplicated here
     - run: |
         cd /build_trafficserver
+        false
         [[ "$(sha512sum < trafficserver-${ATS_VERSION}.tar.bz2)" == "$ATS_SHA512  -" ]]  || false  # XXX double check this?
         tar jxf trafficserver-$ATS_VERSION.tar.bz2
 
