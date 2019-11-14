@@ -111,12 +111,13 @@ jobs:
     # - run: |
     # - rumv $TSPATH/conf $TSPATH/dist-conf
     # - rumkdir -m 0755 $TSPATH/conf
-    # - rumkdir -m 0755 $TSPATH/conf/conf.d
-    # - rumkdir -m 0755 $TSPATH/conf/banjax
-    # - rumkdir -m 0755 $TSPATH/conf/banjax/banjax.d
-    # - rumkdir -m 0755 $TSPATH/conf/snapshots
-    # - rumkdir -m 0755 $TSPATH/modules/banjax
-    # - rumkdir -m 0750 $TSPATH/conf/ssl
+    - run: |
+        mkdir -m 0755 $TSPATH/conf/conf.d
+        mkdir -m 0755 $TSPATH/conf/banjax
+        mkdir -m 0755 $TSPATH/conf/banjax/banjax.d
+        mkdir -m 0755 $TSPATH/conf/snapshots
+        mkdir -m 0755 $TSPATH/modules/banjax
+        mkdir -m 0750 $TSPATH/conf/ssl
 
     - run: |
         cd "$BANJAX_DIR"
