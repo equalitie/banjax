@@ -16,9 +16,6 @@
 #include <sys/stat.h>
 
 #include "transaction_data.h"
-#include "white_lister.h"
-#include "bot_sniffer.h"
-#include "denialator.h"
 #include "banjax.h"
 #include "defer.h"
 #include "print.h"
@@ -182,12 +179,6 @@ Banjax::Banjax(const string& banjax_config_dir,
     swabber(&swabber_ip_db, move(swabber_socket)),
     botsniffer_socket_reuse(move(bot_sniffer_socket))
 {
-  /* create an TSTextLogObject to log blacklisted requests to */
-  TSReturnCode error = TSTextLogObjectCreate(BANJAX_PLUGIN_NAME, TS_LOG_MODE_ADD_TIMESTAMP, &log);
-  if (!log || error == TS_ERROR) {
-    print::debug("Error while creating log");
-  }
-
   read_configuration();
 }
 
@@ -358,8 +349,8 @@ TSPluginInit(int argc, const char *argv[])
   {
     std::stringstream ss;
     for (int i = 0; i < argc; i++) {
+      if (i != 0) ss << ", ";
       ss << "\"" << argv[i] << "\"";
-      if (i != argc + 1) ss << ", ";
     }
     print::debug("TSPluginInit args: ", ss.str());
   }

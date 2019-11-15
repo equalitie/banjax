@@ -53,9 +53,6 @@ protected:
   // List of privileged IPs.
   GlobalWhiteList global_ip_white_list;
 
-  //requests
-  TSTextLogObject log;
-
   Swabber::IpDb      swabber_ip_db;
   Challenger::IpDb   challenger_ip_db;
   RegexManager::IpDb regex_manager_ip_db;
