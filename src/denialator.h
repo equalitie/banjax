@@ -41,15 +41,7 @@ public:
   {
     queued_tasks[HTTP_REQUEST] = this;
     banning_grace_period = swabber->get_grace_period();
-    load_config(cfg);
   }
-
-  /**
-    Overload of the load config
-    reads all the regular expressions from the database.
-    and compile them
-  */
-  void load_config(const YAML::Node&) {};
 
   /**
      Overloaded to tell banjax that we need url, host, ua and ip
