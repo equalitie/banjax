@@ -5,9 +5,6 @@
  *
  *  Vmon: June 2013, Initial version
  */
-#include <vector>
-#include <sys/time.h>
-
 #include "regex_manager.h"
 
 using namespace std;
