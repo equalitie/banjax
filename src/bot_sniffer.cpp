@@ -23,7 +23,7 @@ using namespace std;
 static const string LOG = "botbanger_log";
 
 void
-BotSniffer::load_config()
+BotSniffer::load_config(const YAML::Node& cfg)
 {
   print::debug("BotSniffer::load_config()");
 

@@ -13,7 +13,7 @@ using namespace std;
   reads all the regular expressions from the database.
   and compile them
  */
-void RegexManager::load_config()
+void RegexManager::load_config(const YAML::Node& cfg)
 {
   try
   {

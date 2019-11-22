@@ -240,7 +240,7 @@ public:
             IpDb* challenger_ip_db,
             Swabber* swabber,
             const GlobalWhiteList* global_white_list)
-    :BanjaxFilter::BanjaxFilter(filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
+    :BanjaxFilter::BanjaxFilter(CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
     too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
     swabber(swabber),
     global_white_list(global_white_list),
@@ -254,7 +254,7 @@ public:
       challenge_type[ChallengeDefinition::CHALLENGE_LIST[i]] = (ChallengeDefinition::ChallengeType)i;
     }
 
-    load_config(banjax_dir);
+    load_config(banjax_dir, merge_config(filter_config));
   }
 
   /**
@@ -291,7 +291,7 @@ public:
 private:
   std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info) override;
 
-  void load_config(const std::string& banjax_dir);
+  void load_config(const std::string& banjax_dir, const YAML::Node&);
 };
 
 #endif /* challenge_manager.h */

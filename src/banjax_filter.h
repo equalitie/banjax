@@ -120,9 +120,6 @@ public:
 
 class BanjaxFilter
 {
-protected:
-  YAML::Node cfg;
-
 public:
   const unsigned int BANJAX_FILTER_ID;
   const std::string BANJAX_FILTER_NAME;
@@ -165,16 +162,12 @@ public:
      it also merge scattered config in one node
 
   */
-  BanjaxFilter(const FilterConfig& filter_config, unsigned int child_id, std::string child_name) :
+  BanjaxFilter(unsigned int child_id, std::string child_name) :
     BANJAX_FILTER_ID(child_id),
     BANJAX_FILTER_NAME(child_name)
   {
     for (size_t i = 0; i < BanjaxFilter::TOTAL_NO_OF_QUEUES; ++i) {
       queued_tasks[i] = nullptr;
-    }
-
-    for(const auto& cur_node : filter_config.config_node_list) {
-      cfg = merge_nodes(cfg, cur_node->second);
     }
   }
 
@@ -229,6 +222,15 @@ public:
     TSDebug(BANJAX_PLUGIN_NAME, "You shouldn't have called me at the first place.");
     assert(NULL);
     return "";
+  }
+
+  static YAML::Node merge_config(const FilterConfig input)
+  {
+    YAML::Node output;
+    for(const auto& cur_node : input.config_node_list) {
+      output = merge_nodes(output, cur_node->second);
+    }
+    return output;
   }
 
 private:

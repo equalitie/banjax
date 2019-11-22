@@ -20,7 +20,7 @@ using namespace std;
   and compile them
  */
 void
-WhiteLister::load_config()
+WhiteLister::load_config(const YAML::Node& cfg)
 {
   TSDebug(BANJAX_PLUGIN_NAME, "Loading white lister manager conf");
 

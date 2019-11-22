@@ -42,7 +42,7 @@ const std::string SUB_ZEROS = "$zeros";
   and compile them
 */
 void
-Challenger::load_config(const std::string& banjax_dir)
+Challenger::load_config(const std::string& banjax_dir, const YAML::Node& cfg)
 {
   //TODO: we should read the auth password from config and store it somewhere
   DEBUG("Loading challenger manager conf");

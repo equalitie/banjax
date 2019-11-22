@@ -25,11 +25,11 @@ public:
   */
   WhiteLister(const FilterConfig& filter_config,
               GlobalWhiteList& white_list) :
-    BanjaxFilter::BanjaxFilter(filter_config, WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME),
+    BanjaxFilter::BanjaxFilter(WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME),
     white_list(white_list)
   {
     queued_tasks[HTTP_REQUEST] = this;
-    load_config();
+    load_config(merge_config(filter_config));
   }
 
   uint64_t requested_info() override {
@@ -41,7 +41,7 @@ public:
   void on_http_close(const TransactionParts& transaction_parts) override {};
 
 private:
-  void load_config();
+  void load_config(const YAML::Node&);
 };
 
 #endif /* white_lister.h */

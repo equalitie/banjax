@@ -32,8 +32,7 @@ class Denialator : public BanjaxFilter
             Swabber::IpDb* swabber_ip_db,
             Swabber* swabber,
             GlobalWhiteList* global_white_list)
-   : BanjaxFilter(filter_config,
-                  DENIALATOR_FILTER_ID,
+   : BanjaxFilter(DENIALATOR_FILTER_ID,
                   DENIALATOR_FILTER_NAME),
      swabber(swabber),
      global_white_list(global_white_list),
@@ -41,7 +40,7 @@ class Denialator : public BanjaxFilter
   {
     queued_tasks[HTTP_REQUEST] = this;
     banning_grace_period = swabber->get_grace_period();
-    load_config();
+    load_config(merge_config(filter_config));
   }
 
   /**
@@ -49,7 +48,7 @@ class Denialator : public BanjaxFilter
     reads all the regular expressions from the database.
     and compile them
   */
-  virtual void load_config() {};
+  virtual void load_config(const YAML::Node&) {};
 
   /**
      Overloaded to tell banjax that we need url, host, ua and ip

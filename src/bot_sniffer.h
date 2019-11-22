@@ -34,7 +34,7 @@ public:
    */
  BotSniffer( const FilterConfig& filter_config
            , std::unique_ptr<Socket> socket = nullptr)
-   : BanjaxFilter::BanjaxFilter(filter_config, BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME)
+   : BanjaxFilter::BanjaxFilter(BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME)
    , socket(std::move(socket))
    , botbanger_server("*")
     /* When assigning a local address to a socket using zmq_bind() with the tcp
@@ -48,7 +48,7 @@ public:
    , mutex(TSMutexCreate())
   {
     queued_tasks[HTTP_CLOSE] = this;
-    load_config();
+    load_config(merge_config(filter_config));
   }
 
   /**
@@ -56,7 +56,7 @@ public:
     reads all the regular expressions from the database.
     and compile them
   */
-  virtual void load_config();
+  virtual void load_config(const YAML::Node&);
 
   /**
    *  Overloaded to tell banjax that we need url, host, ua and ip
