@@ -43,7 +43,7 @@ private:
 public:
   using IpDb = ::IpDb<std::vector<RegexState>>;
 
-protected:
+private:
   //We store the forbidden message at the begining so we can copy it fast
   //everytime. It is being stored here for being used again
   //ATS barf if you give it the message in const memory
@@ -61,7 +61,6 @@ protected:
 
   IpDb* regex_manager_ip_db;
 
-protected:
   /**
     applies all regex to an ATS record
   */
