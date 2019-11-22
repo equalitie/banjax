@@ -12,7 +12,7 @@
 #include "banjax_filter.h"
 #include "swabber.h"
 
-class RegexManager : public BanjaxFilter
+class RegexManager final : public BanjaxFilter
 {
 private:
   struct RegexState {

@@ -12,7 +12,7 @@
 #include "util.h"
 #include "global_white_list.h"
 
-class WhiteLister : public BanjaxFilter
+class WhiteLister final : public BanjaxFilter
 {
 protected:
   // List of privileged IPs.

@@ -12,7 +12,7 @@
 
 class GlobalWhiteList;
 
-class Denialator : public BanjaxFilter
+class Denialator final : public BanjaxFilter
 {
  protected:
   //swabber object used for banning bots after grace period is finished
@@ -48,7 +48,7 @@ class Denialator : public BanjaxFilter
     reads all the regular expressions from the database.
     and compile them
   */
-  virtual void load_config(const YAML::Node&) {};
+  void load_config(const YAML::Node&) {};
 
   /**
      Overloaded to tell banjax that we need url, host, ua and ip

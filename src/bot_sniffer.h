@@ -12,7 +12,7 @@
 #include "banjax_filter.h"
 #include "socket.h"
 
-class BotSniffer : public BanjaxFilter
+class BotSniffer final : public BanjaxFilter
 {
 private:
   std::unique_ptr<Socket> socket;
@@ -56,7 +56,7 @@ public:
     reads all the regular expressions from the database.
     and compile them
   */
-  virtual void load_config(const YAML::Node&);
+  void load_config(const YAML::Node&);
 
   /**
    *  Overloaded to tell banjax that we need url, host, ua and ip
