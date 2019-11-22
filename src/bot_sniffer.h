@@ -32,31 +32,7 @@ public:
    *  receives the config object need to read the ip list,
    *  subsequently it reads all the ips
    */
- BotSniffer( const YAML::Node& cfg
-           , std::unique_ptr<Socket> socket = nullptr)
-   : BanjaxFilter::BanjaxFilter(BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME)
-   , socket(std::move(socket))
-   , botbanger_server("*")
-    /* When assigning a local address to a socket using zmq_bind() with the tcp
-       transport, the endpoint shall be interpreted as an interface followed by
-       a colon and the TCP port number to use.
-       An interface may be specified by either of the following:
-
-       The wild-card *, meaning all available interfaces.
-       The primary IPv4 address assigned to the interface, in its numeric representation.
-       The interface name as defined by the operating system. */
-   , mutex(TSMutexCreate())
-  {
-    queued_tasks[HTTP_CLOSE] = this;
-    load_config(cfg);
-  }
-
-  /**
-    Overload of the load config
-    reads all the regular expressions from the database.
-    and compile them
-  */
-  void load_config(const YAML::Node&);
+ BotSniffer(const YAML::Node& cfg, std::unique_ptr<Socket> socket = nullptr);
 
   /**
    *  Overloaded to tell banjax that we need url, host, ua and ip

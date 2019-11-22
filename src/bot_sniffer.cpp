@@ -22,10 +22,15 @@ using namespace std;
 
 static const string LOG = "botbanger_log";
 
-void
-BotSniffer::load_config(const YAML::Node& cfg)
+BotSniffer::BotSniffer(const YAML::Node& cfg, std::unique_ptr<Socket> socket)
+  : BanjaxFilter::BanjaxFilter(BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME)
+  , socket(std::move(socket))
+  , botbanger_server("*")
+  , mutex(TSMutexCreate())
 {
-  print::debug("BotSniffer::load_config()");
+  queued_tasks[HTTP_CLOSE] = this;
+
+  print::debug("BotSniffer::BotSniffer()");
 
   try {
     botbanger_port = cfg["botbanger_port"].as<unsigned int>();
