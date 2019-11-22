@@ -143,19 +143,6 @@ public:
   BanjaxFilter* queued_tasks[BanjaxFilter::TOTAL_NO_OF_QUEUES];
 
   /**
-     A disabled filter won't run,
-     Banjax calls the execution function of an enabled filter
-     A controlled filter can be run in request of other filters
-   */
-  enum Status {
-    disabled,
-    enabled,
-    controlled,
-  };
-
-  Status filter_status;
-
-  /**
      receives the db object need to read the regex list,
      subsequently it reads all the regexs
 
