@@ -236,7 +236,7 @@ public:
      @param main_root the root of the configuration structure
   */
  Challenger(const std::string& banjax_dir,
-            const FilterConfig& filter_config,
+            const YAML::Node& cfg,
             IpDb* challenger_ip_db,
             Swabber* swabber,
             const GlobalWhiteList* global_white_list)
@@ -254,7 +254,7 @@ public:
       challenge_type[ChallengeDefinition::CHALLENGE_LIST[i]] = (ChallengeDefinition::ChallengeType)i;
     }
 
-    load_config(banjax_dir, merge_config(filter_config));
+    load_config(banjax_dir, cfg);
   }
 
   /**

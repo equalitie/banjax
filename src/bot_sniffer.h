@@ -32,7 +32,7 @@ public:
    *  receives the config object need to read the ip list,
    *  subsequently it reads all the ips
    */
- BotSniffer( const FilterConfig& filter_config
+ BotSniffer( const YAML::Node& cfg
            , std::unique_ptr<Socket> socket = nullptr)
    : BanjaxFilter::BanjaxFilter(BOT_SNIFFER_FILTER_ID, BOT_SNIFFER_FILTER_NAME)
    , socket(std::move(socket))
@@ -48,7 +48,7 @@ public:
    , mutex(TSMutexCreate())
   {
     queued_tasks[HTTP_CLOSE] = this;
-    load_config(merge_config(filter_config));
+    load_config(cfg);
   }
 
   /**

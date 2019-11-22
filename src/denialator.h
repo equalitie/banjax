@@ -14,7 +14,7 @@ class GlobalWhiteList;
 
 class Denialator final : public BanjaxFilter
 {
- protected:
+protected:
   //swabber object used for banning bots after grace period is finished
   Swabber* swabber;
   GlobalWhiteList* global_white_list;
@@ -22,13 +22,14 @@ class Denialator final : public BanjaxFilter
   long banning_grace_period = 0;
 
   Swabber::IpDb* swabber_ip_db;
- public:
+
+public:
   /**
      receives the config object need to read the ip list,
      subsequently it reads all the ips
 
   */
- Denialator(const FilterConfig& filter_config,
+ Denialator(const YAML::Node& cfg,
             Swabber::IpDb* swabber_ip_db,
             Swabber* swabber,
             GlobalWhiteList* global_white_list)
@@ -40,7 +41,7 @@ class Denialator final : public BanjaxFilter
   {
     queued_tasks[HTTP_REQUEST] = this;
     banning_grace_period = swabber->get_grace_period();
-    load_config(merge_config(filter_config));
+    load_config(cfg);
   }
 
   /**

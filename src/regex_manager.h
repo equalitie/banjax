@@ -73,7 +73,7 @@ public:
      subsequently it reads all the regexs
 
   */
-  RegexManager(const FilterConfig& filter_config,
+  RegexManager(const YAML::Node& cfg,
                IpDb* regex_manager_ip_db,
                Swabber* swabber) :
     BanjaxFilter::BanjaxFilter(REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME),
@@ -83,7 +83,7 @@ public:
     regex_manager_ip_db(regex_manager_ip_db)
   {
     queued_tasks[HTTP_REQUEST] = this;
-    load_config(merge_config(filter_config));
+    load_config(cfg);
   }
 
   /**

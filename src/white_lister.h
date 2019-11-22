@@ -23,13 +23,13 @@ public:
      receives the config object need to read the ip list,
      subsequently it reads all the ips
   */
-  WhiteLister(const FilterConfig& filter_config,
+  WhiteLister(const YAML::Node& cfg,
               GlobalWhiteList& white_list) :
     BanjaxFilter::BanjaxFilter(WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME),
     white_list(white_list)
   {
     queued_tasks[HTTP_REQUEST] = this;
-    load_config(merge_config(filter_config));
+    load_config(cfg);
   }
 
   uint64_t requested_info() override {

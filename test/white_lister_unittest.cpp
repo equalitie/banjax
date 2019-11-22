@@ -36,7 +36,7 @@ static std::unique_ptr<BanjaxFilter> open_config(GlobalWhiteList& db, std::strin
     BOOST_REQUIRE(false);
   }
 
-  return unique_ptr<WhiteLister>(new WhiteLister(filter_config, db));
+  return unique_ptr<WhiteLister>(new WhiteLister(BanjaxFilter::merge_config(filter_config), db));
 }
 
 /**

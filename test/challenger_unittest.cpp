@@ -38,7 +38,7 @@ unique_ptr<Challenger> open_config(const std::string& config)
   }
 
   return unique_ptr<Challenger>(
-      new Challenger(TEMP_DIR, filter_config, nullptr, nullptr, nullptr));
+      new Challenger(TEMP_DIR, BanjaxFilter::merge_config(filter_config), nullptr, nullptr, nullptr));
 }
 
 BOOST_AUTO_TEST_CASE(load_config1) {

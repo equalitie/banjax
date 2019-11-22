@@ -74,23 +74,23 @@ Banjax::build_filters()
   BanjaxFilter* cur_filter;
 
   for (const pair<int,string>& cur_filter_name : priority_map) {
-    FilterConfig& cur_config = filter_config_map[cur_filter_name.second];
+    const YAML::Node cfg = BanjaxFilter::merge_config(filter_config_map[cur_filter_name.second]);
 
     try {
       if (cur_filter_name.second == REGEX_BANNER_FILTER_NAME) {
-        regex_manager.reset(new RegexManager(cur_config, &regex_manager_ip_db, &swabber));
+        regex_manager.reset(new RegexManager(cfg, &regex_manager_ip_db, &swabber));
         cur_filter = regex_manager.get();
       } else if (cur_filter_name.second == CHALLENGER_FILTER_NAME){
-        challenger.reset(new Challenger(banjax_config_dir, cur_config, &challenger_ip_db, &swabber, &global_ip_white_list));
+        challenger.reset(new Challenger(banjax_config_dir, cfg, &challenger_ip_db, &swabber, &global_ip_white_list));
         cur_filter = challenger.get();
       } else if (cur_filter_name.second == WHITE_LISTER_FILTER_NAME){
-        white_lister.reset(new WhiteLister(cur_config, global_ip_white_list));
+        white_lister.reset(new WhiteLister(cfg, global_ip_white_list));
         cur_filter = white_lister.get();
       } else if (cur_filter_name.second == BOT_SNIFFER_FILTER_NAME){
-        bot_sniffer.reset(new BotSniffer(cur_config, move(botsniffer_socket_reuse)));
+        bot_sniffer.reset(new BotSniffer(cfg, move(botsniffer_socket_reuse)));
         cur_filter = bot_sniffer.get();
       } else if (cur_filter_name.second == DENIALATOR_FILTER_NAME){
-        denialator.reset(new Denialator(cur_config, &swabber_ip_db, &swabber, &global_ip_white_list));
+        denialator.reset(new Denialator(cfg, &swabber_ip_db, &swabber, &global_ip_white_list));
         cur_filter = denialator.get();
       } else {
         print::debug("Don't know how to construct filter: \"", cur_filter_name.second, "\"");

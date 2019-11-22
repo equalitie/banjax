@@ -81,7 +81,7 @@ private:
     }
 
     regex_manager.reset(
-        new RegexManager(regex_filter_config,
+        new RegexManager(BanjaxFilter::merge_config(regex_filter_config),
                          &regex_manager_ip_db,
                          &test_swabber));
   }
