@@ -73,18 +73,7 @@ public:
      subsequently it reads all the regexs
 
   */
-  RegexManager(const YAML::Node& cfg,
-               IpDb* regex_manager_ip_db,
-               Swabber* swabber) :
-    BanjaxFilter::BanjaxFilter(REGEX_BANNER_FILTER_ID, REGEX_BANNER_FILTER_NAME),
-    forbidden_message("<html><header></header><body>Forbidden</body></html>"),
-    forbidden_message_length(forbidden_message.length()),
-    swabber(swabber),
-    regex_manager_ip_db(regex_manager_ip_db)
-  {
-    queued_tasks[HTTP_REQUEST] = this;
-    load_config(cfg);
-  }
+  RegexManager(const YAML::Node& cfg, IpDb*, Swabber*);
 
   /**
      Overloaded to tell banjax that we need url, host, ua and ip
@@ -104,9 +93,6 @@ public:
   void on_http_close(const TransactionParts& transaction_parts) override {}
 
   std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info) override;
-
-private:
-  void load_config(const YAML::Node&);
 };
 
 #endif /* regex_manager.h */
