@@ -36,16 +36,28 @@ const std::string SUB_TIME  = "$time";
 const std::string SUB_URL   = "$url";
 const std::string SUB_ZEROS = "$zeros";
 
-/**
-  Overload of the load config
-  reads all the regular expressions from the database.
-  and compile them
-*/
-void
-Challenger::load_config(const std::string& banjax_dir, const YAML::Node& cfg)
+Challenger::Challenger(const std::string& banjax_dir,
+                       const YAML::Node& cfg,
+                       IpDb* challenger_ip_db,
+                       Swabber* swabber,
+                       const GlobalWhiteList* global_white_list)
+   :BanjaxFilter::BanjaxFilter(CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
+   too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
+   swabber(swabber),
+   global_white_list(global_white_list),
+   challenger_ip_db(challenger_ip_db)
 {
+  queued_tasks[HTTP_REQUEST] = this;
+
+  //Initializing the challenge definitions
+  for(unsigned int i = 0; i < ChallengeDefinition::CHALLENGE_COUNT; i++) {
+    challenge_specs.emplace_back(new ChallengeSpec(ChallengeDefinition::CHALLENGE_LIST[i], ChallengeDefinition::CHALLENGE_FILE_LIST[i],(ChallengeDefinition::ChallengeType)i));
+    challenge_type[ChallengeDefinition::CHALLENGE_LIST[i]] = (ChallengeDefinition::ChallengeType)i;
+  }
+
   //TODO: we should read the auth password from config and store it somewhere
   DEBUG("Loading challenger manager conf");
+
   try
   {
     //now we compile all of them and store them for later use
