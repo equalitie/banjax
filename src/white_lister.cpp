@@ -15,13 +15,13 @@ using namespace std;
 #include "white_lister.h"
 #include "print.h"
 
-/**
-  reads all the regular expressions from the database.
-  and compile them
- */
-void
-WhiteLister::load_config(const YAML::Node& cfg)
+WhiteLister::WhiteLister(const YAML::Node& cfg,
+                         GlobalWhiteList& white_list) :
+  BanjaxFilter::BanjaxFilter(WHITE_LISTER_FILTER_ID, WHITE_LISTER_FILTER_NAME),
+  white_list(white_list)
 {
+  queued_tasks[HTTP_REQUEST] = this;
+
   TSDebug(BANJAX_PLUGIN_NAME, "Loading white lister manager conf");
 
   try
