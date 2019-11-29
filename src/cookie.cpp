@@ -57,7 +57,10 @@ Cookie::consume(boost::string_view& cookie_s)
 
   c.name = cookie_s.substr(0, name_end);
 
-  if (name_end == cookie_s.size()) return c;
+  if (name_end == cookie_s.size()) {
+      cookie_s.remove_prefix(name_end);
+      return c;
+  }
 
   cookie_s = trim_space_prefix(cookie_s.substr(name_end));
 

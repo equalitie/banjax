@@ -157,6 +157,17 @@ BOOST_AUTO_TEST_CASE(parse) {
     BOOST_REQUIRE(Cookie::consume(jar));
     BOOST_REQUIRE(!Cookie::consume(jar));
   }
+
+  {
+    string_view jar = "no-semicolon";
+
+    {
+      optional<Cookie> oc = Cookie::consume(jar);
+      BOOST_REQUIRE(oc);
+      BOOST_REQUIRE_EQUAL(oc->name, "no-semicolon");
+    }
+    BOOST_REQUIRE(!Cookie::consume(jar));
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
