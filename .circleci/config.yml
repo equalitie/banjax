@@ -69,7 +69,10 @@ jobs:
             libboost-dev \
             libboost-system-dev \
             libboost-test-dev \
-            libconfig++-dev
+            libconfig++-dev \
+            librdkafka++1 \
+            librdkafka-dev
+
 
     - run: |
         groupadd --gid $TSGID $TSGROUP

@@ -16,7 +16,7 @@
 #include "cookie.h"
 #include "challenger.h"
 #include "cookiehash.h"
-#include "print.h"
+#include "kafka.h"
 
 using namespace std;
 
@@ -42,7 +42,7 @@ const std::string SUB_ZEROS = "$zeros";
   and compile them
 */
 void
-Challenger::load_config(const std::string& banjax_dir)
+Challenger::load_config()
 {
   //TODO: we should read the auth password from config and store it somewhere
   DEBUG("Loading challenger manager conf");
@@ -50,105 +50,7 @@ Challenger::load_config(const std::string& banjax_dir)
   {
     //now we compile all of them and store them for later use
     for(const auto& ch : cfg["challenges"]) {
-      auto host_challenge_spec = make_shared<HostChallengeSpec>();
-
-      host_challenge_spec->name = ch["name"].as<std::string>();
-      DEBUG("Loading conf for challenge ", host_challenge_spec->name);
-
-      //it is fundamental to establish what type of challenge we are dealing
-      //with
-      std::string requested_challenge_type = ch["challenge_type"].as<std::string>();
-      host_challenge_spec->challenge_type = challenge_type[requested_challenge_type];
-
-      host_challenge_spec->challenge_validity_period = ch["validity_period"].as<unsigned int>();
-
-      // How much failure are we going to tolerate 0 means infinite tolerance
-      if (ch["no_of_fails_to_ban"]) {
-        host_challenge_spec->fail_tolerance_threshold = ch["no_of_fails_to_ban"].as<unsigned int>();
-      }
-
-      // TODO(oschaaf): host name can be configured twice, and could except here
-      std::string challenge_file;
-
-      if (ch["challenge"]) {
-        challenge_file = ch["challenge"].as<std::string>();
-      }
-
-      // If no file is configured, default to hard coded solver_page.
-      if (challenge_file.size() == 0) {
-        challenge_file.append(challenge_specs[host_challenge_spec->challenge_type]->default_page_filename);
-      }
-
-      std::string challenge_path = banjax_dir + "/" + challenge_file;
-      TSDebug(BANJAX_PLUGIN_NAME, "Challenge [%s] uses challenge file [%s]",
-              host_challenge_spec->name.c_str(), challenge_path.c_str());
-
-      ifstream ifs(challenge_path);
-      host_challenge_spec->challenge_stream.assign(istreambuf_iterator<char>(ifs), istreambuf_iterator<char>());
-
-      if (host_challenge_spec->challenge_stream.size() == 0) {
-        TSDebug(BANJAX_PLUGIN_NAME, "Warning, [%s] looks empty", challenge_path.c_str());
-        TSError("Warning, [%s] looks empty", challenge_path.c_str());
-      } else {
-        TSDebug(BANJAX_PLUGIN_NAME, "Assigning %d bytes of html for [%s]",
-                (int)host_challenge_spec->challenge_stream.size(), host_challenge_spec->name.c_str());
-      }
-
-      //Auth challenege specific data
-      if (ch["password_hash"]) {
-        host_challenge_spec->password_hash = ch["password_hash"].as<string>();
-      }
-
-      if (ch["magic_word"]) {
-        using MagicWord = HostChallengeSpec::MagicWord;
-
-        auto& mw = ch["magic_word"];
-        auto& storage = host_challenge_spec->magic_words;
-
-        if (mw.IsSequence()) {
-          for (auto& entry : mw) {
-            if (entry.IsSequence()) {
-              auto type = entry[0].as<string>();
-              auto word = entry[1].as<string>();
-
-              if (type == "regexp") {
-                storage.insert(MagicWord::make_regexp(word));
-              }
-              else if (type == "substr") {
-                storage.insert(MagicWord::make_substr(word));
-              }
-              else {
-                // TODO: In newest versions of YAML we can get
-                // the mark from the node.
-                throw YAML::Exception(YAML::Mark::null_mark(), "Invalid type for magic word");
-              }
-            }
-            else {
-              storage.insert(MagicWord::make_substr(entry.as<string>()));
-            }
-          }
-        }
-        else {
-          storage.insert(MagicWord::make_substr(mw.as<string>()));
-        }
-      }
-
-      if (ch["magic_word_exceptions"]) {
-        auto exprs = ch["magic_word_exceptions"].as<vector<string>>();
-
-        for (const auto& expr : exprs) {
-          host_challenge_spec->magic_word_exceptions.emplace_back(expr);
-        }
-      }
-
-      if (ch["white_listed_ips"]) {
-        auto& white_list = host_challenge_spec->white_listed_ips;
-
-        for (auto ipr : ch["white_listed_ips"].as<vector<string>>()) {
-          white_list.insert(make_mask_for_range(ipr));
-        }
-      }
-
+      const shared_ptr<HostChallengeSpec>& host_challenge_spec = parse_single_challenge(ch);
       //here we are updating the dictionary that relate each
       //domain to many challenges
       unsigned int domain_count = ch["domains"].size();
@@ -156,7 +58,7 @@ Challenger::load_config(const std::string& banjax_dir)
       //now we compile all of them and store them for later use
       for(unsigned int i = 0; i < domain_count; i++) {
         string cur_domain = ch["domains"][i].as<std::string>();
-        host_challenges[cur_domain].push_back(host_challenge_spec);
+        host_challenges_static[cur_domain].push_back(host_challenge_spec);
       }
     }
 
@@ -174,20 +76,40 @@ Challenger::load_config(const std::string& banjax_dir)
   }
 
   TSDebug(BANJAX_PLUGIN_NAME, "Done loading challenger manager conf");
+}
 
-  // load the page
-  //ifstream ifs("../challenger/solver.html");
-  //TODO: Should not re-read the fiel upon each request
-  //We need to read the whole string from the database infact
-  //  ifstream ifs(Challenger::solver_page.c_str());
-  //  solver_page.assign( (istreambuf_iterator<char>(ifs)), istreambuf_iterator<char>());
+void
+Challenger::load_single_dynamic_config(const std::string& domain, const std::string& config_string) {
+  print::debug("LOAD SINGLE: ", config_string);
+  try
+  {
+      YAML::Node challenge = YAML::Load(config_string);
+      auto challenge_spec = parse_single_challenge(challenge);
+      TSMutexLock(host_to_challenge_dynamic_mutex);
+      auto on_scope_exit = defer([&] { TSMutexUnlock(host_to_challenge_dynamic_mutex); });
+      host_to_challenge_dynamic[domain] = challenge_spec;
+  }
+  catch(YAML::RepresentationException& e) {
+    TSDebug(BANJAX_PLUGIN_NAME, "Challenger::load_single_dynamic_config error: %s", e.what());
+    throw;
+  }
+}
 
-  // // set the time in the correct format
-  // stringstream ss(challenge_html.c_str());
-  // string page( (istreambuf_iterator<char>(ss) ), (istreambuf_iterator<char>()) );
-  // TSDebug(BANJAX_PLUGIN_NAME,
-  //         "Challenger::generate_html lookup for host [%s] found %d bytes of html.",
-  //         host_header.c_str(), (int)page.size());
+void
+Challenger::remove_expired_challenges() {
+  time_t current_timestamp = time(NULL);
+  TSMutexLock(host_to_challenge_dynamic_mutex);
+  auto on_scope_exit = defer([&] { TSMutexUnlock(host_to_challenge_dynamic_mutex); });
+  for (auto it = host_to_challenge_dynamic.begin(); it != host_to_challenge_dynamic.end();) {
+      // XXX is this really the best way to remove from a map? std::remove_if?
+      // XXX move the 60 seconds thing into a config
+      print::debug("host: ", it->first, " born: ", it->second->time_added);
+      if (current_timestamp - it->second->time_added > 60) {
+          it = host_to_challenge_dynamic.erase(it);
+      } else {
+          ++it;
+      }
+  }
 }
 
 /**
@@ -468,12 +390,28 @@ Challenger::on_http_request(const TransactionParts& transaction_parts)
   // look up if this host is serving captcha's or not
   TSDebug(BANJAX_PLUGIN_NAME, "Host to be challenged %s", host.c_str());
 
-  auto challenges_it = host_challenges.find(host);
+  std::list<std::shared_ptr<HostChallengeSpec>> challenges_to_run;
 
-  if (challenges_it == host_challenges.end()) {
-    DEBUG("No challenge for host: ", host);
-    // No challenge for this host
-    return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+  auto challenges_it = host_challenges_static.find(host);  // <- on-disk challenge gets priority
+
+  // XXX omfg what a mess
+  if (challenges_it == host_challenges_static.end()) {
+    print::debug("No on-disk challenge for host: ", host);
+    if (TSMutexLockTry(host_to_challenge_dynamic_mutex) != TS_SUCCESS) {
+      print::debug("Unable to get lock for host_to_challenge_dynamic; skipping challenger");
+      return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+    } else {
+      auto on_scope_exit = defer([&] { TSMutexUnlock(host_to_challenge_dynamic_mutex); });
+      print::debug("Got lock for host_to_challenge_dynamic; checking inside");
+      auto dyn_challenges_it = host_to_challenge_dynamic.find(host);
+      if (dyn_challenges_it == host_to_challenge_dynamic.end()) {
+        print::debug("No from-kafka challenge for host: ", host);
+        return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+      }
+      challenges_to_run.push_front(dyn_challenges_it->second);
+    }
+  } else {
+    challenges_to_run = challenges_it->second;
   }
 
   DEBUG("cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE));
@@ -486,21 +424,23 @@ Challenger::on_http_request(const TransactionParts& transaction_parts)
 
   const auto ip = transaction_parts.at(TransactionMuncher::IP);
 
-  DEBUG(">>> Num challenges ", challenges_it->second.size());
+  DEBUG(">>> Num challenges ", challenges_to_run.size());
 
-  for(const auto& cur_challenge : challenges_it->second) {
+  for(const auto& cur_challenge : challenges_to_run) {
 
+    TSDebug(BANJAX_PLUGIN_NAME, "set size: %lu", cur_challenge->white_listed_ips.size());
     for (const auto& ipr : cur_challenge->white_listed_ips) {
+      TSDebug(BANJAX_PLUGIN_NAME, "000a");
       if (is_match(ip, ipr)) {
-        DEBUG("Challenge ", cur_challenge->name, " bypassed for ip: ", ip);
         return FilterResponse(FilterResponse::SERVE_IMMIDIATELY_DONT_CACHE);
       }
     }
 
     switch(cur_challenge->challenge_type)
     {
+      TSDebug(BANJAX_PLUGIN_NAME, "002");
       case ChallengeDefinition::CHALLENGE_CAPTCHA:
-        DEBUG(">>> Running challenge CHALLENGE_CAPTCHA");
+        TSDebug(BANJAX_PLUGIN_NAME, ">>> Running challenge CHALLENGE_CAPTCHA");
         {
           if (is_globally_white_listed(ip)) {
             break;
@@ -531,7 +471,7 @@ Challenger::on_http_request(const TransactionParts& transaction_parts)
       }
 
       case ChallengeDefinition::CHALLENGE_SHA_INVERSE:
-        DEBUG(">>> Running challenge SHA_INVERSE");
+        TSDebug(BANJAX_PLUGIN_NAME, ">>> Running challenge SHA_INVERSE");
         if (is_globally_white_listed(ip)) {
           break;
         }
@@ -557,7 +497,7 @@ Challenger::on_http_request(const TransactionParts& transaction_parts)
         break;
 
       case ChallengeDefinition::CHALLENGE_AUTH:
-        DEBUG(">>> Running challenge CHALLENGE_AUTH");
+        TSDebug(BANJAX_PLUGIN_NAME, ">>> Running challenge CHALLENGE_AUTH");
         if(Challenger::check_cookie("", transaction_parts, *cur_challenge)) {
           // Success response in auth means don't serve
           report_success(ip);
@@ -567,6 +507,7 @@ Challenger::on_http_request(const TransactionParts& transaction_parts)
           TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, looking for magic word");
 
           if (needs_authentication(transaction_parts.at(TransactionMuncher::URL_WITH_HOST), *cur_challenge)) {
+            TSDebug(BANJAX_PLUGIN_NAME, "needs authentication");
             FilterResponse failure_response = custom_response(cur_challenge);
 
             if (cur_challenge->fail_tolerance_threshold) {
@@ -579,6 +520,7 @@ Challenger::on_http_request(const TransactionParts& transaction_parts)
             return failure_response;
           }
           else {
+            TSDebug(BANJAX_PLUGIN_NAME, "does not need authentication");
             // This is a normal client reading website not participating in
             // auth challenge, so just go ahead without comment
             break;
@@ -607,9 +549,13 @@ bool Challenger::needs_authentication(const std::string& url, const HostChalleng
     // unless the url also contains a word from 'magic_word_exceptions'.
     bool is_protected = false;
 
+    TSDebug(BANJAX_PLUGIN_NAME, "should be 'checking' here");
+    TSDebug(BANJAX_PLUGIN_NAME, "set size %lu", challenge.magic_words.size());
     for (auto& word : challenge.magic_words) {
+      TSDebug(BANJAX_PLUGIN_NAME, "checking against %s", word.magic_word.c_str());
       if (word.is_match(url)) {
         is_protected = true;
+        TSDebug(BANJAX_PLUGIN_NAME, "MATCHED A MAGIC WORD");
         break;
       }
     }
@@ -624,8 +570,8 @@ bool Challenger::needs_authentication(const std::string& url, const HostChalleng
     }
 
     for (auto& unprotected : challenge.magic_word_exceptions) {
-      if (std::search(url.begin(), end,
-            unprotected.begin(), unprotected.end()) != end) {
+      if (std::search(url.begin(), end, unprotected.begin(), unprotected.end()) != end) {
+        TSDebug(BANJAX_PLUGIN_NAME, "MATCHED A MAGIC WORD EXCEPTION");
         return false;
       }
     }
@@ -671,6 +617,14 @@ Challenger::report_failure(const std::shared_ptr<HostChallengeSpec>& failed_chal
   std::string client_ip = transaction_parts.at(TransactionMuncher::IP);
   std::string failed_host = transaction_parts.at(TransactionMuncher::HOST);
 
+  if (kafka_producer != nullptr) {
+    print::debug("calling kafka_producer->report_failure()");
+    kafka_producer->report_failure(failed_host, client_ip);
+  } else {
+    print::debug("kafka_producer is null!!!!!!!!!!");
+  }
+
+
   boost::optional<IpDb::IpState> ip_state = challenger_ip_db->get_ip_state(client_ip);
   if (!ip_state) //we failed to read so we can't judge
     return false;
@@ -709,4 +663,114 @@ Challenger::report_success(std::string client_ip)
 {
   IpDb::IpState ip_state(1);
   challenger_ip_db->set_ip_state(client_ip, ip_state);
+}
+
+
+std::shared_ptr<HostChallengeSpec>
+Challenger::parse_single_challenge(const YAML::Node& ch) {
+  auto host_challenge_spec = make_shared<HostChallengeSpec>();
+
+  host_challenge_spec->name = ch["name"].as<std::string>();
+  DEBUG("Loading conf for challenge ", host_challenge_spec->name);
+
+  //it is fundamental to establish what type of challenge we are dealing
+  //with
+  std::string requested_challenge_type = ch["challenge_type"].as<std::string>();
+  host_challenge_spec->challenge_type = challenge_type[requested_challenge_type];
+
+  host_challenge_spec->challenge_validity_period = ch["validity_period"].as<unsigned int>();
+
+  // How much failure are we going to tolerate 0 means infinite tolerance
+  if (ch["no_of_fails_to_ban"]) {
+    host_challenge_spec->fail_tolerance_threshold = ch["no_of_fails_to_ban"].as<unsigned int>();
+  }
+
+  // TODO(oschaaf): host name can be configured twice, and could except here
+  std::string challenge_file;
+
+  if (ch["challenge"]) {
+    challenge_file = ch["challenge"].as<std::string>();
+  }
+
+  // If no file is configured, default to hard coded solver_page.
+  if (challenge_file.size() == 0) {
+    challenge_file.append(challenge_specs[host_challenge_spec->challenge_type]->default_page_filename);
+  }
+
+  std::string challenge_path = banjax_dir + "/" + challenge_file;
+  TSDebug(BANJAX_PLUGIN_NAME, "Challenge [%s] uses challenge file [%s]",
+          host_challenge_spec->name.c_str(), challenge_path.c_str());
+
+  ifstream ifs(challenge_path);
+  host_challenge_spec->challenge_stream.assign(istreambuf_iterator<char>(ifs), istreambuf_iterator<char>());
+
+  if (host_challenge_spec->challenge_stream.size() == 0) {
+    TSDebug(BANJAX_PLUGIN_NAME, "Warning, [%s] looks empty", challenge_path.c_str());
+    TSError("Warning, [%s] looks empty", challenge_path.c_str());
+  } else {
+    TSDebug(BANJAX_PLUGIN_NAME, "Assigning %d bytes of html for [%s]",
+            (int)host_challenge_spec->challenge_stream.size(), host_challenge_spec->name.c_str());
+  }
+
+  //Auth challenege specific data
+  if (ch["password_hash"]) {
+    host_challenge_spec->password_hash = ch["password_hash"].as<string>();
+  }
+
+  if (ch["magic_word"]) {
+    using MagicWord = HostChallengeSpec::MagicWord;
+
+    auto& mw = ch["magic_word"];
+    auto& storage = host_challenge_spec->magic_words;
+
+    if (mw.IsSequence()) {
+      TSDebug(BANJAX_PLUGIN_NAME, "--- MW is sequence");
+      for (auto& entry : mw) {
+        TSDebug(BANJAX_PLUGIN_NAME, "--- top of for loop");
+        if (entry.IsSequence()) {
+          TSDebug(BANJAX_PLUGIN_NAME, "--- entry is sequence");
+          auto type = entry[0].as<string>();
+          auto word = entry[1].as<string>();
+          TSDebug(BANJAX_PLUGIN_NAME, "--- type: %s", type.c_str());
+          TSDebug(BANJAX_PLUGIN_NAME, "--- word: %s", word.c_str());
+
+          if (type == "regexp") {
+            storage.insert(MagicWord::make_regexp(word));
+          }
+          else if (type == "substr") {
+            storage.insert(MagicWord::make_substr(word));
+          }
+          else {
+            // TODO: In newest versions of YAML we can get
+            // the mark from the node.
+            throw YAML::Exception(YAML::Mark::null_mark(), "Invalid type for magic word");
+          }
+        }
+        else {
+          storage.insert(MagicWord::make_substr(entry.as<string>()));
+        }
+      }
+    }
+    else {
+      storage.insert(MagicWord::make_substr(mw.as<string>()));
+    }
+  }
+
+  if (ch["magic_word_exceptions"]) {
+    auto exprs = ch["magic_word_exceptions"].as<vector<string>>();
+
+    for (const auto& expr : exprs) {
+      host_challenge_spec->magic_word_exceptions.emplace_back(expr);
+    }
+  }
+
+  if (ch["white_listed_ips"]) {
+    auto& white_list = host_challenge_spec->white_listed_ips;
+
+    for (auto ipr : ch["white_listed_ips"].as<vector<string>>()) {
+      TSDebug(BANJAX_PLUGIN_NAME, "@$# white list this ip: %s", ipr.c_str());
+      white_list.insert(make_mask_for_range(ipr));
+    }
+  }
+  return host_challenge_spec;
 }

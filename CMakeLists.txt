@@ -28,7 +28,7 @@ find_package(Threads)
 # when compiling banjax. That caused me to miss some important warnings in
 # banjax so the yaml warnings are currently disabled. Fixing yaml to not
 # use auto_ptr would be preferred.
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread -Wall -ggdb -Wno-deprecated-declarations")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread -Wall -ggdb -Wno-deprecated-declarations")
 
 include_directories(
   "${Boost_INCLUDE_DIR}"
@@ -42,10 +42,11 @@ set(BANJAX_LIB_DEPS
   crypto
   re2
   zmq
+  rdkafka++
   ${YAML_DIR}/yaml-build/libyaml-cpp.a)
 
 if(NOT DEFINED PRINT_DEBUG)
-  set(PRINT_DEBUG false)
+  set(PRINT_DEBUG true)
 endif()
 add_definitions(-DPRINT_DEBUG=${PRINT_DEBUG})
 
@@ -81,7 +82,7 @@ project (unit-tests)
 find_package(Boost ${BOOST_VERSION} COMPONENTS system unit_test_framework REQUIRED)
 find_package(Threads)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread -ggdb")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread -ggdb")
 
 include_directories(
   "${Boost_INCLUDE_DIR}"
@@ -95,6 +96,7 @@ file(GLOB sources
   "${CMAKE_SOURCE_DIR}/test/unittest_common.cpp"
   "${CMAKE_SOURCE_DIR}/test/white_lister_unittest.cpp"
   "${CMAKE_SOURCE_DIR}/test/cookie_unittest.cpp"
+  "${CMAKE_SOURCE_DIR}/test/kafka_unittest.cpp"
 )
 
 add_executable(unit-tests ${sources})
