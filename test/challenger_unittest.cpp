@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE(load_config1) {
     "      no_of_fails_to_ban: 10\n";
 
   auto mgr = open_config(config);
-  auto challenges = mgr->host_challenges.at("example.co");
+  auto challenges = mgr->host_challenges_static.at("example.co");
   BOOST_CHECK_EQUAL(challenges.size(), 1u);
 
   set<MW> expected({MW::make_substr("old_style_back_compat")});
@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(load_config2) {
     "      no_of_fails_to_ban: 10\n";
 
   auto mgr = open_config(config);
-  auto challenges = mgr->host_challenges.at("example.co");
+  auto challenges = mgr->host_challenges_static.at("example.co");
   BOOST_CHECK_EQUAL(challenges.size(), 1u);
 
   set<MW> expected({MW::make_substr("wp-admin"),
@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_CASE(load_config3) {
     "      no_of_fails_to_ban: 10\n";
 
   auto mgr = open_config(config);
-  auto challenges = mgr->host_challenges.at("example.co");
+  auto challenges = mgr->host_challenges_static.at("example.co");
   BOOST_CHECK_EQUAL(challenges.size(), 1u);
 
   set<MW> expected({MW::make_substr("wp-admin"),
@@ -166,7 +166,7 @@ BOOST_AUTO_TEST_CASE(challenger_magic_word_mixed) {
     "      no_of_fails_to_ban: 10\n";
 
   auto mgr = open_config(config);
-  auto challenges = mgr->host_challenges.at("example.co");
+  auto challenges = mgr->host_challenges_static.at("example.co");
   BOOST_CHECK_EQUAL(challenges.size(), 1u);
 
   set<MW> expected({MW::make_substr("wp-login0.php"),

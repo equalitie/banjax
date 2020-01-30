@@ -24,6 +24,8 @@ class BanjaxFilter;
 #include "challenger.h"
 #include "socket.h"
 
+class KafkaConsumer;
+
 class Banjax
 {
 public:
@@ -63,10 +65,14 @@ protected:
 
   // Filters
   std::unique_ptr<RegexManager> regex_manager;
-  std::unique_ptr<Challenger>   challenger;
+  std::shared_ptr<Challenger>   challenger;
   std::unique_ptr<WhiteLister>  white_lister;
   std::unique_ptr<BotSniffer>   bot_sniffer;
   std::unique_ptr<Denialator>   denialator;
+
+
+  std::unique_ptr<KafkaConsumer>   kafka_consumer;
+  std::unique_ptr<KafkaProducer>   kafka_producer;
 
   /**
      open the mysql database and read the configs from the database
@@ -111,10 +117,14 @@ public:
    */
   Banjax( const std::string& banjax_config_dir
         , std::unique_ptr<Socket> swabber_s = nullptr
-        , std::unique_ptr<Socket> botsniffer_s = nullptr);
+        , std::unique_ptr<Socket> botsniffer_s = nullptr
+        , std::unique_ptr<KafkaConsumer> kafka_consumer = nullptr);
 
   std::unique_ptr<Socket> release_swabber_socket();
   std::unique_ptr<Socket> release_botsniffer_socket();
+  std::unique_ptr<KafkaConsumer> release_kafka_consumer();
+
+  std::shared_ptr<Challenger> get_challenger() { return challenger; }
 };
 
 #endif /*banjax.h*/
