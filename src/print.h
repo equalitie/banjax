@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include "util.h"
+#include <iostream>
 
 static const char* BANJAX_PLUGIN_NAME = "banjax";
 
@@ -137,6 +138,7 @@ template<class... Args>
 inline void debug(const Args&...args)
 {
   TSDebug(BANJAX_PLUGIN_NAME, "%s", str(args...).c_str());
+    //std::cout << str(args...) << std::endl;
 }
 
 } // print namespace

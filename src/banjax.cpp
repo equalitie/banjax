@@ -19,6 +19,7 @@
 #include "banjax.h"
 #include "defer.h"
 #include "print.h"
+#include "kafka.h"
 
 using namespace std;
 
@@ -41,8 +42,11 @@ struct BanjaxPlugin {
 
     auto swab_s = current_state->release_swabber_socket();
     auto snif_s = current_state->release_botsniffer_socket();
+    auto kafka_consumer = current_state->release_kafka_consumer();
 
-    std::shared_ptr<Banjax> new_banjax(new Banjax(config_dir, move(swab_s), move(snif_s)));
+    // auto kafka_producer = current_state->release_kafka_producer();
+    // auto kafka_consumer = current_state->release_kafka_consumer();
+    std::shared_ptr<Banjax> new_banjax(new Banjax(config_dir, move(swab_s), move(snif_s), move(kafka_consumer)));
 
     // This happens atomically, so (in theory) we don't need to wrap in in mutex
     // in the handle_transaction_start hook.
@@ -165,6 +169,10 @@ std::unique_ptr<Socket> Banjax::release_botsniffer_socket() {
   return bot_sniffer->release_socket();
 }
 
+std::unique_ptr<KafkaConsumer> Banjax::release_kafka_consumer() {
+    return std::move(kafka_consumer);
+}
+
 /**
    Constructor
 
@@ -172,12 +180,14 @@ std::unique_ptr<Socket> Banjax::release_botsniffer_socket() {
 */
 Banjax::Banjax(const string& banjax_config_dir,
     std::unique_ptr<Socket> swabber_socket,
-    std::unique_ptr<Socket> bot_sniffer_socket)
+    std::unique_ptr<Socket> bot_sniffer_socket,
+    std::unique_ptr<KafkaConsumer> kafka_consumer)
   : all_filters_requested_part(0),
     all_filters_response_part(0),
     banjax_config_dir(banjax_config_dir),
     swabber(&swabber_ip_db, move(swabber_socket)),
-    botsniffer_socket_reuse(move(bot_sniffer_socket))
+    botsniffer_socket_reuse(move(bot_sniffer_socket)),
+    kafka_consumer(move(kafka_consumer))
 {
   read_configuration();
 }
@@ -254,6 +264,20 @@ Banjax::read_configuration()
 
   //now we can make the filters
   build_filters();
+
+  //kafka happens after filters
+  std::string config_string =
+    "kafka:\n"
+    "  brokers: \"localhost:9092\" \n";
+
+  YAML::Node config = YAML::Load(config_string);
+
+  if (kafka_consumer == nullptr) {
+    kafka_consumer = std::make_unique<KafkaConsumer>(config, this->get_challenger());
+  } else {
+    kafka_consumer->reload_config(config, this->get_challenger());
+  }
+
 }
 
 
