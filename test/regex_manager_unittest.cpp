@@ -28,6 +28,7 @@ static std::string default_config() {
     "    regex: '.*simple_to_ban.*'\n"
     "    interval: 1\n"
     "    hits_per_interval: 0\n"
+    "    hosts_to_skip: ['host-with-skip-rule.com'] \n"
     "  - rule: hard to ban\n"
     "    regex: '.*not%20so%20simple%20to%20ban[\\s\\S]*'\n"
     "    interval: 1\n"
@@ -235,6 +236,23 @@ BOOST_AUTO_TEST_CASE(forbidden_response)
   BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::I_RESPOND);
 
   BOOST_CHECK_EQUAL("<html><header></header><body>Forbidden</body></html>", test.regex_manager->generate_response(mock_transaction, cur_filter_result));
+}
+
+BOOST_AUTO_TEST_CASE(domain_with_skip_rule)
+{
+  Test test;
+
+  //first we make a mock up request
+  TransactionParts mock_transaction;
+  mock_transaction[TransactionMuncher::METHOD] = "GET";
+  mock_transaction[TransactionMuncher::IP] = "123.456.789.123";
+  mock_transaction[TransactionMuncher::URL] = "http://simple_to_ban/";
+  mock_transaction[TransactionMuncher::HOST] = "host-with-skip-rule.com";
+  mock_transaction[TransactionMuncher::UA] = "ua";
+
+  FilterResponse cur_filter_result = test.regex_manager->on_http_request(mock_transaction);
+
+  BOOST_CHECK_EQUAL(cur_filter_result.response_type, FilterResponse::GO_AHEAD_NO_COMMENT);
 }
 
 //TOOD: We need a test that listen on the publication and see if the ip really being send on the port
