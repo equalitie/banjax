@@ -7,6 +7,7 @@
 #define REGEX_MANAGER_H
 
 #include <vector>
+#include <unordered_set>
 #include <re2/re2.h>
 
 #include "banjax_filter.h"
@@ -27,17 +28,20 @@ private:
     std::unique_ptr<RE2> re2_regex;
     unsigned int interval; //interval to look in mseconds
     float rate; //threshold /interval
+    std::unordered_set<std::string> hosts_to_skip;
   
     RatedRegex(size_t new_id,
         std::string new_rule_name,
         RE2* regex,
         unsigned int observation_interval,
-        float excessive_rate):
+        float excessive_rate,
+        std::vector<std::string> hosts_to_skip_in):
       id(new_id),
       rule_name(new_rule_name),
       re2_regex(regex),
       interval(observation_interval),
-      rate(excessive_rate) {}
+      rate(excessive_rate),
+      hosts_to_skip(hosts_to_skip_in.begin(), hosts_to_skip_in.end()) {}
   };
 
 public:
@@ -65,7 +69,7 @@ protected:
   /**
     applies all regex to an ATS record
   */
-  RatedRegex* try_match(std::string ip, std::string ats_record) const;
+  RatedRegex* try_match(std::string ip, std::string ats_record, std::string client_request_host) const;
 
 public:
   /**

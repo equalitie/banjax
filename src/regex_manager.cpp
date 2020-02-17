@@ -32,12 +32,20 @@ void RegexManager::load_config()
       unsigned int observation_interval = node["interval"].as<unsigned int>();
       unsigned int threshold = node["hits_per_interval"].as<unsigned int>();
 
+      std::vector<std::string> hosts_to_skip {};
+      if (node["hosts_to_skip"]) {
+        for (auto it: node["hosts_to_skip"].as<vector<string>>()) {
+            hosts_to_skip.emplace_back(it);
+        }
+      }
+
       rated_banning_regexes.emplace_back(
           new RatedRegex(rated_banning_regexes.size(),
                          cur_rule,
                          new RE2(node["regex"].as<std::string>(), opt),
                          observation_interval * 1000,
-                         threshold /(double)(observation_interval* 1000)));
+                         threshold /(double)(observation_interval* 1000),
+                         hosts_to_skip));
     }
 
     total_no_of_rules = rated_banning_regexes.size();
@@ -50,11 +58,15 @@ void RegexManager::load_config()
 }
 
 RegexManager::RatedRegex*
-RegexManager::try_match(string ip, string ats_record) const
+RegexManager::try_match(string ip, string ats_record, string client_request_host) const
 {
   boost::optional<IpDb::IpState> ip_state;
 
   for(const auto& rule : rated_banning_regexes) {
+    if (rule->hosts_to_skip.find(client_request_host) != rule->hosts_to_skip.end()) {
+        return nullptr;
+    }
+
     if (RE2::FullMatch(ats_record, *(rule->re2_regex))) {
       print::debug("RegexManager: Request matched ", rule->re2_regex->pattern());
       //if it is a simple regex i.e. with rate 0 we bans immidiately without
@@ -153,7 +165,8 @@ FilterResponse RegexManager::on_http_request(const TransactionParts& transaction
 
   RatedRegex* result = try_match(
 						ats_record_parts[TransactionMuncher::IP],
-						ats_record);
+						ats_record,
+						ats_record_parts[TransactionMuncher::HOST]);
 
   if (result) {
     print::debug("Asking swabber to ban client ip: ", ats_record_parts[TransactionMuncher::IP]);
