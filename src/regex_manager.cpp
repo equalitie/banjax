@@ -35,7 +35,7 @@ void RegexManager::load_config()
       std::vector<std::string> hosts_to_skip {};
       if (node["hosts_to_skip"]) {
         for (auto it: node["hosts_to_skip"].as<vector<string>>()) {
-            hosts_to_skip.emplace_back(it);
+          hosts_to_skip.emplace_back(it);
         }
       }
 
@@ -64,7 +64,7 @@ RegexManager::try_match(string ip, string ats_record, string client_request_host
 
   for(const auto& rule : rated_banning_regexes) {
     if (rule->hosts_to_skip.find(client_request_host) != rule->hosts_to_skip.end()) {
-        return nullptr;
+      return nullptr;
     }
 
     if (RE2::FullMatch(ats_record, *(rule->re2_regex))) {
