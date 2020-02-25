@@ -58,7 +58,7 @@ void RegexManager::load_config()
 }
 
 RegexManager::RatedRegex*
-RegexManager::try_match(string ip, string ats_record, string client_request_host) const
+RegexManager::try_match(const string& ip, const string& ats_record, const string& client_request_host) const
 {
   boost::optional<IpDb::IpState> ip_state;
 
@@ -154,12 +154,22 @@ RegexManager::try_match(string ip, string ats_record, string client_request_host
 
 FilterResponse RegexManager::on_http_request(const TransactionParts& transaction_parts)
 {
-  TransactionParts ats_record_parts = (TransactionParts) transaction_parts;
+  TransactionParts ats_record_parts = const_cast<TransactionParts&>(transaction_parts);
 
-  string ats_record = ats_record_parts[TransactionMuncher::METHOD] + " "
-                    + ats_record_parts[TransactionMuncher::URL]    + " "
-                    + ats_record_parts[TransactionMuncher::HOST]   + " "
-                    + ats_record_parts[TransactionMuncher::UA];
+  string ats_record;
+  ats_record.reserve(ats_record_parts[TransactionMuncher::METHOD].size() +
+                     ats_record_parts[TransactionMuncher::URL].size() +
+                     ats_record_parts[TransactionMuncher::HOST].size() +
+                     ats_record_parts[TransactionMuncher::UA].size() +
+                     1 + 3);
+  ats_record += ats_record_parts[TransactionMuncher::METHOD];
+  ats_record += " ";
+  ats_record += ats_record_parts[TransactionMuncher::URL];
+  ats_record += " ";
+  ats_record += ats_record_parts[TransactionMuncher::HOST];
+  ats_record += " ";
+  ats_record += ats_record_parts[TransactionMuncher::UA];
+
 
   print::debug("RegexManager: Examining '",ats_record,"' for banned matches");
 
