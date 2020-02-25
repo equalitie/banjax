@@ -69,7 +69,7 @@ protected:
   /**
     applies all regex to an ATS record
   */
-  RatedRegex* try_match(std::string ip, std::string ats_record, std::string client_request_host) const;
+  RatedRegex* try_match(const std::string& ip, const std::string& ats_record, const std::string& client_request_host) const;
 
 public:
   /**
