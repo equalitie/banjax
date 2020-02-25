@@ -154,7 +154,7 @@ RegexManager::try_match(const string& ip, const string& ats_record, const string
 
 FilterResponse RegexManager::on_http_request(const TransactionParts& transaction_parts)
 {
-  TransactionParts ats_record_parts = const_cast<TransactionParts&>(transaction_parts);
+  TransactionParts& ats_record_parts = const_cast<TransactionParts&>(transaction_parts);
 
   string ats_record;
   ats_record.reserve(ats_record_parts[TransactionMuncher::METHOD].size() +
