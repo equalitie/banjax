@@ -13,13 +13,12 @@ import sys #for argv
 import time
 
 import unittest
-from Queue import Queue
+from queue import Queue
 from threading import Thread
 
 from pdb import set_trace as tr
 
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-import SocketServer
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 class S(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -35,7 +34,7 @@ class S(BaseHTTPRequestHandler):
         self.send_response(self.server.response_code)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
-        self.wfile.write(self.server.body)
+        self.wfile.write(self.server.body.encode())
 
 class Server(HTTPServer):
     def __init__(self, body = "not set"):
@@ -133,38 +132,38 @@ class Test(unittest.TestCase):
 
     # Auxilary functions
     def read_page(self, page_filename):
-        page_file  = open(self.banjax_test_dir() + "/"+ page_filename, 'rb')
-        return page_file.read()
+        with open(self.banjax_test_dir() + "/"+ page_filename, 'rb') as page_file:
+            return page_file.read().decode()
 
     def read_solver_body(self):
-        solver_body = open(self.banjax_module_dir() + "/solver.html")
-        self.SOLVER_PAGE_PREFIX = solver_body.read(self.SOLVER_PAGE_PREFIX_LEN)
+        with open(self.banjax_module_dir() + "/solver.html") as solver_body:
+            self.SOLVER_PAGE_PREFIX = solver_body.read(self.SOLVER_PAGE_PREFIX_LEN)
 
     def restart_traffic_server(self):
-        traffic_proc = subprocess.Popen([self.ats_bin_dir() + "/trafficserver", "restart"],
+        with subprocess.Popen([self.ats_bin_dir() + "/trafficserver", "restart"],
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-        traffic_proc.wait()
-        time.sleep(Test.ATS_INIT_DELAY)
-        self.assertEqual(traffic_proc.stderr.read(), "")
-        return traffic_proc.stdout.read()
+                         stderr=subprocess.PIPE) as traffic_proc:
+            traffic_proc.wait()
+            time.sleep(Test.ATS_INIT_DELAY)
+            self.assertEqual(traffic_proc.stderr.read(), b"")
+            return traffic_proc.stdout.read()
 
     def stop_traffic_server(self):
-        traffic_proc = subprocess.Popen([self.ats_bin_dir() + "/trafficserver", "stop"],
+        with subprocess.Popen([self.ats_bin_dir() + "/trafficserver", "stop"],
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-        traffic_proc.wait()
+                         stderr=subprocess.PIPE) as traffic_proc:
+            traffic_proc.wait()
 
     def clear_cache(self):
         self.stop_traffic_server();
-        proc = subprocess.Popen([self.ats_bin_dir() + "/traffic_server", "-K"],
+        with subprocess.Popen([self.ats_bin_dir() + "/traffic_server", "-K"],
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-        proc.kill()
-        proc.wait()
+                         stderr=subprocess.PIPE) as proc:
+            proc.kill()
+            proc.wait()
 
     def replace_config2(self, config_string):
         self.clear_cache()
@@ -177,12 +176,12 @@ class Test(unittest.TestCase):
 
     def do_curl(self, url, cookie = None):
         curl_cmd = ["curl", url] + (cookie and ["--cookie", cookie] or [])
-        curl_proc = subprocess.Popen(curl_cmd,
+        with subprocess.Popen(curl_cmd,
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
+                         stderr=subprocess.PIPE) as curl_proc:
 
-        return curl_proc.stdout.read()
+            return curl_proc.stdout.read().decode()
 
     def set_banjax_config(self, name, value):
         # When using TS 6.0
@@ -191,14 +190,14 @@ class Test(unittest.TestCase):
         subprocess.call([self.ats_bin_dir() + "/traffic_ctl", "config", "set", name, value])
 
     def setUp(self):
-        print "setUp: ", self._testMethodName
+        print("setUp: ", self._testMethodName)
         self.read_solver_body()
         self.server = Server()
 
     def tearDown(self):
         self.stop_traffic_server()
         self.server.stop()
-        print "tearDown: ", self._testMethodName
+        print("tearDown: ", self._testMethodName)
 
     def ntest_request_banned_url(self):
         self.replace_config("banned_url_test.conf")
