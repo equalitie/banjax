@@ -72,7 +72,7 @@ protected:
 
 
   std::unique_ptr<KafkaConsumer>   kafka_consumer;
-  std::unique_ptr<KafkaProducer>   kafka_producer;
+  std::shared_ptr<KafkaProducer>   kafka_producer;
 
   /**
      open the mysql database and read the configs from the database
@@ -124,7 +124,9 @@ public:
   std::unique_ptr<Socket> release_botsniffer_socket();
   std::unique_ptr<KafkaConsumer> release_kafka_consumer();
 
+  // XXX are these making cyclic references?
   std::shared_ptr<Challenger> get_challenger() { return challenger; }
+  std::shared_ptr<KafkaProducer> get_producer() { return kafka_producer; }
 };
 
 #endif /*banjax.h*/

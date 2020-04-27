@@ -6,23 +6,27 @@
 #include "banjax.h"
 
 
+// XXX should maybe be called KafkaProducers (plural)?
 class KafkaProducer {
 public:
   KafkaProducer();
   void load_config(YAML::Node& new_config);
   void report_failure(const std::string& site, const std::string& ip);
+  void report_status();
 
 private:
-  std::unique_ptr<RdKafka::Producer> old_rdk_producer;
-  std::unique_ptr<RdKafka::Producer> current_rdk_producer;
+  std::unique_ptr<RdKafka::Producer> rdk_producer_for_failed_challenges;
+  std::unique_ptr<RdKafka::Producer> rdk_producer_for_statuses;
   std::string failed_challenge_topic;
+  std::string status_topic;
+  std::string host_name;
 };
 
 
 class KafkaConsumer {
 public:
-  KafkaConsumer(YAML::Node &new_config, std::shared_ptr<Challenger> challenger);
-  void reload_config(YAML::Node &config, std::shared_ptr<Challenger> challenger);
+  KafkaConsumer(YAML::Node &new_config, Banjax* banjax);
+  void reload_config(YAML::Node &config, Banjax* banjax);
   void shutdown() { shutting_down = true; thread_handle.join(); };
   ~KafkaConsumer() { shutdown(); };
 
@@ -32,9 +36,11 @@ private:
 
   TSMutex stored_config_lock;
   YAML::Node stored_config;
-  std::shared_ptr<Challenger> stored_challenger;
+  // std::shared_ptr<Challenger> stored_challenger;
+  Banjax* banjax; // XXX i'd rather it be a reference, but i can't reassign a reference...
   std::thread thread_handle;
+  std::string host_name;
 };
 
-void msg_consume(RdKafka::Message *message, void *opaque, std::shared_ptr<Challenger> challenger);
+void msg_consume(RdKafka::Message *message, void *opaque, Banjax* banjax);
 

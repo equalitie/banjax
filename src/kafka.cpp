@@ -1,6 +1,9 @@
 #include "kafka.h"
 #include <iostream>
 #include <librdkafka/rdkafkacpp.h>
+#include <boost/asio/ip/host_name.hpp>
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
 
 KafkaProducer::KafkaProducer() {
   print::debug("KafkaProducer default constructor");
@@ -23,19 +26,35 @@ void KafkaProducer::load_config(YAML::Node &new_config) {
   }
 
   failed_challenge_topic = new_config["kafka"]["failed_challenge_topic"].as<std::string>();
+  status_topic =           new_config["kafka"]["status_topic"].as<std::string>();
 
-  current_rdk_producer.reset(RdKafka::Producer::create(conf, errstr));
-  if (!current_rdk_producer) {
-      print::debug("KafkaProducer: failed to create Producer");
+  rdk_producer_for_failed_challenges.reset(RdKafka::Producer::create(conf, errstr));
+  if (!rdk_producer_for_failed_challenges) {
+      print::debug("KafkaProducer: failed to create Producer (for failed challenges)");
     throw;
   }
+
+  // XXX ugly duplication
+  rdk_producer_for_statuses.reset(RdKafka::Producer::create(conf, errstr));
+  if (!rdk_producer_for_statuses) {
+      print::debug("KafkaProducer: failed to create Producer (for statuses)");
+    throw;
+  }
+
+  host_name = boost::asio::ip::host_name();
+
   print::debug("KafkaProducer load_config done");
-  report_failure("example.com", "1.2.3.4");
-  print::debug("$$$$$$$############$$$$$$$$$$$############");
 }
 
 void KafkaProducer::report_failure(const std::string& site, const std::string& ip) {
-  RdKafka::ErrorCode err = current_rdk_producer->produce(
+  json message;
+  message["id"] = host_name;
+  message["name"] = "ip_failed_challenge";
+  message["value"] = ip;
+  std::string serialized_message = message.dump();
+  size_t serialized_message_size = message.dump().size();
+
+  RdKafka::ErrorCode err = rdk_producer_for_failed_challenges->produce(
       /* Topic name */
       failed_challenge_topic,
       /* Any Partition: the builtin partitioner will be
@@ -46,9 +65,9 @@ void KafkaProducer::report_failure(const std::string& site, const std::string& i
       /* Make a copy of the value */
       (int)RdKafka::Producer::RK_MSG_COPY /* Copy payload */,
       /* Value */
-      (void *)(ip.c_str()), (size_t)ip.size(),
+      (void*)serialized_message.c_str(), serialized_message_size,
       /* Key */
-      (void *)(site.c_str()), (size_t)site.size(),
+      nullptr, 0,
       /* Timestamp (defaults to current time) */
       0,
       /* Message headers, if any */
@@ -60,20 +79,52 @@ void KafkaProducer::report_failure(const std::string& site, const std::string& i
   }
 }
 
+void KafkaProducer::report_status() {
+  json message;
+  message["id"] = host_name;
+
+  std::string serialized_message = message.dump();
+  size_t serialized_message_size = message.dump().size();
+
+  RdKafka::ErrorCode err = rdk_producer_for_statuses->produce(
+      /* Topic name */
+      status_topic,
+      /* Any Partition: the builtin partitioner will be
+              * used to assign the message to a topic based
+              * on the message key, or random partition if
+              * the key is not set. */
+      (int)RdKafka::Topic::PARTITION_UA,
+      /* Make a copy of the value */
+      (int)RdKafka::Producer::RK_MSG_COPY /* Copy payload */,
+      /* Value */
+      (void*)serialized_message.c_str(), serialized_message_size,
+      /* Key */
+      nullptr, 0,
+      /* Timestamp (defaults to current time) */
+      0,
+      /* Message headers, if any */
+      NULL);
+  if (err == RdKafka::ERR_NO_ERROR) {
+      print::debug("reported status");
+  } else {
+      print::debug(": Failed to report status()");
+  }
+}
+
 void
-KafkaConsumer::reload_config(YAML::Node& config, std::shared_ptr<Challenger> challenger) {
+KafkaConsumer::reload_config(YAML::Node& config, Banjax* banjax) {
     TSMutexLock(stored_config_lock);
     auto on_scope_exit = defer([&] { TSMutexUnlock(stored_config_lock); });
     stored_config = config;
-    stored_challenger = challenger;
+    banjax = banjax;
     config_valid = false;
 }
 
 
-KafkaConsumer::KafkaConsumer(YAML::Node &new_config, std::shared_ptr<Challenger> challenger)
+KafkaConsumer::KafkaConsumer(YAML::Node &new_config, Banjax* banjax)
   : stored_config_lock(TSMutexCreate()),
     stored_config(new_config),
-    stored_challenger(challenger)
+    banjax(banjax)
 {
     thread_handle = std::thread([=] {
         print::debug("hello from lambda");
@@ -100,8 +151,11 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, std::shared_ptr<Challenger>
                     print::debug("KafkaConsumer: bad 'brokers' config: ", errstr);
                     throw;
                 }
-                if (conf->set("group.id", "285723", errstr) != // XXX need to make a unique id per-instance
-                    RdKafka::Conf::CONF_OK) {
+
+                host_name = boost::asio::ip::host_name();
+                // we want every banjax instance to see every message. this means every banjax instance
+                // needs its own group id. so i'm using the hostname.
+                if (conf->set("group.id", host_name, errstr) != RdKafka::Conf::CONF_OK) {
                     print::debug("KafkaConsumer: bad group.id config: ", errstr);
                     throw;
                 }
@@ -122,12 +176,19 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, std::shared_ptr<Challenger>
                 throw; // XXX inside this thread?...
             }
 
+            uint16_t times_around_loop = 0;
             while (config_valid && !shutting_down) {
                 std::cerr << "BLOCKING" << std::endl;
                 RdKafka::Message *msg = consumer->consume(2000);
-                msg_consume(msg, NULL, stored_challenger);
+                msg_consume(msg, NULL, banjax);
                 delete msg;
-                stored_challenger->remove_expired_challenges();
+                banjax->get_challenger()->remove_expired_challenges();
+                // XXX this is not how i would have designed some scheduled task from the start, but
+                // i don't feel like spending forever redesigning this properly atm.
+                if (++times_around_loop > 15) {
+                    banjax->get_producer()->report_status();
+                    times_around_loop = 0;
+                }
             }
 
             print::debug("BEFORE CLOSE");
@@ -140,7 +201,7 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, std::shared_ptr<Challenger>
 }
 
 
-void msg_consume(RdKafka::Message *message, void *opaque, std::shared_ptr<Challenger> challenger) {
+void msg_consume(RdKafka::Message *message, void *opaque, Banjax* banjax) {
     print::debug("MSG_CONSUME()");
   switch (message->err()) {
   case RdKafka::ERR__TIMED_OUT:
@@ -150,8 +211,28 @@ void msg_consume(RdKafka::Message *message, void *opaque, std::shared_ptr<Challe
   case RdKafka::ERR_NO_ERROR: {
     /* Real message */
     print::debug("Read msg at offset ", message->offset());
-    print::debug("website: ", message->payload());
-    std::string website = (char *)message->payload();
+    print::debug("msg json: ", (char*)message->payload());
+    json message_dict;
+    try {
+      message_dict = json::parse((char*)message->payload());
+    } catch (json::exception& e) {
+      print::debug("kafka message not json: ", (char*)message->payload());
+      return;
+    }
+
+    auto command_name_it = message_dict.find("name");
+    if (command_name_it == message_dict.end() || (*command_name_it != "challenge_host")) {
+      print::debug("kafka command not of 'challenge_host' type");
+      return;
+    }
+
+    auto value_it = message_dict.find("value");
+    if (value_it == message_dict.end()) {
+      print::debug("kafka command has no 'value'");
+      return;
+    }
+
+    std::string website = *value_it;
     std::string single_config =
         "name: \"from-kafka-challenge\" \n"
         "challenge_type: \"sha_inverse\" \n"
@@ -161,8 +242,8 @@ void msg_consume(RdKafka::Message *message, void *opaque, std::shared_ptr<Challe
         "validity_period: 360000\n"  // note this is not the challenge expiry time
         "white_listed_ips: \n"
         "  - '0.0.0.0' \n"
-        "no_of_fails_to_ban: 10\n";
-    challenger->load_single_dynamic_config(website, single_config);
+        "no_of_fails_to_ban: 2\n";  // XXX think about what this should be...
+    banjax->get_challenger()->load_single_dynamic_config(website, single_config);
   } break;
   case RdKafka::ERR__PARTITION_EOF: {
     print::debug("%% EOF reached for all  partition(s)");

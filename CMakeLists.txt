@@ -12,6 +12,14 @@ externalproject_add(yaml
     BUILD_COMMAND $(MAKE) yaml-cpp
     PREFIX "yaml")
 
+ExternalProject_Add(json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG "v3.7.1"
+    INSTALL_DIR ${PROJECT_BINARY_DIR}
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DBUILD_TESTING=0 -DJSON_MultipleHeaders=ON
+    UPDATE_COMMAND ""
+    )
+
 set(YAML_DIR "${CMAKE_BINARY_DIR}/yaml/src")
 
 option(WITH_ASAN "Build with Address sanitizer" OFF)
@@ -21,7 +29,7 @@ endif()
 ################################################################################
 project (banjax)
 
-find_package(Boost ${BOOST_VERSION} COMPONENTS REQUIRED)
+find_package(Boost ${BOOST_VERSION} COMPONENTS REQUIRED system)
 find_package(Threads)
 
 # TODO: yaml uses deprecated auto_ptr and this gives me a lot of warnings
@@ -32,7 +40,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread -Wall -ggdb -Wno-dep
 
 include_directories(
   "${Boost_INCLUDE_DIR}"
-  "${YAML_DIR}/yaml/include")
+  "${YAML_DIR}/yaml/include"
+  "${PROJECT_BINARY_DIR}/include"
+)
 
 file(GLOB sources
   "${CMAKE_SOURCE_DIR}/src/*.cpp")
@@ -43,7 +53,9 @@ set(BANJAX_LIB_DEPS
   re2
   zmq
   rdkafka++
-  ${YAML_DIR}/yaml-build/libyaml-cpp.a)
+  ${YAML_DIR}/yaml-build/libyaml-cpp.a
+  ${Boost_LIBRARIES}
+)
 
 if(NOT DEFINED PRINT_DEBUG)
   set(PRINT_DEBUG true)
@@ -62,6 +74,9 @@ set_target_properties(banjax_module PROPERTIES PREFIX "")
 
 add_dependencies(banjax_static yaml)
 add_dependencies(banjax_module yaml)
+
+add_dependencies(banjax_static json)
+add_dependencies(banjax_module json)
 
 if (WITH_ASAN)
     # NOTE1: https://stackoverflow.com/a/50163972

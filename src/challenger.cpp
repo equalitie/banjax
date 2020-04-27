@@ -312,6 +312,7 @@ string Challenger::generate_html(
       return "OK";
     } else {
       //count it as a failure
+      TSDebug(BANJAX_PLUGIN_NAME, "XXX why are we here?");
       if (response_info->responding_challenge->fail_tolerance_threshold)
         response_info->banned_ip = report_failure(response_info->responding_challenge, transaction_parts);
 
@@ -462,8 +463,9 @@ Challenger::on_http_request(const TransactionParts& transaction_parts)
           } else {
             //record challenge failure
             FilterResponse failure_response = custom_response(cur_challenge);
-            if (cur_challenge->fail_tolerance_threshold)
+            if (cur_challenge->fail_tolerance_threshold) {
               failure_response.response_data->banned_ip = report_failure(cur_challenge, transaction_parts);
+            }
 
           return failure_response;
         }
@@ -485,8 +487,10 @@ Challenger::on_http_request(const TransactionParts& transaction_parts)
 
             auto& response_data = failure_response.response_data;
 
-            if (cur_challenge->fail_tolerance_threshold)
+            if (cur_challenge->fail_tolerance_threshold) {
+              TSDebug(BANJAX_PLUGIN_NAME, "FAIL TOLERANCE THRESHOLD: %d", cur_challenge->fail_tolerance_threshold);
               response_data->banned_ip = report_failure(cur_challenge, transaction_parts);
+            }
 
             // We need to clear out the cookie here, to make sure switching from
             // challenge type (captcha->computational) doesn't end up in an infinite reload
@@ -617,21 +621,22 @@ Challenger::report_failure(const std::shared_ptr<HostChallengeSpec>& failed_chal
   std::string client_ip = transaction_parts.at(TransactionMuncher::IP);
   std::string failed_host = transaction_parts.at(TransactionMuncher::HOST);
 
-  if (kafka_producer != nullptr) {
-    print::debug("calling kafka_producer->report_failure()");
-    kafka_producer->report_failure(failed_host, client_ip);
-  } else {
-    print::debug("kafka_producer is null!!!!!!!!!!");
-  }
-
-
   boost::optional<IpDb::IpState> ip_state = challenger_ip_db->get_ip_state(client_ip);
   if (!ip_state) //we failed to read so we can't judge
     return false;
 
+  // XXX i (joe) have tried and failed to understand this double dereference
   (**ip_state)++;
+  TSDebug(BANJAX_PLUGIN_NAME, "XXX: ip_state: %lu", **ip_state);
 
   if (*ip_state >= failed_challenge->fail_tolerance_threshold) {
+    if (kafka_producer != nullptr) {
+      print::debug("calling kafka_producer->report_failure()");
+      kafka_producer->report_failure(failed_host, client_ip);
+    } else {
+      print::debug("kafka_producer is null!!!!!!!!!!");
+    }
+
     TransactionParts ats_record_parts = transaction_parts;
 
     string banning_reason = "failed challenge " + failed_challenge->name + " for host " + failed_host  + " " + to_string(*ip_state) + " times, " +

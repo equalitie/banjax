@@ -257,7 +257,7 @@ public:
     :BanjaxFilter::BanjaxFilter(filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
     host_to_challenge_dynamic_mutex(TSMutexCreate()),
     host_to_challenge_dynamic(),
-    too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
+    too_many_failures_message("<html><header></header><body>you are banned by deflect/banjax</body></html>"), // XXX what to say here
     swabber(swabber),
     global_white_list(global_white_list),
     challenger_ip_db(challenger_ip_db),
@@ -306,7 +306,7 @@ public:
   void on_http_close(const TransactionParts& transaction_parts) override {}
   void load_single_dynamic_config(const std::string& domain, const std::string& config_string);
   void remove_expired_challenges();
-  KafkaProducer* kafka_producer;  // non-owning
+  KafkaProducer* kafka_producer;  // non-owning XXX circular reference?
 
 private:
   std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info) override;

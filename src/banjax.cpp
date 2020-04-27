@@ -268,14 +268,15 @@ Banjax::read_configuration()
     "kafka:\n"
     "  brokers: \"localhost:9092\" \n"
     "  failed_challenge_topic: \"failed_challenge_ips\" \n"
-    "  challenge_host_topic: \"hosts_to_challenge\" \n";
+    "  challenge_host_topic: \"hosts_to_challenge\" \n"
+    "  status_topic: \"banjax_statuses\" \n";
 
   YAML::Node config = YAML::Load(config_string);
 
   if (kafka_consumer == nullptr) {
-    kafka_consumer = std::make_unique<KafkaConsumer>(config, this->get_challenger());  // XXX getter not needed?
+    kafka_consumer = std::make_unique<KafkaConsumer>(config, this);
   } else {
-    kafka_consumer->reload_config(config, this->get_challenger());
+    kafka_consumer->reload_config(config, this);
   }
 
   kafka_producer = std::make_unique<KafkaProducer>();
