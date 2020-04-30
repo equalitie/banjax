@@ -71,7 +71,7 @@ jobs:
             libboost-system-dev \
             libboost-test-dev \
             libconfig++-dev \
-            nlohmann-json-dev \
+            nlohmann-json-dev
         apt-get install librdkafka++1 librdkafka-dev
 
 
