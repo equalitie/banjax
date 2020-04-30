@@ -30,6 +30,7 @@ jobs:
     - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
 
     - run: |
+        echo "deb http://deb.debian.org/debian stretch-backports main" >> /etc/apt/sources.list
         apt-get update -qq
         apt-get upgrade -qq
 
@@ -70,8 +71,8 @@ jobs:
             libboost-system-dev \
             libboost-test-dev \
             libconfig++-dev \
-            librdkafka++1 \
-            librdkafka-dev
+            nlohmann-json-dev \
+        apt-get install librdkafka++1 librdkafka-dev
 
 
     - run: |
@@ -102,6 +103,9 @@ jobs:
     - run: |
         cd /build_trafficserver/trafficserver-$ATS_VERSION
         make -j4  # nproc says like 36 but i don't think we can actually use them all
+        mkdir -p /usr/local/include/ts
+        cp ./proxy/api/ts/* /usr/local/include/ts/  # omg why doesn't make install do this
+        cp ./lib/ts/*.h /usr/local/include/ts/
         make install
 
     - run: |
@@ -117,6 +121,8 @@ jobs:
         cd "$BANJAX_DIR"
         mkdir build && cd build
         cmake ../ -DCMAKE_CXX_FLAGS="-I$TSPATH/include"
+        mkdir /usr/local/include/nlohmann  # XXX terrible
+        cp -r json-prefix/include/nlohmann/* /usr/local/include/nlohmann/
         make -j4
 
     - run: |
