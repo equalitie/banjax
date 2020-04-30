@@ -49,6 +49,8 @@ protected:
   // Keep swabber configuration.
   FilterConfig swabber_conf;
 
+  YAML::Node kafka_conf;
+
   // Ordering and accessing filters by priority.
   std::map<int, std::string> priority_map;
 

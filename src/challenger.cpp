@@ -79,11 +79,9 @@ Challenger::load_config()
 }
 
 void
-Challenger::load_single_dynamic_config(const std::string& domain, const std::string& config_string) {
-  print::debug("LOAD SINGLE: ", config_string);
+Challenger::load_single_dynamic_config(const std::string& domain, const YAML::Node& challenge) {
   try
   {
-      YAML::Node challenge = YAML::Load(config_string);
       auto challenge_spec = parse_single_challenge(challenge);
       TSMutexLock(host_to_challenge_dynamic_mutex);
       auto on_scope_exit = defer([&] { TSMutexUnlock(host_to_challenge_dynamic_mutex); });

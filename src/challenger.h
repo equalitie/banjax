@@ -304,7 +304,7 @@ public:
   */
   FilterResponse on_http_request(const TransactionParts& transaction_parts) override;
   void on_http_close(const TransactionParts& transaction_parts) override {}
-  void load_single_dynamic_config(const std::string& domain, const std::string& config_string);
+  void load_single_dynamic_config(const std::string& domain, const YAML::Node& challenger_config);
   void remove_expired_challenges();
   KafkaProducer* kafka_producer;  // non-owning XXX circular reference?
 

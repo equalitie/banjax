@@ -17,7 +17,7 @@ void KafkaProducer::load_config(YAML::Node &new_config) {
 
   auto conf = RdKafka::Conf::create(RdKafka::Conf::CONF_GLOBAL);
 
-  auto brokers = new_config["kafka"]["brokers"].as<std::string>();
+  auto brokers = new_config["brokers"].as<std::string>();
   std::string errstr;
   if (conf->set("metadata.broker.list", brokers, errstr) !=
       RdKafka::Conf::CONF_OK) {
@@ -25,8 +25,8 @@ void KafkaProducer::load_config(YAML::Node &new_config) {
     throw;
   }
 
-  failed_challenge_topic = new_config["kafka"]["failed_challenge_topic"].as<std::string>();
-  status_topic =           new_config["kafka"]["status_topic"].as<std::string>();
+  failed_challenge_topic = new_config["failed_challenge_topic"].as<std::string>();
+  status_topic =           new_config["status_topic"].as<std::string>();
 
   rdk_producer_for_failed_challenges.reset(RdKafka::Producer::create(conf, errstr));
   if (!rdk_producer_for_failed_challenges) {
@@ -142,10 +142,10 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, Banjax* banjax)
                     throw;
                 }
 
-                auto topic = stored_config["kafka"]["challenge_host_topic"].as<std::string>();
+                auto topic = stored_config["challenge_host_topic"].as<std::string>();
                 topics.push_back(topic);
         
-                auto brokers = stored_config["kafka"]["brokers"].as<std::string>();
+                auto brokers = stored_config["brokers"].as<std::string>();
                 if (conf->set("metadata.broker.list", brokers, errstr) !=
                     RdKafka::Conf::CONF_OK) {
                     print::debug("KafkaConsumer: bad 'brokers' config: ", errstr);
@@ -180,7 +180,7 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, Banjax* banjax)
             while (config_valid && !shutting_down) {
                 std::cerr << "BLOCKING" << std::endl;
                 RdKafka::Message *msg = consumer->consume(2000);
-                msg_consume(msg, NULL, banjax);
+                msg_consume(msg, NULL);
                 delete msg;
                 banjax->get_challenger()->remove_expired_challenges();
                 // XXX this is not how i would have designed some scheduled task from the start, but
@@ -201,7 +201,7 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, Banjax* banjax)
 }
 
 
-void msg_consume(RdKafka::Message *message, void *opaque, Banjax* banjax) {
+void KafkaConsumer::msg_consume(RdKafka::Message *message, void *opaque) {
     print::debug("MSG_CONSUME()");
   switch (message->err()) {
   case RdKafka::ERR__TIMED_OUT:
@@ -233,17 +233,7 @@ void msg_consume(RdKafka::Message *message, void *opaque, Banjax* banjax) {
     }
 
     std::string website = *value_it;
-    std::string single_config =
-        "name: \"from-kafka-challenge\" \n"
-        "challenge_type: \"sha_inverse\" \n"
-        "challenge: \"solver.html\" \n"
-        "magic_word: \n"
-        "  - ['regexp', '.*']\n"
-        "validity_period: 360000\n"  // note this is not the challenge expiry time
-        "white_listed_ips: \n"
-        "  - '0.0.0.0' \n"
-        "no_of_fails_to_ban: 2\n";  // XXX think about what this should be...
-    banjax->get_challenger()->load_single_dynamic_config(website, single_config);
+    banjax->get_challenger()->load_single_dynamic_config(website, stored_config["dynamic_challenger_config"]);
   } break;
   case RdKafka::ERR__PARTITION_EOF: {
     print::debug("%% EOF reached for all  partition(s)");

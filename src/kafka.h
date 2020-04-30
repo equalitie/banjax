@@ -27,6 +27,7 @@ class KafkaConsumer {
 public:
   KafkaConsumer(YAML::Node &new_config, Banjax* banjax);
   void reload_config(YAML::Node &config, Banjax* banjax);
+  void msg_consume(RdKafka::Message *message, void *opaque);
   void shutdown() { shutting_down = true; thread_handle.join(); };
   ~KafkaConsumer() { shutdown(); };
 
@@ -42,5 +43,4 @@ private:
   std::string host_name;
 };
 
-void msg_consume(RdKafka::Message *message, void *opaque, Banjax* banjax);
 

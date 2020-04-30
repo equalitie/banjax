@@ -264,24 +264,25 @@ Banjax::read_configuration()
   build_filters();
 
   //kafka happens after filters because it talks to Challenger
-  std::string config_string =
-    "kafka:\n"
-    "  brokers: \"localhost:9092\" \n"
-    "  failed_challenge_topic: \"failed_challenge_ips\" \n"
-    "  challenge_host_topic: \"hosts_to_challenge\" \n"
-    "  status_topic: \"banjax_statuses\" \n";
+  // std::string config_string =
+  //   "kafka:\n"
+  //   "  brokers: \"localhost:9092\" \n"
+  //   "  failed_challenge_topic: \"failed_challenge_ips\" \n"
+  //   "  challenge_host_topic: \"hosts_to_challenge\" \n"
+  //   "  status_topic: \"banjax_statuses\" \n";
 
-  YAML::Node config = YAML::Load(config_string);
+  // YAML::Node config = YAML::Load(config_string);
 
   if (kafka_consumer == nullptr) {
-    kafka_consumer = std::make_unique<KafkaConsumer>(config, this);
+    kafka_consumer = std::make_unique<KafkaConsumer>(kafka_conf, this);
   } else {
-    kafka_consumer->reload_config(config, this);
+    kafka_consumer->reload_config(kafka_conf, this);
   }
 
+  // XXX FIXME making a unique_ptr *and* a shared_ptr to this thing...
   kafka_producer = std::make_unique<KafkaProducer>();
   challenger->kafka_producer = kafka_producer.get();
-  challenger->kafka_producer->load_config(config);
+  challenger->kafka_producer->load_config(kafka_conf);
 
 }
 
@@ -344,6 +345,8 @@ Banjax::process_config(const YAML::Node& cfg)
             abort_traffic_server();
           }
         }
+      } else if (node_name == "kafka") {
+        kafka_conf = it->second;
       }
       else { //unknown node
         print::debug("Unknown config node ", node_name);
