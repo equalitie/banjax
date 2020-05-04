@@ -127,6 +127,37 @@ class Test(unittest.TestCase):
         "        validity_period: 120\n"
         "        no_of_fails_to_ban: 10\n");
 
+    KAFKA_CHALLENGE_CONFIG = (
+       "priority:\n"
+       "  white_lister: 1\n"
+       "  challenger: 2\n"
+        "\n"
+       "white_lister:\n"
+       "    white_listed_ips:\n"
+       "      - 1.1.1.1\n"
+        "\n"
+       "challenger:\n"
+       "    difficulty: 0\n"
+       "    key: 'allwearesayingisgivewarachance'\n"
+       "    challenges: []\n"
+        "\n"
+       "kafka:\n"
+       "  brokers: 'localhost:9092'\n"
+       "  failed_challenge_topic: 'failed_challenge_ips'\n"
+       "  challenge_host_topic: 'hosts_to_challenge'\n"
+       "  status_topic: 'banjax_statuses'\n"
+       "  dynamic_challenger_config:\n"
+       "    name: 'from-kafka-challenge'\n"
+       "    challenge_type: 'sha_inverse'\n"
+       "    challenge: 'solver.html'\n"
+       "    magic_word:\n"
+       "      - ['regexp', '.*']\n"
+       "    validity_period: 360000  # how long a cookie stays valid for\n"
+       "    white_listed_ips:        # XXX i needed this for some reason\n"
+       "      - '0.0.0.0'\n"
+       "    no_of_fails_to_ban: 2    # XXX think about what this should be...\n");
+
+
     def print_debug(self):
         opts = { "standard": self.ats_bin_dir() +  "/../var/log/trafficserver/traffic.out"
                , "apache":   self.ats_prefix_dir + "/logs/traffic.out" }
@@ -663,6 +694,7 @@ async def async_main(self):
     kafka_dir = "./kafka-2.4.0-src/"
     topic = "hosts_to_challenge"
     test_message = random_string(10)
+    self.replace_config2(self.KAFKA_CHALLENGE_CONFIG)
     try:
         # XXX maddening that the following three things don't work reliably. for now, start them some other way
         # zookeeper_p = child1 = start("{kafka_dir}bin/zookeeper-server-start.sh {kafka_dir}config/zookeeper.properties".format(kafka_dir=kafka_dir))
@@ -684,25 +716,6 @@ async def async_main(self):
         producer_p.sendline(test_message)
         assert await wait_for(consumer_p, test_message)
         print("got test message")
-
-        # XXX omfg kill
-        DUMMY_CHALLENGE_CONFIG = (
-            "challenger:\n"
-            "    difficulty: 0\n"
-            "    key: 'allwearesayingisgivewarachance'\n"
-            "    challenges:\n"
-            "      - name: 'example.co_auth'\n"
-            "        domains:\n"
-            "         - 'no-such-domain'\n"
-            "        challenge_type: 'auth'\n"
-            "        challenge: 'auth.html'\n"
-            "        # sha256('howisbabbyformed?')\n"
-            "        password_hash: 'BdZitmLkeNx6Pq9vKn6027jMWmp63pJJowigedwEdzM='\n"
-            "        magic_word: 'dummy-magic-word'\n"
-            "        magic_word_exceptions: ['wp-admin/admin.ajax.php']\n"
-            "        validity_period: 120\n"
-            "        no_of_fails_to_ban: 10\n");
-        self.replace_config2(DUMMY_CHALLENGE_CONFIG)
 
         # assert no challenger
         self.server.body = "some-string1"
