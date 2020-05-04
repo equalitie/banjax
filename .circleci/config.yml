@@ -139,5 +139,5 @@ jobs:
 
     - run: cd "$TSPATH" && ./bin/trafficserver restart
     - run: cd "$BANJAX_DIR" && ./build/unit-tests  --log_level=test_suite  # XXX not sure if these are working
-    - run: cd "$BANJAX_DIR" && python2.7 ./test/banjax_behavior_test.py --ts-prefix=$TSPATH --ts-layout="apache"
+    - run: cd "$BANJAX_DIR" && python3 ./test/banjax_behavior_test.py --ts-prefix=$TSPATH --ts-layout="apache"
 
