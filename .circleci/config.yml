@@ -72,6 +72,7 @@ jobs:
             libboost-system-dev \
             libboost-test-dev \
             libconfig++-dev \
+            wget \
             nlohmann-json-dev
         apt-get install -qy -t stretch-backports librdkafka++1 librdkafka-dev
 
