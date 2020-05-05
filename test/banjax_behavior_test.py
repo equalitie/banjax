@@ -696,7 +696,7 @@ async def async_main(self):
     kafka_dir = "./kafka_2.12-2.5.0/"
     topic = "hosts_to_challenge"
     test_message = random_string(10)
-    self.replace_config2(self.STUB_CHALLENGE_CONFIG + KAFKA_CONFIG)
+    self.replace_config2(self.STUB_CHALLENGE_CONFIG + self.KAFKA_CONFIG)
     try:
         zookeeper_p = child1 = start("{kafka_dir}bin/zookeeper-server-start.sh {kafka_dir}config/zookeeper.properties".format(kafka_dir=kafka_dir))
         assert await wait_for(zookeeper_p, r'.*binding to port.*')
