@@ -691,21 +691,20 @@ def start(command):
     return child
 
 async def async_main(self):
-    kafka_dir = "./kafka-2.4.0-src/"
+    kafka_dir = "./kafka_2.12-2.5.0/"
     topic = "hosts_to_challenge"
     test_message = random_string(10)
     self.replace_config2(self.KAFKA_CHALLENGE_CONFIG)
     try:
-        # XXX maddening that the following three things don't work reliably. for now, start them some other way
-        # zookeeper_p = child1 = start("{kafka_dir}bin/zookeeper-server-start.sh {kafka_dir}config/zookeeper.properties".format(kafka_dir=kafka_dir))
-        # assert await wait_for(zookeeper_p, r'.*binding to port.*')
+        zookeeper_p = child1 = start("{kafka_dir}bin/zookeeper-server-start.sh {kafka_dir}config/zookeeper.properties".format(kafka_dir=kafka_dir))
+        assert await wait_for(zookeeper_p, r'.*binding to port.*')
 
-        # kafka_p = start("{kafka_dir}bin/kafka-server-start.sh {kafka_dir}config/server.properties".format(kafka_dir=kafka_dir))
-        # assert await wait_for(kafka_p, r'.*started \(kafka.server.KafkaServer.*')
+        kafka_p = start("{kafka_dir}bin/kafka-server-start.sh {kafka_dir}config/server.properties".format(kafka_dir=kafka_dir))
+        assert await wait_for(kafka_p, r'.*started \(kafka.server.KafkaServer.*')
 
-        # create_topic_p = start("{kafka_dir}bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic {topic}".format(kafka_dir=kafka_dir, topic=topic))
-        # await create_topic_p.expect(pexpect.EOF, async_=True)
-        # print("after create")
+        create_topic_p = start("{kafka_dir}bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic {topic}".format(kafka_dir=kafka_dir, topic=topic))
+        await create_topic_p.expect(pexpect.EOF, async_=True)
+        print("after create")
 
         consumer_p = start("{kafka_dir}bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic {topic} --from-beginning".format(kafka_dir=kafka_dir, topic=topic))
         print("after consumer")
