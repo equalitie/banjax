@@ -693,7 +693,7 @@ def start(command):
     return child
 
 async def async_main(self):
-    kafka_dir = "./kafka_2.12-2.5.0/"
+    kafka_dir = "./test/kafka_2.12-2.5.0/"
     topic = "hosts_to_challenge"
     test_message = random_string(10)
     self.replace_config2(self.STUB_CHALLENGE_CONFIG + self.KAFKA_CONFIG)
@@ -721,17 +721,24 @@ async def async_main(self):
         # assert no challenger
         self.server.body = "some-string1"
         result = self.do_curl(Test.ATS_HOST + "/some-route")
-        self.assertEqual(result, "some-string1");
+        self.assertIn("some-string1", result);
 
         # send "turn challenger on" message
         # assert yes challenger
         # XXX FML kafka is slow and this can take tens of seconds?!?
         # really should be waiting for the log output from traffic.out
-        producer_p.sendline(Test.ATS_HOST)
-        assert await wait_for(consumer_p, Test.ATS_HOST)
-        await asyncio.sleep(30)
+        challenge_msg = '{"name": "challenge_host", "value": "127.0.0.1:8080"}'
+        producer_p.sendline(challenge_msg)
+        assert await wait_for(consumer_p, challenge_msg)
+        print("saw message")
+
+        #assert await wait_for(consumer_p, Test.ATS_HOST)
+        await asyncio.sleep(10)
         result = self.do_curl(Test.ATS_HOST + "/some-route")
-        self.assertTrue("Please turn on JavaScript and reload the page" in result)
+        self.assertIn("Please turn on JavaScript and reload the page", result)
+
+        result = self.do_curl(Test.ATS_HOST + "/some-route")
+        self.assertIn("you are banned", result)
 
 
         # wait for timeout
