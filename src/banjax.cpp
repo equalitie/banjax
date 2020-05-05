@@ -263,16 +263,11 @@ Banjax::read_configuration()
   //now we can make the filters
   build_filters();
 
-  //kafka happens after filters because it talks to Challenger
-  // std::string config_string =
-  //   "kafka:\n"
-  //   "  brokers: \"localhost:9092\" \n"
-  //   "  failed_challenge_topic: \"failed_challenge_ips\" \n"
-  //   "  challenge_host_topic: \"hosts_to_challenge\" \n"
-  //   "  status_topic: \"banjax_statuses\" \n";
 
-  // YAML::Node config = YAML::Load(config_string);
-
+  // XXX what should we do if there is no kafka_conf?
+  // * don't make new Kafka* instances (and delete if existing)?
+  //   - useful for testing purposes
+  // * try some default config?
   if (kafka_consumer == nullptr) {
     kafka_consumer = std::make_unique<KafkaConsumer>(kafka_conf, this);
   } else {

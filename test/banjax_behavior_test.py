@@ -125,24 +125,9 @@ class Test(unittest.TestCase):
         "        magic_word: '"+MAGIC_WORD+"'\n"
         "        magic_word_exceptions: ['wp-admin/admin.ajax.php']\n"
         "        validity_period: 120\n"
-        "        no_of_fails_to_ban: 10\n"
-        "kafka:\n"
-        "  brokers: 'localhost:9092'\n"
-        "  failed_challenge_topic: 'failed_challenge_ips'\n"
-        "  challenge_host_topic: 'hosts_to_challenge'\n"
-        "  status_topic: 'banjax_statuses'\n"
-        "  dynamic_challenger_config:\n"
-        "    name: 'from-kafka-challenge'\n"
-        "    challenge_type: 'sha_inverse'\n"
-        "    challenge: 'solver.html'\n"
-        "    magic_word:\n"
-        "      - ['regexp', '.*']\n"
-        "    validity_period: 360000  # how long a cookie stays valid for\n"
-        "    white_listed_ips:        # XXX i needed this for some reason\n"
-        "      - '0.0.0.0'\n"
-        "    no_of_fails_to_ban: 2    # XXX think about what this should be...\n");
+        "        no_of_fails_to_ban: 10\n");
 
-    KAFKA_CHALLENGE_CONFIG = (
+    STUB_CHALLENGE_CONFIG = (
        "priority:\n"
        "  white_lister: 1\n"
        "  challenger: 2\n"
@@ -155,7 +140,9 @@ class Test(unittest.TestCase):
        "    difficulty: 0\n"
        "    key: 'allwearesayingisgivewarachance'\n"
        "    challenges: []\n"
-        "\n"
+        "\n")
+
+    KAFKA_CONFIG = (
        "kafka:\n"
        "  brokers: 'localhost:9092'\n"
        "  failed_challenge_topic: 'failed_challenge_ips'\n"
@@ -254,7 +241,7 @@ class Test(unittest.TestCase):
         after entring the password it checks that ATS serves directly
         from origin everytime
         """
-        self.replace_config2(self.AUTH_CHALLENGE_CONFIG)
+        self.replace_config2(self.AUTH_CHALLENGE_CONFIG + self.KAFKA_CONFIG)
 
         # Tell TS to start caching.
         self.set_banjax_config("proxy.config.http.cache.http", "1")
@@ -296,7 +283,7 @@ class Test(unittest.TestCase):
         host       = Test.ATS_HOST
         bad_cookie = Test.BAD_AUTH_COOKIE
 
-        self.replace_config2(self.AUTH_CHALLENGE_CONFIG)
+        self.replace_config2(self.AUTH_CHALLENGE_CONFIG + self.KAFKA_CONFIG)
 
         #request to guarantee cache
         self.server.body = "body0"
@@ -314,7 +301,7 @@ class Test(unittest.TestCase):
         not invoke the magic word, hence ATS should serve the page
         through cache constantly
         """
-        self.replace_config2(self.AUTH_CHALLENGE_CONFIG)
+        self.replace_config2(self.AUTH_CHALLENGE_CONFIG + self.KAFKA_CONFIG)
 
         self.server.body = "page1"
         result = self.do_curl(Test.ATS_HOST + "/" + Test.CACHED_PAGE)
@@ -330,7 +317,7 @@ class Test(unittest.TestCase):
         hanged for ~one minute. This was unacceptable as users thought there
         was actually a problem with the traffic server. So it was fixed.
         """
-        self.replace_config2(self.AUTH_CHALLENGE_CONFIG)
+        self.replace_config2(self.AUTH_CHALLENGE_CONFIG + self.KAFKA_CONFIG)
 
         # This is a non standard HTTP message VMon was apparently seening
         # when creating the issue https://redmine.equalit.ie/issues/2089
@@ -361,7 +348,7 @@ class Test(unittest.TestCase):
 
         config += self.AUTH_CHALLENGE_CONFIG
 
-        self.replace_config2(config)
+        self.replace_config2(config + self.KAFKA_CONFIG)
 
         # Tell TS to start caching.
         self.set_banjax_config("proxy.config.http.cache.http", "1")
@@ -408,7 +395,7 @@ class Test(unittest.TestCase):
 
         config += self.AUTH_CHALLENGE_CONFIG
 
-        self.replace_config2(config)
+        self.replace_config2(config + self.KAFKA_CONFIG)
 
         # Tell TS to start caching.
         self.set_banjax_config("proxy.config.http.cache.http", "1")
@@ -439,7 +426,7 @@ class Test(unittest.TestCase):
             "        magic_word: '"+Test.MAGIC_WORD+"'\n"
             "        validity_period: 120\n");
 
-        self.replace_config2(config)
+        self.replace_config2(config + self.KAFKA_CONFIG)
 
         # Tell TS to start caching.
         self.set_banjax_config("proxy.config.http.cache.http", "1")
@@ -481,7 +468,7 @@ class Test(unittest.TestCase):
             "        magic_word: '"+Test.MAGIC_WORD+"'\n"
             "        validity_period: 120\n");
 
-        self.replace_config2(config)
+        self.replace_config2(config + self.KAFKA_CONFIG)
 
         # Tell TS to start caching.
         self.set_banjax_config("proxy.config.http.cache.http", "1")
@@ -525,7 +512,7 @@ class Test(unittest.TestCase):
             "        magic_word: '"+Test.MAGIC_WORD+"'\n"
             "        validity_period: 120\n");
 
-        self.replace_config2(config)
+        self.replace_config2(config + self.KAFKA_CONFIG)
 
         # Tell TS to disable caching
         self.set_banjax_config("proxy.config.http.cache.http", "0")
@@ -561,7 +548,7 @@ class Test(unittest.TestCase):
             "        magic_word: '"+Test.MAGIC_WORD+"'\n"
             "        validity_period: 120\n");
 
-        self.replace_config2(config)
+        self.replace_config2(config + self.KAFKA_CONFIG)
 
         # Tell TS to disable caching
         self.set_banjax_config("proxy.config.http.cache.http", "0")
@@ -594,7 +581,7 @@ class Test(unittest.TestCase):
             "          - ['regexp', 'wp-login2.php']\n"
             "        validity_period: 120\n");
 
-        self.replace_config2(config)
+        self.replace_config2(config + self.KAFKA_CONFIG)
 
         # Tell TS to disable caching
         self.set_banjax_config("proxy.config.http.cache.http", "0")
@@ -642,7 +629,7 @@ class Test(unittest.TestCase):
             "          - exception\n"
             "        validity_period: 120\n");
 
-        self.replace_config2(config)
+        self.replace_config2(config + self.KAFKA_CONFIG)
 
         # Tell TS to disable caching
         self.set_banjax_config("proxy.config.http.cache.http", "0")
@@ -709,7 +696,7 @@ async def async_main(self):
     kafka_dir = "./kafka_2.12-2.5.0/"
     topic = "hosts_to_challenge"
     test_message = random_string(10)
-    self.replace_config2(self.KAFKA_CHALLENGE_CONFIG)
+    self.replace_config2(self.STUB_CHALLENGE_CONFIG + KAFKA_CONFIG)
     try:
         zookeeper_p = child1 = start("{kafka_dir}bin/zookeeper-server-start.sh {kafka_dir}config/zookeeper.properties".format(kafka_dir=kafka_dir))
         assert await wait_for(zookeeper_p, r'.*binding to port.*')
