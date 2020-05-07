@@ -43,7 +43,7 @@ void KafkaProducer::report_failure(const std::string& site, const std::string& i
   message["id"] = host_name;
   message["name"] = "ip_failed_challenge";
   message["value"] = ip;
-  std::string& serialized_message = message.dump();
+  const std::string& serialized_message = message.dump();
   size_t serialized_message_size = message.dump().size();
 
   RdKafka::ErrorCode err = rdk_producer_for_failed_challenges->produce(
@@ -76,7 +76,7 @@ void KafkaProducer::report_status() {
   message["id"] = host_name;
   message["name"] = "status";
 
-  std::string& serialized_message = message.dump();
+  const std::string& serialized_message = message.dump();
   size_t serialized_message_size = message.dump().size();
 
   RdKafka::ErrorCode err = rdk_producer_for_failed_challenges->produce(
