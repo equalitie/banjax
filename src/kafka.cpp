@@ -25,19 +25,11 @@ void KafkaProducer::load_config(YAML::Node &new_config) {
     throw;
   }
 
-  failed_challenge_topic = new_config["failed_challenge_topic"].as<std::string>();
-  status_topic =           new_config["status_topic"].as<std::string>();
+  report_topic = new_config["report_topic"].as<std::string>();
 
   rdk_producer_for_failed_challenges.reset(RdKafka::Producer::create(conf, errstr));
   if (!rdk_producer_for_failed_challenges) {
       print::debug("KafkaProducer: failed to create Producer (for failed challenges)");
-    throw;
-  }
-
-  // XXX ugly duplication
-  rdk_producer_for_statuses.reset(RdKafka::Producer::create(conf, errstr));
-  if (!rdk_producer_for_statuses) {
-      print::debug("KafkaProducer: failed to create Producer (for statuses)");
     throw;
   }
 
@@ -51,12 +43,12 @@ void KafkaProducer::report_failure(const std::string& site, const std::string& i
   message["id"] = host_name;
   message["name"] = "ip_failed_challenge";
   message["value"] = ip;
-  std::string serialized_message = message.dump();
+  std::string& serialized_message = message.dump();
   size_t serialized_message_size = message.dump().size();
 
   RdKafka::ErrorCode err = rdk_producer_for_failed_challenges->produce(
       /* Topic name */
-      failed_challenge_topic,
+      report_topic,
       /* Any Partition: the builtin partitioner will be
               * used to assign the message to a topic based
               * on the message key, or random partition if
@@ -73,7 +65,7 @@ void KafkaProducer::report_failure(const std::string& site, const std::string& i
       /* Message headers, if any */
       NULL);
   if (err == RdKafka::ERR_NO_ERROR) {
-      print::debug("reported challenge failure for site: ", site, " and ip: ", ip, " to topic: ", failed_challenge_topic);
+      print::debug("reported challenge failure for site: ", site, " and ip: ", ip, " to topic: ", report_topic);
   } else {
       print::debug(": Failed to produce()");
   }
@@ -82,13 +74,14 @@ void KafkaProducer::report_failure(const std::string& site, const std::string& i
 void KafkaProducer::report_status() {
   json message;
   message["id"] = host_name;
+  message["name"] = "status";
 
-  std::string serialized_message = message.dump();
+  std::string& serialized_message = message.dump();
   size_t serialized_message_size = message.dump().size();
 
-  RdKafka::ErrorCode err = rdk_producer_for_statuses->produce(
+  RdKafka::ErrorCode err = rdk_producer_for_failed_challenges->produce(
       /* Topic name */
-      status_topic,
+      report_topic,
       /* Any Partition: the builtin partitioner will be
               * used to assign the message to a topic based
               * on the message key, or random partition if
@@ -142,7 +135,7 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, Banjax* banjax)
                     throw;
                 }
 
-                auto topic = stored_config["challenge_host_topic"].as<std::string>();
+                auto topic = stored_config["command_topic"].as<std::string>();
                 topics.push_back(topic);
         
                 auto brokers = stored_config["brokers"].as<std::string>();

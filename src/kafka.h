@@ -16,9 +16,7 @@ public:
 
 private:
   std::unique_ptr<RdKafka::Producer> rdk_producer_for_failed_challenges;
-  std::unique_ptr<RdKafka::Producer> rdk_producer_for_statuses;
-  std::string failed_challenge_topic;
-  std::string status_topic;
+  std::string report_topic;
   std::string host_name;
 };
 
