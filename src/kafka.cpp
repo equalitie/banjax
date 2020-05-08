@@ -172,9 +172,8 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, Banjax* banjax)
             uint16_t times_around_loop = 0;
             while (config_valid && !shutting_down) {
                 std::cerr << "BLOCKING" << std::endl;
-                RdKafka::Message *msg = consumer->consume(2000);
-                msg_consume(msg, NULL);
-                delete msg;
+                auto msg = std::unique_ptr<RdKafka::Message>(consumer->consume(2000));
+                msg_consume(std::move(msg), NULL);
                 banjax->get_challenger()->remove_expired_challenges();
                 // XXX this is not how i would have designed some scheduled task from the start, but
                 // i don't feel like spending forever redesigning this properly atm.
@@ -194,7 +193,7 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, Banjax* banjax)
 }
 
 
-void KafkaConsumer::msg_consume(RdKafka::Message *message, void *opaque) {
+void KafkaConsumer::msg_consume(std::unique_ptr<RdKafka::Message> message, void *opaque) {
     print::debug("MSG_CONSUME()");
   switch (message->err()) {
   case RdKafka::ERR__TIMED_OUT:
