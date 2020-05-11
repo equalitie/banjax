@@ -20,6 +20,7 @@
 #include "defer.h"
 #include "print.h"
 #include "kafka.h"
+#include <boost/asio/ip/host_name.hpp>
 
 using namespace std;
 
@@ -49,6 +50,28 @@ struct BanjaxPlugin {
     // This happens atomically, so (in theory) we don't need to wrap in in mutex
     // in the handle_transaction_start hook.
     current_state = std::move(new_banjax);
+  }
+
+  int report_status() {
+    if (!current_state) {
+        return -1;
+    }
+
+    TSMutexLock(reload_mutex);
+    auto on_exit = defer([&] { TSMutexUnlock(reload_mutex); });
+
+    return current_state->report_status();
+  }
+  
+  int remove_expired_challenges() {
+    if (!current_state) {
+        return -1;
+    }
+
+    TSMutexLock(reload_mutex);
+    auto on_exit = defer([&] { TSMutexUnlock(reload_mutex); });
+
+    return current_state->remove_expired_challenges();
   }
 };
 
@@ -171,6 +194,50 @@ std::unique_ptr<KafkaConsumer> Banjax::release_kafka_consumer() {
     return std::move(kafka_consumer);
 }
 
+int
+report_status(TSCont contp, TSEvent event, void *edata)
+{
+  if (!g_banjax_plugin) {
+    return -1;
+  }
+
+  return g_banjax_plugin->report_status();
+}
+
+int
+remove_expired_challenges(TSCont contp, TSEvent event, void *edata)
+{
+  if (!g_banjax_plugin) {
+    return -1;
+  }
+
+  return g_banjax_plugin->remove_expired_challenges();
+}
+
+int
+Banjax::report_status()
+{
+  if (!kafka_producer) {
+      return -1;
+  }
+
+  json message;
+  message["id"] = host_name;
+  message["name"] = "status";
+
+  return kafka_producer->report_status(message);
+}
+
+int
+Banjax::remove_expired_challenges()
+{
+  if (!challenger) {
+      return -1;
+  }
+
+  return challenger->remove_expired_challenges();
+}
+
 /**
    Constructor
 
@@ -193,6 +260,8 @@ Banjax::Banjax(const string& banjax_config_dir,
 void
 Banjax::read_configuration()
 {
+  host_name = boost::asio::ip::host_name();
+
   // Read the file. If there is an error, report it and exit.
   static const  string sep = "/";
 
@@ -275,7 +344,7 @@ Banjax::read_configuration()
   }
 
   // XXX FIXME making a unique_ptr *and* a shared_ptr to this thing...
-  kafka_producer = std::make_unique<KafkaProducer>();
+  kafka_producer = std::make_unique<KafkaProducer>(this);
   challenger->kafka_producer = kafka_producer.get();
   challenger->kafka_producer->load_config(kafka_conf);
 
@@ -355,6 +424,28 @@ Banjax::process_config(const YAML::Node& cfg)
   }
 }
 
+void
+Banjax::kafka_message_consume(const json& message) {
+  auto command_name_it = message.find("name");
+  if (command_name_it == message.end() || (*command_name_it != "challenge_host")) {
+    print::debug("kafka command not of 'challenge_host' type");
+    return;
+  }
+
+  auto value_it = message.find("value");
+  if (value_it == message.end()) {
+    print::debug("kafka command has no 'value'");
+    return;
+  }
+
+  std::string website = *value_it;
+  if (!challenger) {
+    print::debug("null challenger at time of kafka_message_consume()");
+    return;
+  }
+  challenger->load_single_dynamic_config(website);
+}
+
 static void destroy_g_banjax_plugin() {
   g_banjax_plugin.reset();
 }
@@ -423,4 +514,10 @@ TSPluginInit(int argc, const char *argv[])
   // Handle reload by traffic_line -x
   TSCont management_contp = TSContCreate(handle_management, nullptr);
   TSMgmtUpdateRegister(management_contp, BANJAX_PLUGIN_NAME);
+
+  // send status report
+  // XXX config time
+  TSContScheduleEvery(TSContCreate(report_status, TSMutexCreate()), 15ll * 1000ll, TS_THREAD_POOL_TASK);
+
+  TSContScheduleEvery(TSContCreate(remove_expired_challenges, TSMutexCreate()), 16ll * 1000ll, TS_THREAD_POOL_TASK);
 }

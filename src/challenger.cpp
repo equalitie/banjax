@@ -69,6 +69,16 @@ Challenger::load_config()
     SHA256((const unsigned char*)challenger_key.c_str(), challenger_key.length(), hashed_key);
 
     number_of_trailing_zeros = cfg["difficulty"].as<unsigned int>();
+
+    // better to check for these and fail at load-time than later
+    if (!cfg["dynamic_challenger_config"]) {
+      TSDebug(BANJAX_PLUGIN_NAME, "missing dynamic_challenger_config");
+      throw;
+    }
+    if (!cfg["dynamic_challenger_config"]["challenge_type"]) {
+      TSDebug(BANJAX_PLUGIN_NAME, "missing dynamic_challenger_config's challenge_type");
+      throw;
+    }
   }
   catch(YAML::RepresentationException& e) {
     TSDebug(BANJAX_PLUGIN_NAME, "Bad config for filter %s: %s", BANJAX_FILTER_NAME.c_str(), e.what());
@@ -79,10 +89,10 @@ Challenger::load_config()
 }
 
 void
-Challenger::load_single_dynamic_config(const std::string& domain, const YAML::Node& challenge) {
+Challenger::load_single_dynamic_config(const std::string& domain) {
   try
   {
-      auto challenge_spec = parse_single_challenge(challenge);
+      auto challenge_spec = parse_single_challenge(cfg["dynamic_challenger_config"]);
       TSMutexLock(host_to_challenge_dynamic_mutex);
       auto on_scope_exit = defer([&] { TSMutexUnlock(host_to_challenge_dynamic_mutex); });
       host_to_challenge_dynamic[domain] = challenge_spec;
@@ -93,7 +103,7 @@ Challenger::load_single_dynamic_config(const std::string& domain, const YAML::No
   }
 }
 
-void
+int
 Challenger::remove_expired_challenges() {
   time_t current_timestamp = time(NULL);
   TSMutexLock(host_to_challenge_dynamic_mutex);
@@ -108,6 +118,7 @@ Challenger::remove_expired_challenges() {
           ++it;
       }
   }
+  return 0;
 }
 
 /**

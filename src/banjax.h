@@ -12,6 +12,7 @@
 
 class BanjaxFilter;
 
+#include "banjax_interface.h"
 #include "ip_db.h"
 #include "swabber.h"
 #include "transaction_muncher.h"
@@ -23,10 +24,12 @@ class BanjaxFilter;
 #include "regex_manager.h"
 #include "challenger.h"
 #include "socket.h"
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
 
 class KafkaConsumer;
 
-class Banjax
+class Banjax : public BanjaxInterface
 {
 public:
   //it keeps all part of requests and responses which is
@@ -127,8 +130,16 @@ public:
   std::unique_ptr<KafkaConsumer> release_kafka_consumer();
 
   // XXX are these making cyclic references?
-  std::shared_ptr<Challenger> get_challenger() { return challenger; }
+  virtual std::shared_ptr<Challenger> get_challenger() { return challenger; }
   std::shared_ptr<KafkaProducer> get_producer() { return kafka_producer; }
+  virtual const std::string& get_host_name() { return host_name; }
+  virtual void kafka_message_consume(const json& message);
+
+  int report_status();
+  int remove_expired_challenges();
+
+private:
+  std::string host_name;
 };
 
 #endif /*banjax.h*/
