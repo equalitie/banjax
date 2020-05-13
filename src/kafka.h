@@ -11,10 +11,8 @@ using json = nlohmann::json;
 
 class KafkaProducer {
 public:
-  KafkaProducer(Banjax* banjax);
-  void load_config(YAML::Node& new_config);
-  void report_failure(const std::string& site, const std::string& ip);
-  int report_status(const json& message);
+  KafkaProducer(Banjax* banjax, YAML::Node& config);
+  int send_message(const json& message);
 
 private:
   std::unique_ptr<RdKafka::Producer> rdk_producer;

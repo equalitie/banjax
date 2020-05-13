@@ -106,7 +106,7 @@ Banjax::build_filters()
         regex_manager.reset(new RegexManager(cur_config, &regex_manager_ip_db, &swabber));
         cur_filter = regex_manager.get();
       } else if (cur_filter_name.second == CHALLENGER_FILTER_NAME){
-        challenger.reset(new Challenger(banjax_config_dir, cur_config, &challenger_ip_db, &swabber, &global_ip_white_list));
+        challenger.reset(new Challenger(banjax_config_dir, cur_config, &challenger_ip_db, &swabber, &global_ip_white_list, this));
         cur_filter = challenger.get();
       } else if (cur_filter_name.second == WHITE_LISTER_FILTER_NAME){
         white_lister.reset(new WhiteLister(cur_config, global_ip_white_list));
@@ -225,7 +225,25 @@ Banjax::report_status()
   message["id"] = host_name;
   message["name"] = "status";
 
-  return kafka_producer->report_status(message);
+  print::debug("reporting status");
+  return kafka_producer->send_message(message);
+}
+
+int
+Banjax::report_failure(const std::string& site, const std::string& ip)
+{
+  if (!kafka_producer) {
+      return -1;
+  }
+
+  json message;
+  message["id"] = host_name;
+  message["name"] = "ip_failed_challenge";
+  message["value_ip"] = ip;
+  message["value_site"] = site;
+
+  print::debug("reporting challenge failure for site: ", site, " and ip: ", ip);
+  return kafka_producer->send_message(message);
 }
 
 int
@@ -344,9 +362,7 @@ Banjax::read_configuration()
   }
 
   // XXX FIXME making a unique_ptr *and* a shared_ptr to this thing...
-  kafka_producer = std::make_unique<KafkaProducer>(this);
-  challenger->kafka_producer = kafka_producer.get();
-  challenger->kafka_producer->load_config(kafka_conf);
+  kafka_producer = std::make_unique<KafkaProducer>(this, kafka_conf);
 
 }
 

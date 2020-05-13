@@ -2,20 +2,17 @@
 #include <iostream>
 #include <librdkafka/rdkafkacpp.h>
 
-KafkaProducer::KafkaProducer(Banjax* banjax)
+KafkaProducer::KafkaProducer(Banjax* banjax, YAML::Node &config)
   : banjax(banjax) {
   print::debug("KafkaProducer default constructor");
-}
-
-void KafkaProducer::load_config(YAML::Node &new_config) {
-  if (new_config.Type() != YAML::NodeType::Map) {
+  if (config.Type() != YAML::NodeType::Map) {
       print::debug("KafkaProducer::load_config requires a YAML::Map");
     throw;
   }
 
   auto conf = RdKafka::Conf::create(RdKafka::Conf::CONF_GLOBAL);
 
-  auto brokers = new_config["brokers"].as<std::string>();
+  auto brokers = config["brokers"].as<std::string>();
   std::string errstr;
   if (conf->set("metadata.broker.list", brokers, errstr) !=
       RdKafka::Conf::CONF_OK) {
@@ -23,7 +20,7 @@ void KafkaProducer::load_config(YAML::Node &new_config) {
     throw;
   }
 
-  report_topic = new_config["report_topic"].as<std::string>();
+  report_topic = config["report_topic"].as<std::string>();
 
   rdk_producer.reset(RdKafka::Producer::create(conf, errstr));
   if (!rdk_producer) {
@@ -34,11 +31,7 @@ void KafkaProducer::load_config(YAML::Node &new_config) {
   print::debug("KafkaProducer load_config done");
 }
 
-void KafkaProducer::report_failure(const std::string& site, const std::string& ip) {
-  json message;
-  message["id"] = banjax->get_host_name();
-  message["name"] = "ip_failed_challenge";
-  message["value"] = ip;
+int KafkaProducer::send_message(const json& message) {
   const std::string& serialized_message = message.dump();
   size_t serialized_message_size = message.dump().size();
 
@@ -61,39 +54,10 @@ void KafkaProducer::report_failure(const std::string& site, const std::string& i
       /* Message headers, if any */
       NULL);
   if (err == RdKafka::ERR_NO_ERROR) {
-      print::debug("reported challenge failure for site: ", site, " and ip: ", ip, " to topic: ", report_topic);
-  } else {
-      print::debug(": Failed to produce()");
-  }
-}
-
-int KafkaProducer::report_status(const json& message) {
-  const std::string& serialized_message = message.dump();
-  size_t serialized_message_size = message.dump().size();
-
-  RdKafka::ErrorCode err = rdk_producer->produce(
-      /* Topic name */
-      report_topic,
-      /* Any Partition: the builtin partitioner will be
-              * used to assign the message to a topic based
-              * on the message key, or random partition if
-              * the key is not set. */
-      (int)RdKafka::Topic::PARTITION_UA,
-      /* Make a copy of the value */
-      (int)RdKafka::Producer::RK_MSG_COPY /* Copy payload */,
-      /* Value */
-      (void*)serialized_message.c_str(), serialized_message_size,
-      /* Key */
-      nullptr, 0,
-      /* Timestamp (defaults to current time) */
-      0,
-      /* Message headers, if any */
-      NULL);
-  if (err == RdKafka::ERR_NO_ERROR) {
-      print::debug("reported status");
+      print::debug("sent message!");
       return 0;
   } else {
-      print::debug(": Failed to report status()");
+      print::debug("Failed to send kafka message! ");
       return -1;
   }
 }

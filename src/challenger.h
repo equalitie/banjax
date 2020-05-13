@@ -19,10 +19,10 @@
 #include "default.h"
 #include "print.h"
 
+class BanjaxInterface;
+
 const size_t AES_KEY_LENGTH = 16;
 //const size_t AES_BLOCK_SIZE;
-
-class KafkaProducer;
 
 //Challenges should be declared here
 //the name of challenges should appear in same order they
@@ -253,7 +253,8 @@ public:
             const FilterConfig& filter_config,
             IpDb* challenger_ip_db,
             Swabber* swabber,
-            const GlobalWhiteList* global_white_list)
+            const GlobalWhiteList* global_white_list,
+            BanjaxInterface* banjax)
     :BanjaxFilter::BanjaxFilter(filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
     host_to_challenge_dynamic_mutex(TSMutexCreate()),
     host_to_challenge_dynamic(),
@@ -261,7 +262,8 @@ public:
     swabber(swabber),
     global_white_list(global_white_list),
     challenger_ip_db(challenger_ip_db),
-    banjax_dir(banjax_dir)
+    banjax_dir(banjax_dir),
+    banjax(banjax)
   {
     queued_tasks[HTTP_REQUEST] = this;
 
@@ -306,13 +308,13 @@ public:
   void on_http_close(const TransactionParts& transaction_parts) override {}
   void load_single_dynamic_config(const std::string& domain);
   int remove_expired_challenges();
-  KafkaProducer* kafka_producer;  // non-owning XXX circular reference?
 
 private:
   std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info) override;
   std::shared_ptr<HostChallengeSpec> parse_single_challenge(const YAML::Node& ch);
 
   void load_config();
+  BanjaxInterface* banjax;
 };
 
 

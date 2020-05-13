@@ -16,7 +16,7 @@
 #include "cookie.h"
 #include "challenger.h"
 #include "cookiehash.h"
-#include "kafka.h"
+#include "banjax_interface.h"
 
 using namespace std;
 
@@ -639,11 +639,11 @@ Challenger::report_failure(const std::shared_ptr<HostChallengeSpec>& failed_chal
   TSDebug(BANJAX_PLUGIN_NAME, "XXX: ip_state: %lu", **ip_state);
 
   if (*ip_state >= failed_challenge->fail_tolerance_threshold) {
-    if (kafka_producer != nullptr) {
-      print::debug("calling kafka_producer->report_failure()");
-      kafka_producer->report_failure(failed_host, client_ip);
+    if (banjax != nullptr) {
+      print::debug("calling banjax->report_failure()");
+      banjax->report_failure(failed_host, client_ip);
     } else {
-      print::debug("kafka_producer is null!!!!!!!!!!");
+      print::debug("banjax is null!!!!!!!!!!");
     }
 
     TransactionParts ats_record_parts = transaction_parts;

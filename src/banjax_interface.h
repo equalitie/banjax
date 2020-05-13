@@ -16,4 +16,5 @@ class BanjaxInterface {
         virtual const std::string& get_host_name() = 0;
         virtual void kafka_message_consume(const json& message) = 0;
         virtual std::shared_ptr<Challenger> get_challenger() = 0;
+        virtual int report_failure(const std::string& site, const std::string& ip) = 0;
 };

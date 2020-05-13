@@ -28,6 +28,7 @@ class BanjaxFilter;
 using json = nlohmann::json;
 
 class KafkaConsumer;
+class KafkaProducer;
 
 class Banjax : public BanjaxInterface
 {
@@ -134,6 +135,7 @@ public:
   std::shared_ptr<KafkaProducer> get_producer() { return kafka_producer; }
   virtual const std::string& get_host_name() { return host_name; }
   virtual void kafka_message_consume(const json& message);
+  virtual int report_failure(const std::string& site, const std::string& ip);
 
   int report_status();
   int remove_expired_challenges();
