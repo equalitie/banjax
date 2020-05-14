@@ -351,18 +351,21 @@ Banjax::read_configuration()
   build_filters();
 
 
-  // XXX what should we do if there is no kafka_conf?
-  // * don't make new Kafka* instances (and delete if existing)?
-  //   - useful for testing purposes
-  // * try some default config?
-  if (kafka_consumer == nullptr) {
-    kafka_consumer = std::make_unique<KafkaConsumer>(kafka_conf, this);
+  if (!kafka_conf["brokers"]) {
+    print::debug("Did not find Kafka config");
+    kafka_consumer.reset();
+    kafka_producer.reset();
   } else {
-    kafka_consumer->reload_config(kafka_conf, this);
-  }
+    print::debug("Found Kafka config");
+    if (kafka_consumer == nullptr) {
+      kafka_consumer = std::make_unique<KafkaConsumer>(kafka_conf, this);
+    } else {
+      kafka_consumer->reload_config(kafka_conf, this);
+    }
 
-  // XXX FIXME making a unique_ptr *and* a shared_ptr to this thing...
-  kafka_producer = std::make_unique<KafkaProducer>(this, kafka_conf);
+    // XXX FIXME making a unique_ptr *and* a shared_ptr to this thing...
+    kafka_producer = std::make_unique<KafkaProducer>(this, kafka_conf);
+  }
 
 }
 
@@ -375,6 +378,10 @@ Banjax::process_config(const YAML::Node& cfg)
   static const  string sep = "/";
 
   int current_sequential_priority = 0;
+
+  // if a config_reload() happens and this section of the config goes away,
+  // we don't want to keep the old config around, so zero it out here.
+  kafka_conf = YAML::Node();
 
   auto is_filter = [](const std::string& s) {
     return std::find( all_filters_names.begin()
