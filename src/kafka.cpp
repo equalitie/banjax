@@ -1,6 +1,7 @@
 #include "kafka.h"
 #include <iostream>
 #include <librdkafka/rdkafkacpp.h>
+#include <boost/asio/ip/host_name.hpp>
 
 KafkaProducer::KafkaProducer(Banjax* banjax, YAML::Node &config)
   : banjax(banjax) {
@@ -64,11 +65,16 @@ int KafkaProducer::send_message(const json& message) {
 
 void
 KafkaConsumer::reload_config(YAML::Node& config, BanjaxInterface* banjax) {
-    TSMutexLock(stored_config_lock);
-    auto on_scope_exit = defer([&] { TSMutexUnlock(stored_config_lock); });
-    stored_config = config;
-    banjax = banjax;
-    config_valid = false;
+    {
+        print::debug("-!-! reload_config() before lock");
+        TSMutexLock(stored_config_lock);
+        auto on_scope_exit = defer([&] { TSMutexUnlock(stored_config_lock); });
+        print::debug("-!-! reload_config() after lock");
+        stored_config = config;
+        banjax = banjax;
+        config_valid = false;
+    }
+    print::debug("-!-! reload_config() after lock released");
 }
 
 
@@ -89,15 +95,20 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, BanjaxInterface* banjax)
             std::vector<std::string> topics;  // annoyingly a vector when we really just need one
             std::string errstr;
             {
+                print::debug("#@#@ Just before block");
                 TSMutexLock(stored_config_lock);
                 auto on_scope_exit = defer([&] { TSMutexUnlock(stored_config_lock); });
+                print::debug("#@#@ after lock");
                 if (stored_config.Type() != YAML::NodeType::Map) {
-                print::debug("KafkaConsumer::load_config requires a YAML::Map");
+                    print::debug("KafkaConsumer::load_config requires a YAML::Map");
                     throw;
                 }
+                print::debug("00-99 blah");
 
                 auto topic = stored_config["command_topic"].as<std::string>();
                 topics.push_back(topic);
+
+                print::debug("01-99 blah");
         
                 auto brokers = stored_config["brokers"].as<std::string>();
                 if (conf->set("metadata.broker.list", brokers, errstr) !=
@@ -106,14 +117,19 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, BanjaxInterface* banjax)
                     throw;
                 }
 
+                print::debug("02-99 blah");
+
                 // we want every banjax instance to see every message. this means every banjax instance
                 // needs its own group id. so i'm using the hostname.
-                if (conf->set("group.id", banjax->get_host_name(), errstr) != RdKafka::Conf::CONF_OK) {
+                if (conf->set("group.id", boost::asio::ip::host_name(), errstr) != RdKafka::Conf::CONF_OK) {
                     print::debug("KafkaConsumer: bad group.id config: ", errstr);
                     throw;
                 }
+                print::debug("03-99 blah");
                 config_valid = true;
+                print::debug("04-99 blah");
             }
+            print::debug("#@#@ after lock released");
           
             RdKafka::KafkaConsumer *consumer = RdKafka::KafkaConsumer::create(conf, errstr);
             if (!consumer) {

@@ -125,6 +125,7 @@ public:
         , std::unique_ptr<Socket> swabber_s = nullptr
         , std::unique_ptr<Socket> botsniffer_s = nullptr
         , std::unique_ptr<KafkaConsumer> kafka_consumer = nullptr);
+  ~Banjax();
 
   std::unique_ptr<Socket> release_swabber_socket();
   std::unique_ptr<Socket> release_botsniffer_socket();
@@ -143,8 +144,12 @@ public:
 private:
   std::string host_name;
 
+  int report_status_interval_seconds;
+  int remove_expired_challenges_interval_seconds;
+
   TSAction report_status_action;
   TSAction remove_expired_challenges_action;
+
 };
 
 #endif /*banjax.h*/

@@ -76,6 +76,7 @@ struct BanjaxPlugin {
 };
 
 std::shared_ptr<BanjaxPlugin> g_banjax_plugin;
+TSMutex scheduled_continuation_mutex;
 
 
 /**
@@ -366,27 +367,29 @@ Banjax::read_configuration()
     kafka_producer = std::make_unique<KafkaProducer>(this, kafka_conf);
   }
 
-  // if (report_status_action != nullptr) {
-  //   TSActionCancel(report_status_action);
-  // }
+  if (report_status_interval_seconds != 0) {
+    auto secs = report_status_interval_seconds;
+    report_status_action = TSContScheduleEvery(TSContCreate(report_status_g, scheduled_continuation_mutex), secs * 1000ll, TS_THREAD_POOL_TASK);
+    if (report_status_action != nullptr) {
+        print::debug("successfully scheduled report_status_action");
+    } else {
+        print::debug("UNsuccessfully scheduled report_status_action");
+    }
+  } else {
+    report_status_action = TSContScheduleEvery(TSContCreate(report_status_g, scheduled_continuation_mutex), 15ll * 1000ll, TS_THREAD_POOL_TASK);
+  }
 
-  // if (remove_expired_challenges_action != nullptr) {
-  //   TSActionCancel(remove_expired_challenges_action);
-  // }
-
-  // if (cfg["report_status_interval_seconds"]) {
-  //   auto secs = cfg["report_status_interval_seconds"].as<unsigned int>();
-  //   report_status_action = TSContScheduleEvery(TSContCreate(report_status_g, TSMutexCreate()), secs * 1000ll, TS_THREAD_POOL_TASK);
-  // } else {
-  //   report_status_action = TSContScheduleEvery(TSContCreate(report_status_g, TSMutexCreate()), 15ll * 1000ll, TS_THREAD_POOL_TASK);
-  // }
-
-  // if (cfg["expire_challenges_interval_seconds"]) {
-  //   auto secs = cfg["expire_challenges_interval_seconds"].as<unsigned int>();
-  //   remove_expired_challenges_action = TSContScheduleEvery(TSContCreate(remove_expired_challenges_g, TSMutexCreate()), secs * 1000ll, TS_THREAD_POOL_TASK);
-  // } else {
-  //   remove_expired_challenges_action = TSContScheduleEvery(TSContCreate(remove_expired_challenges_g, TSMutexCreate()), 16ll * 1000ll, TS_THREAD_POOL_TASK);
-  // }
+  if (remove_expired_challenges_interval_seconds != 0) {
+    auto secs = remove_expired_challenges_interval_seconds;
+    remove_expired_challenges_action = TSContScheduleEvery(TSContCreate(remove_expired_challenges_g, scheduled_continuation_mutex), secs * 1000ll, TS_THREAD_POOL_TASK);
+    if (remove_expired_challenges_action != nullptr) {
+        print::debug("successfully scheduled remove_expired_challenges_action");
+    } else {
+        print::debug("UNsuccessfully scheduled remove_expired_challenges_action");
+    }
+  } else {
+    remove_expired_challenges_action = TSContScheduleEvery(TSContCreate(remove_expired_challenges_g, scheduled_continuation_mutex), 16ll * 1000ll, TS_THREAD_POOL_TASK);
+  }
 
 }
 
@@ -403,6 +406,9 @@ Banjax::process_config(const YAML::Node& cfg)
   // if a config_reload() happens and this section of the config goes away,
   // we don't want to keep the old config around, so zero it out here.
   kafka_conf = YAML::Node();
+
+  report_status_interval_seconds = 0;
+  remove_expired_challenges_interval_seconds = 0;
 
   auto is_filter = [](const std::string& s) {
     return std::find( all_filters_names.begin()
@@ -455,6 +461,10 @@ Banjax::process_config(const YAML::Node& cfg)
         }
       } else if (node_name == "kafka") {
         kafka_conf = it->second;
+      } else if (node_name == "report_status_interval_seconds") {
+        report_status_interval_seconds = it->second.as<int>();
+      } else if (node_name == "remove_expired_challenges_interval_seconds") {
+        remove_expired_challenges_interval_seconds = it->second.as<int>();
       }
       else { //unknown node
         print::debug("Unknown config node ", node_name);
@@ -494,9 +504,25 @@ static void destroy_g_banjax_plugin() {
   g_banjax_plugin.reset();
 }
 
+Banjax::~Banjax() {
+  if (report_status_action != nullptr) {
+    print::debug("Cancelling old report_status_action");
+    TSActionCancel(report_status_action);
+  }
+  print::debug("After Cancelling old report_status_action");
+
+  if (remove_expired_challenges_action != nullptr) {
+    print::debug("Cancelling old remove_expired_challenges_action");
+    TSActionCancel(remove_expired_challenges_action);
+  }
+  print::debug("After Cancelling old remove_expired_challenges_action");
+
+}
+
 void
 TSPluginInit(int argc, const char *argv[])
 {
+  scheduled_continuation_mutex = TSMutexCreate();
   TSPluginRegistrationInfo info;
 
   info.plugin_name = (char*) BANJAX_PLUGIN_NAME;
