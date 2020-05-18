@@ -11,13 +11,13 @@ using json = nlohmann::json;
 
 class KafkaProducer {
 public:
-  KafkaProducer(Banjax* banjax, YAML::Node& config);
+  KafkaProducer(BanjaxInterface* banjax, YAML::Node& config);
   int send_message(const json& message);
 
 private:
   std::unique_ptr<RdKafka::Producer> rdk_producer;
   std::string report_topic;
-  Banjax* banjax; // XXX i'd rather it be a reference, but i can't reassign a reference...
+  BanjaxInterface* banjax;
 };
 
 
@@ -35,7 +35,7 @@ private:
 
   TSMutex stored_config_lock;
   YAML::Node stored_config;
-  BanjaxInterface* banjax; // XXX i'd rather it be a reference, but i can't reassign a reference...
+  BanjaxInterface* banjax;
   std::thread thread_handle;
 };
 

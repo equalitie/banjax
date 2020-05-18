@@ -3,7 +3,7 @@
 #include <librdkafka/rdkafkacpp.h>
 #include <boost/asio/ip/host_name.hpp>
 
-KafkaProducer::KafkaProducer(Banjax* banjax, YAML::Node &config)
+KafkaProducer::KafkaProducer(BanjaxInterface* banjax, YAML::Node &config)
   : banjax(banjax) {
   print::debug("KafkaProducer default constructor");
   if (config.Type() != YAML::NodeType::Map) {
