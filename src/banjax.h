@@ -131,7 +131,6 @@ public:
   std::unique_ptr<Socket> release_botsniffer_socket();
   std::unique_ptr<KafkaConsumer> release_kafka_consumer();
 
-  // XXX are these making cyclic references?
   virtual std::shared_ptr<Challenger> get_challenger() { return challenger; }
   std::shared_ptr<KafkaProducer> get_producer() { return kafka_producer; }
   virtual const std::string& get_host_name() { return host_name; }
