@@ -142,6 +142,9 @@ public:
 
 private:
   std::string host_name;
+
+  TSAction report_status_action;
+  TSAction remove_expired_challenges_action;
 };
 
 #endif /*banjax.h*/

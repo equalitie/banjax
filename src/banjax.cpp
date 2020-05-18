@@ -195,7 +195,7 @@ std::unique_ptr<KafkaConsumer> Banjax::release_kafka_consumer() {
 }
 
 int
-report_status(TSCont contp, TSEvent event, void *edata)
+report_status_g(TSCont contp, TSEvent event, void *edata)
 {
   if (!g_banjax_plugin) {
     return -1;
@@ -205,7 +205,7 @@ report_status(TSCont contp, TSEvent event, void *edata)
 }
 
 int
-remove_expired_challenges(TSCont contp, TSEvent event, void *edata)
+remove_expired_challenges_g(TSCont contp, TSEvent event, void *edata)
 {
   if (!g_banjax_plugin) {
     return -1;
@@ -363,9 +363,30 @@ Banjax::read_configuration()
       kafka_consumer->reload_config(kafka_conf, this);
     }
 
-    // XXX FIXME making a unique_ptr *and* a shared_ptr to this thing...
     kafka_producer = std::make_unique<KafkaProducer>(this, kafka_conf);
   }
+
+  // if (report_status_action != nullptr) {
+  //   TSActionCancel(report_status_action);
+  // }
+
+  // if (remove_expired_challenges_action != nullptr) {
+  //   TSActionCancel(remove_expired_challenges_action);
+  // }
+
+  // if (cfg["report_status_interval_seconds"]) {
+  //   auto secs = cfg["report_status_interval_seconds"].as<unsigned int>();
+  //   report_status_action = TSContScheduleEvery(TSContCreate(report_status_g, TSMutexCreate()), secs * 1000ll, TS_THREAD_POOL_TASK);
+  // } else {
+  //   report_status_action = TSContScheduleEvery(TSContCreate(report_status_g, TSMutexCreate()), 15ll * 1000ll, TS_THREAD_POOL_TASK);
+  // }
+
+  // if (cfg["expire_challenges_interval_seconds"]) {
+  //   auto secs = cfg["expire_challenges_interval_seconds"].as<unsigned int>();
+  //   remove_expired_challenges_action = TSContScheduleEvery(TSContCreate(remove_expired_challenges_g, TSMutexCreate()), secs * 1000ll, TS_THREAD_POOL_TASK);
+  // } else {
+  //   remove_expired_challenges_action = TSContScheduleEvery(TSContCreate(remove_expired_challenges_g, TSMutexCreate()), 16ll * 1000ll, TS_THREAD_POOL_TASK);
+  // }
 
 }
 
@@ -538,9 +559,4 @@ TSPluginInit(int argc, const char *argv[])
   TSCont management_contp = TSContCreate(handle_management, nullptr);
   TSMgmtUpdateRegister(management_contp, BANJAX_PLUGIN_NAME);
 
-  // send status report
-  // XXX config time
-  TSContScheduleEvery(TSContCreate(report_status, TSMutexCreate()), 15ll * 1000ll, TS_THREAD_POOL_TASK);
-
-  TSContScheduleEvery(TSContCreate(remove_expired_challenges, TSMutexCreate()), 16ll * 1000ll, TS_THREAD_POOL_TASK);
 }
