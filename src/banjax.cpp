@@ -19,6 +19,8 @@
 #include "banjax.h"
 #include "defer.h"
 #include "print.h"
+#include "kafka.h"
+#include <boost/asio/ip/host_name.hpp>
 
 using namespace std;
 
@@ -41,16 +43,40 @@ struct BanjaxPlugin {
 
     auto swab_s = current_state->release_swabber_socket();
     auto snif_s = current_state->release_botsniffer_socket();
+    auto kafka_consumer = current_state->release_kafka_consumer();
 
-    std::shared_ptr<Banjax> new_banjax(new Banjax(config_dir, move(swab_s), move(snif_s)));
+    std::shared_ptr<Banjax> new_banjax(new Banjax(config_dir, move(swab_s), move(snif_s), move(kafka_consumer)));
 
     // This happens atomically, so (in theory) we don't need to wrap in in mutex
     // in the handle_transaction_start hook.
     current_state = std::move(new_banjax);
   }
+
+  int report_status() {
+    if (!current_state) {
+        return -1;
+    }
+
+    TSMutexLock(reload_mutex);
+    auto on_exit = defer([&] { TSMutexUnlock(reload_mutex); });
+
+    return current_state->report_status();
+  }
+  
+  int remove_expired_challenges() {
+    if (!current_state) {
+        return -1;
+    }
+
+    TSMutexLock(reload_mutex);
+    auto on_exit = defer([&] { TSMutexUnlock(reload_mutex); });
+
+    return current_state->remove_expired_challenges();
+  }
 };
 
 std::shared_ptr<BanjaxPlugin> g_banjax_plugin;
+TSMutex scheduled_continuation_mutex;
 
 
 /**
@@ -81,7 +107,7 @@ Banjax::build_filters()
         regex_manager.reset(new RegexManager(cur_config, &regex_manager_ip_db, &swabber));
         cur_filter = regex_manager.get();
       } else if (cur_filter_name.second == CHALLENGER_FILTER_NAME){
-        challenger.reset(new Challenger(banjax_config_dir, cur_config, &challenger_ip_db, &swabber, &global_ip_white_list));
+        challenger.reset(new Challenger(banjax_config_dir, cur_config, &challenger_ip_db, &swabber, &global_ip_white_list, this));
         cur_filter = challenger.get();
       } else if (cur_filter_name.second == WHITE_LISTER_FILTER_NAME){
         white_lister.reset(new WhiteLister(cur_config, global_ip_white_list));
@@ -165,6 +191,72 @@ std::unique_ptr<Socket> Banjax::release_botsniffer_socket() {
   return bot_sniffer->release_socket();
 }
 
+std::unique_ptr<KafkaConsumer> Banjax::release_kafka_consumer() {
+    return std::move(kafka_consumer);
+}
+
+int
+report_status_g(TSCont contp, TSEvent event, void *edata)
+{
+  if (!g_banjax_plugin) {
+    return -1;
+  }
+
+  return g_banjax_plugin->report_status();
+}
+
+int
+remove_expired_challenges_g(TSCont contp, TSEvent event, void *edata)
+{
+  if (!g_banjax_plugin) {
+    return -1;
+  }
+
+  return g_banjax_plugin->remove_expired_challenges();
+}
+
+int
+Banjax::report_status()
+{
+  if (!kafka_producer) {
+      return -1;
+  }
+
+  json message;
+  message["id"] = host_name;
+  message["name"] = "status";
+
+  print::debug("reporting status");
+  return kafka_producer->send_message(message);
+}
+
+int
+Banjax::report_failure(const std::string& site, const std::string& ip)
+{
+  if (!kafka_producer) {
+      return -1;
+  }
+
+  json message;
+  message["id"] = host_name;
+  message["name"] = "ip_failed_challenge";
+  message["value_ip"] = ip;
+  message["value_site"] = site;
+
+  print::debug("reporting challenge failure for site: ", site, " and ip: ", ip);
+  return kafka_producer->send_message(message);
+}
+
+int
+Banjax::remove_expired_challenges()
+{
+  if (!challenger) {
+      return -1;
+  }
+
+  return challenger->remove_expired_challenges();
+}
+
 /**
    Constructor
 
@@ -172,12 +264,14 @@ std::unique_ptr<Socket> Banjax::release_botsniffer_socket() {
 */
 Banjax::Banjax(const string& banjax_config_dir,
     std::unique_ptr<Socket> swabber_socket,
-    std::unique_ptr<Socket> bot_sniffer_socket)
+    std::unique_ptr<Socket> bot_sniffer_socket,
+    std::unique_ptr<KafkaConsumer> kafka_consumer)
   : all_filters_requested_part(0),
     all_filters_response_part(0),
     banjax_config_dir(banjax_config_dir),
     swabber(&swabber_ip_db, move(swabber_socket)),
-    botsniffer_socket_reuse(move(bot_sniffer_socket))
+    botsniffer_socket_reuse(move(bot_sniffer_socket)),
+    kafka_consumer(move(kafka_consumer))
 {
   read_configuration();
 }
@@ -185,6 +279,8 @@ Banjax::Banjax(const string& banjax_config_dir,
 void
 Banjax::read_configuration()
 {
+  host_name = boost::asio::ip::host_name();
+
   // Read the file. If there is an error, report it and exit.
   static const  string sep = "/";
 
@@ -254,6 +350,47 @@ Banjax::read_configuration()
 
   //now we can make the filters
   build_filters();
+
+
+  if (!kafka_conf["brokers"]) {
+    print::debug("Did not find Kafka config");
+    kafka_consumer.reset();
+    kafka_producer.reset();
+  } else {
+    print::debug("Found Kafka config");
+    if (kafka_consumer == nullptr) {
+      kafka_consumer = std::make_unique<KafkaConsumer>(kafka_conf, this);
+    } else {
+      kafka_consumer->reload_config(kafka_conf, this);
+    }
+
+    kafka_producer = std::make_unique<KafkaProducer>(this, kafka_conf);
+  }
+
+  if (report_status_interval_seconds != 0) {
+    auto secs = report_status_interval_seconds;
+    report_status_action = TSContScheduleEvery(TSContCreate(report_status_g, scheduled_continuation_mutex), secs * 1000ll, TS_THREAD_POOL_TASK);
+    if (report_status_action != nullptr) {
+        print::debug("successfully scheduled report_status_action");
+    } else {
+        print::debug("UNsuccessfully scheduled report_status_action");
+    }
+  } else {
+    report_status_action = TSContScheduleEvery(TSContCreate(report_status_g, scheduled_continuation_mutex), 15ll * 1000ll, TS_THREAD_POOL_TASK);
+  }
+
+  if (remove_expired_challenges_interval_seconds != 0) {
+    auto secs = remove_expired_challenges_interval_seconds;
+    remove_expired_challenges_action = TSContScheduleEvery(TSContCreate(remove_expired_challenges_g, scheduled_continuation_mutex), secs * 1000ll, TS_THREAD_POOL_TASK);
+    if (remove_expired_challenges_action != nullptr) {
+        print::debug("successfully scheduled remove_expired_challenges_action");
+    } else {
+        print::debug("UNsuccessfully scheduled remove_expired_challenges_action");
+    }
+  } else {
+    remove_expired_challenges_action = TSContScheduleEvery(TSContCreate(remove_expired_challenges_g, scheduled_continuation_mutex), 16ll * 1000ll, TS_THREAD_POOL_TASK);
+  }
+
 }
 
 
@@ -265,6 +402,13 @@ Banjax::process_config(const YAML::Node& cfg)
   static const  string sep = "/";
 
   int current_sequential_priority = 0;
+
+  // if a config_reload() happens and this section of the config goes away,
+  // we don't want to keep the old config around, so zero it out here.
+  kafka_conf = YAML::Node();
+
+  report_status_interval_seconds = 0;
+  remove_expired_challenges_interval_seconds = 0;
 
   auto is_filter = [](const std::string& s) {
     return std::find( all_filters_names.begin()
@@ -315,6 +459,12 @@ Banjax::process_config(const YAML::Node& cfg)
             abort_traffic_server();
           }
         }
+      } else if (node_name == "kafka") {
+        kafka_conf = it->second;
+      } else if (node_name == "report_status_interval_seconds") {
+        report_status_interval_seconds = it->second.as<int>();
+      } else if (node_name == "remove_expired_challenges_interval_seconds") {
+        remove_expired_challenges_interval_seconds = it->second.as<int>();
       }
       else { //unknown node
         print::debug("Unknown config node ", node_name);
@@ -328,13 +478,51 @@ Banjax::process_config(const YAML::Node& cfg)
   }
 }
 
+void
+Banjax::kafka_message_consume(const json& message) {
+  auto command_name_it = message.find("name");
+  if (command_name_it == message.end() || (*command_name_it != "challenge_host")) {
+    print::debug("kafka command not of 'challenge_host' type");
+    return;
+  }
+
+  auto value_it = message.find("value");
+  if (value_it == message.end()) {
+    print::debug("kafka command has no 'value'");
+    return;
+  }
+
+  std::string website = *value_it;
+  if (!challenger) {
+    print::debug("null challenger at time of kafka_message_consume()");
+    return;
+  }
+  challenger->load_single_dynamic_config(website);
+}
+
 static void destroy_g_banjax_plugin() {
   g_banjax_plugin.reset();
+}
+
+Banjax::~Banjax() {
+  if (report_status_action != nullptr) {
+    print::debug("Cancelling old report_status_action");
+    TSActionCancel(report_status_action);
+  }
+  print::debug("After Cancelling old report_status_action");
+
+  if (remove_expired_challenges_action != nullptr) {
+    print::debug("Cancelling old remove_expired_challenges_action");
+    TSActionCancel(remove_expired_challenges_action);
+  }
+  print::debug("After Cancelling old remove_expired_challenges_action");
+
 }
 
 void
 TSPluginInit(int argc, const char *argv[])
 {
+  scheduled_continuation_mutex = TSMutexCreate();
   TSPluginRegistrationInfo info;
 
   info.plugin_name = (char*) BANJAX_PLUGIN_NAME;
@@ -396,4 +584,5 @@ TSPluginInit(int argc, const char *argv[])
   // Handle reload by traffic_line -x
   TSCont management_contp = TSContCreate(handle_management, nullptr);
   TSMgmtUpdateRegister(management_contp, BANJAX_PLUGIN_NAME);
+
 }

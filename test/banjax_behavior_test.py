@@ -13,13 +13,15 @@ import sys #for argv
 import time
 
 import unittest
-from Queue import Queue
+from queue import Queue
 from threading import Thread
 
-from pdb import set_trace as tr
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-import SocketServer
+import pexpect
+import asyncio
+import random
+import string
 
 class S(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -35,7 +37,7 @@ class S(BaseHTTPRequestHandler):
         self.send_response(self.server.response_code)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
-        self.wfile.write(self.server.body)
+        self.wfile.write(self.server.body.encode())
 
 class Server(HTTPServer):
     def __init__(self, body = "not set"):
@@ -125,6 +127,39 @@ class Test(unittest.TestCase):
         "        validity_period: 120\n"
         "        no_of_fails_to_ban: 10\n");
 
+    STUB_CHALLENGE_CONFIG = (
+       "priority:\n"
+       "  white_lister: 1\n"
+       "  challenger: 2\n"
+        "\n"
+       "white_lister:\n"
+       "    white_listed_ips:\n"
+       "      - 1.1.1.1\n"
+        "\n"
+       "challenger:\n"
+       "    difficulty: 0\n"
+       "    key: 'allwearesayingisgivewarachance'\n"
+       "    challenges: []\n"
+        "\n")
+
+    KAFKA_CONFIG = (
+       "kafka:\n"
+       "  brokers: 'localhost:9092'\n"
+       "  failed_challenge_topic: 'failed_challenge_ips'\n"
+       "  challenge_host_topic: 'hosts_to_challenge'\n"
+       "  status_topic: 'banjax_statuses'\n"
+       "  dynamic_challenger_config:\n"
+       "    name: 'from-kafka-challenge'\n"
+       "    challenge_type: 'sha_inverse'\n"
+       "    challenge: 'solver.html'\n"
+       "    magic_word:\n"
+       "      - ['regexp', '.*']\n"
+       "    validity_period: 360000  # how long a cookie stays valid for\n"
+       "    white_listed_ips:        # XXX i needed this for some reason\n"
+       "      - '0.0.0.0'\n"
+       "    no_of_fails_to_ban: 2    # XXX think about what this should be...\n");
+
+
     def print_debug(self):
         opts = { "standard": self.ats_bin_dir() +  "/../var/log/trafficserver/traffic.out"
                , "apache":   self.ats_prefix_dir + "/logs/traffic.out" }
@@ -133,38 +168,38 @@ class Test(unittest.TestCase):
 
     # Auxilary functions
     def read_page(self, page_filename):
-        page_file  = open(self.banjax_test_dir() + "/"+ page_filename, 'rb')
-        return page_file.read()
+        with open(self.banjax_test_dir() + "/"+ page_filename, 'rb') as page_file:
+            return page_file.read().decode()
 
     def read_solver_body(self):
-        solver_body = open(self.banjax_module_dir() + "/solver.html")
-        self.SOLVER_PAGE_PREFIX = solver_body.read(self.SOLVER_PAGE_PREFIX_LEN)
+        with open(self.banjax_module_dir() + "/solver.html") as solver_body:
+            self.SOLVER_PAGE_PREFIX = solver_body.read(self.SOLVER_PAGE_PREFIX_LEN)
 
     def restart_traffic_server(self):
-        traffic_proc = subprocess.Popen([self.ats_bin_dir() + "/trafficserver", "restart"],
+        with subprocess.Popen([self.ats_bin_dir() + "/trafficserver", "restart"],
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-        traffic_proc.wait()
-        time.sleep(Test.ATS_INIT_DELAY)
-        self.assertEqual(traffic_proc.stderr.read(), "")
-        return traffic_proc.stdout.read()
+                         stderr=subprocess.PIPE) as traffic_proc:
+            traffic_proc.wait()
+            time.sleep(Test.ATS_INIT_DELAY)
+            self.assertEqual(traffic_proc.stderr.read(), b"")
+            return traffic_proc.stdout.read()
 
     def stop_traffic_server(self):
-        traffic_proc = subprocess.Popen([self.ats_bin_dir() + "/trafficserver", "stop"],
+        with subprocess.Popen([self.ats_bin_dir() + "/trafficserver", "stop"],
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-        traffic_proc.wait()
+                         stderr=subprocess.PIPE) as traffic_proc:
+            traffic_proc.wait()
 
     def clear_cache(self):
         self.stop_traffic_server();
-        proc = subprocess.Popen([self.ats_bin_dir() + "/traffic_server", "-K"],
+        with subprocess.Popen([self.ats_bin_dir() + "/traffic_server", "-K"],
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-        proc.kill()
-        proc.wait()
+                         stderr=subprocess.PIPE) as proc:
+            proc.kill()
+            proc.wait()
 
     def replace_config2(self, config_string):
         self.clear_cache()
@@ -177,12 +212,12 @@ class Test(unittest.TestCase):
 
     def do_curl(self, url, cookie = None):
         curl_cmd = ["curl", url] + (cookie and ["--cookie", cookie] or [])
-        curl_proc = subprocess.Popen(curl_cmd,
+        with subprocess.Popen(curl_cmd,
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
+                         stderr=subprocess.PIPE) as curl_proc:
 
-        return curl_proc.stdout.read()
+            return curl_proc.stdout.read().decode()
 
     def set_banjax_config(self, name, value):
         # When using TS 6.0
@@ -191,30 +226,14 @@ class Test(unittest.TestCase):
         subprocess.call([self.ats_bin_dir() + "/traffic_ctl", "config", "set", name, value])
 
     def setUp(self):
-        print "setUp: ", self._testMethodName
+        print("setUp: ", self._testMethodName)
         self.read_solver_body()
         self.server = Server()
 
     def tearDown(self):
         self.stop_traffic_server()
         self.server.stop()
-        print "tearDown: ", self._testMethodName
-
-    def ntest_request_banned_url(self):
-        self.replace_config("banned_url_test.conf")
-        result = self.do_curl(self.Test.BANNED_URL)
-        self.assertEqual(result,self.BANNED_MESSAGE);
-
-    def ntest_unbanned_challenged_url(self):
-        self.replace_config("challenged_url_test.conf")
-        result = self.do_curl(ALLOWED_URL)
-        self.assertEqual(result[0:self.SOLVER_PAGE_PREFIX_LEN],self.SOLVER_PAGE_PREFIX);
-
-    def ntest_unchallenged_white_listed_ip(self):
-        tr()
-        self.replace_config("white_listed.conf")
-        result = self.do_curl(Test.BANNED_URL)
-        self.assertEqual(result,self.ALLOWED_PAGE);
+        print("tearDown: ", self._testMethodName)
 
     def test_auth_challenged_success(self):
         """
@@ -222,7 +241,7 @@ class Test(unittest.TestCase):
         after entring the password it checks that ATS serves directly
         from origin everytime
         """
-        self.replace_config2(self.AUTH_CHALLENGE_CONFIG)
+        self.replace_config2(self.AUTH_CHALLENGE_CONFIG + self.KAFKA_CONFIG)
 
         # Tell TS to start caching.
         self.set_banjax_config("proxy.config.http.cache.http", "1")
@@ -264,7 +283,7 @@ class Test(unittest.TestCase):
         host       = Test.ATS_HOST
         bad_cookie = Test.BAD_AUTH_COOKIE
 
-        self.replace_config2(self.AUTH_CHALLENGE_CONFIG)
+        self.replace_config2(self.AUTH_CHALLENGE_CONFIG + self.KAFKA_CONFIG)
 
         #request to guarantee cache
         self.server.body = "body0"
@@ -282,7 +301,7 @@ class Test(unittest.TestCase):
         not invoke the magic word, hence ATS should serve the page
         through cache constantly
         """
-        self.replace_config2(self.AUTH_CHALLENGE_CONFIG)
+        self.replace_config2(self.AUTH_CHALLENGE_CONFIG + self.KAFKA_CONFIG)
 
         self.server.body = "page1"
         result = self.do_curl(Test.ATS_HOST + "/" + Test.CACHED_PAGE)
@@ -298,7 +317,7 @@ class Test(unittest.TestCase):
         hanged for ~one minute. This was unacceptable as users thought there
         was actually a problem with the traffic server. So it was fixed.
         """
-        self.replace_config2(self.AUTH_CHALLENGE_CONFIG)
+        self.replace_config2(self.AUTH_CHALLENGE_CONFIG + self.KAFKA_CONFIG)
 
         # This is a non standard HTTP message VMon was apparently seening
         # when creating the issue https://redmine.equalit.ie/issues/2089
@@ -329,7 +348,7 @@ class Test(unittest.TestCase):
 
         config += self.AUTH_CHALLENGE_CONFIG
 
-        self.replace_config2(config)
+        self.replace_config2(config + self.KAFKA_CONFIG)
 
         # Tell TS to start caching.
         self.set_banjax_config("proxy.config.http.cache.http", "1")
@@ -376,7 +395,7 @@ class Test(unittest.TestCase):
 
         config += self.AUTH_CHALLENGE_CONFIG
 
-        self.replace_config2(config)
+        self.replace_config2(config + self.KAFKA_CONFIG)
 
         # Tell TS to start caching.
         self.set_banjax_config("proxy.config.http.cache.http", "1")
@@ -407,7 +426,7 @@ class Test(unittest.TestCase):
             "        magic_word: '"+Test.MAGIC_WORD+"'\n"
             "        validity_period: 120\n");
 
-        self.replace_config2(config)
+        self.replace_config2(config + self.KAFKA_CONFIG)
 
         # Tell TS to start caching.
         self.set_banjax_config("proxy.config.http.cache.http", "1")
@@ -449,7 +468,7 @@ class Test(unittest.TestCase):
             "        magic_word: '"+Test.MAGIC_WORD+"'\n"
             "        validity_period: 120\n");
 
-        self.replace_config2(config)
+        self.replace_config2(config + self.KAFKA_CONFIG)
 
         # Tell TS to start caching.
         self.set_banjax_config("proxy.config.http.cache.http", "1")
@@ -493,7 +512,7 @@ class Test(unittest.TestCase):
             "        magic_word: '"+Test.MAGIC_WORD+"'\n"
             "        validity_period: 120\n");
 
-        self.replace_config2(config)
+        self.replace_config2(config + self.KAFKA_CONFIG)
 
         # Tell TS to disable caching
         self.set_banjax_config("proxy.config.http.cache.http", "0")
@@ -529,7 +548,7 @@ class Test(unittest.TestCase):
             "        magic_word: '"+Test.MAGIC_WORD+"'\n"
             "        validity_period: 120\n");
 
-        self.replace_config2(config)
+        self.replace_config2(config + self.KAFKA_CONFIG)
 
         # Tell TS to disable caching
         self.set_banjax_config("proxy.config.http.cache.http", "0")
@@ -562,7 +581,7 @@ class Test(unittest.TestCase):
             "          - ['regexp', 'wp-login2.php']\n"
             "        validity_period: 120\n");
 
-        self.replace_config2(config)
+        self.replace_config2(config + self.KAFKA_CONFIG)
 
         # Tell TS to disable caching
         self.set_banjax_config("proxy.config.http.cache.http", "0")
@@ -610,7 +629,7 @@ class Test(unittest.TestCase):
             "          - exception\n"
             "        validity_period: 120\n");
 
-        self.replace_config2(config)
+        self.replace_config2(config + self.KAFKA_CONFIG)
 
         # Tell TS to disable caching
         self.set_banjax_config("proxy.config.http.cache.http", "0")
@@ -633,6 +652,124 @@ class Test(unittest.TestCase):
         expect_secret('protected')
         expect_public('protected/exception')
         expect_secret('protected?foo=exception')
+
+    @unittest.skip("every single line of this test has been nondeterministically broken in multiple ways several times")
+    def test_kafka_stuff(self):
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(async_main(self))
+
+
+#################
+# Kafka Stuff
+# i thought using async/await with pexpect would make the itegration with the kafka
+# producer + consuemr scripts nicer to work with.
+#################
+
+
+def random_string(length):
+    return ''.join(random.choice(string.ascii_lowercase) for i in range(length))
+
+
+all_children = []
+
+async def wait_for(child, pattern):
+    i = await child.expect(
+        [
+            pattern,
+            pexpect.TIMEOUT,
+            pexpect.EOF
+        ],
+        timeout=15,
+        async_=True
+    )
+    if i is not 0:
+        print("command %s did not see pattern %s before timeout" % (' '.join(child.args), pattern))
+        return False
+    print("command %s DID see pattern %s before timeout" % (' '.join(child.args), pattern))
+    return True
+
+def start(command):
+    print("command %s" % command)
+    child = pexpect.spawn(command, maxread=1)
+    all_children.append(child)
+    return child
+
+async def async_main(self):
+    kafka_dir = "./test/kafka_2.12-2.5.0/"
+    topic = "hosts_to_challenge"
+    test_message = random_string(10)
+    self.replace_config2(self.STUB_CHALLENGE_CONFIG + self.KAFKA_CONFIG)
+    try:
+
+        #zookeeper_p = child1 = start("{kafka_dir}bin/zookeeper-server-start.sh {kafka_dir}config/zookeeper.properties".format(kafka_dir=kafka_dir))
+        #assert await wait_for(zookeeper_p, r'.*binding to port.*')
+
+        kafka_p = start("{kafka_dir}bin/kafka-server-start.sh {kafka_dir}config/server.properties".format(kafka_dir=kafka_dir))
+        assert await wait_for(kafka_p, r'.*started \(kafka.server.KafkaServer.*')
+        # await asyncio.sleep(10)  # XXX omg
+
+        # XXX this topic-creating script hangs and doesn't exit sometimes. so don't wait for it.
+        create_topic_p = start("{kafka_dir}bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic {topic}".format(kafka_dir=kafka_dir, topic=topic))
+        # await create_topic_p.expect(pexpect.EOF, async_=True)
+        print("after create")
+
+        create_topic_p = start("{kafka_dir}bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic banjax_statuses".format(kafka_dir=kafka_dir))
+        # await create_topic_p.expect(pexpect.EOF, async_=True)
+        print("after banjax statuses create")
+
+        create_topic_p = start("{kafka_dir}bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic failed_challenge_ips".format(kafka_dir=kafka_dir))
+        # await create_topic_p.expect(pexpect.EOF, async_=True)
+        print("after failed challenge ips")
+
+        consumer_p = start("{kafka_dir}bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic {topic} --from-beginning".format(kafka_dir=kafka_dir, topic=topic))
+        print("after consumer")
+
+        producer_p = start("{kafka_dir}bin/kafka-console-producer.sh --broker-list localhost:9092 --topic {topic}".format(kafka_dir=kafka_dir, topic=topic))
+        print("after producer")
+
+        await asyncio.sleep(10)  # XXX omg
+        producer_p.sendline(test_message)
+        producer_p.sendline(test_message)
+        assert await wait_for(consumer_p, test_message)
+        print("got test message")
+
+        # assert no challenger
+        self.server.body = "some-string1"
+        result = self.do_curl(Test.ATS_HOST + "/some-route")
+        self.assertIn("some-string1", result);
+
+        # send "turn challenger on" message
+        # assert yes challenger
+        # XXX FML kafka is slow and this can take tens of seconds?!?
+        # really should be waiting for the log output from traffic.out
+        challenge_msg = '{"name": "challenge_host", "value": "127.0.0.1:8080"}'
+        producer_p.sendline(challenge_msg)
+        assert await wait_for(consumer_p, challenge_msg)
+        print("saw message")
+
+        #assert await wait_for(consumer_p, Test.ATS_HOST)
+        await asyncio.sleep(10)
+        result = self.do_curl(Test.ATS_HOST + "/some-route")
+        self.assertIn("Please turn on JavaScript and reload the page", result)
+
+        result = self.do_curl(Test.ATS_HOST + "/some-route")
+        self.assertIn("you are banned", result)
+
+
+        # wait for timeout
+        # assert no challenger
+        await asyncio.sleep(60)
+        result = self.do_curl(Test.ATS_HOST + "/some-route")
+        self.assertEqual(result, "some-string1");
+
+
+    finally:
+        for child in all_children:
+            child.close()
+
+#################
+# End Kafka Stuff
+#################
 
 
 if __name__ == '__main__':

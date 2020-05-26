@@ -7,6 +7,7 @@
 *~
 .DS_Store
 .*.swp
+.*.swo
 
 #automake stuff
 depcomp
@@ -39,6 +40,7 @@ Makefile.in
 /config-aux/install-sh
 /config-aux/missing
 /config-aux/compile
+build/*
 
 #libtools
 .libs
