@@ -3,6 +3,7 @@
 #include <openssl/hmac.h>
 #include <string.h>
 #include <string>
+#include <stdexcept>
 
 #include "cookiehash.h"
 #include "base64.h"
@@ -66,6 +67,7 @@ int GenerateCookie(uchar *captcha,uchar *secret,time_t valid_till_timestamp,ucha
 //
 // output
 // the function returns an integer
+// -4 bad base64
 // -3 Length mismatch
 // -1 hash mismatch
 // -2 expired
@@ -76,7 +78,12 @@ int ValidateCookie(uchar *captcha,uchar *secret,time_t current_timestamp,uchar *
   char hash[HASH_LENGTH];
   if (strlen((char*)cookiestring)!=COOKIE_B64_LENGTH)
     return -3;
-  std::string cookiedata=Base64::Decode((const char *)cookiestring,(const char *)(cookiestring+strlen((char *) cookiestring)));
+  std::string cookiedata;
+  try {
+    cookiedata=Base64::Decode((const char *)cookiestring,(const char *)(cookiestring+strlen((char *) cookiestring)));
+  } catch (std::invalid_argument) {
+    return -4;
+  }
   memcpy(cookie,cookiedata.c_str(),COOKIE_LENGTH);
   time_t *valid_until_timestamp=(time_t *)(cookie+HASH_LENGTH);
   GenerateCookieHash(captcha,secret,*valid_until_timestamp,remoteaddress,(uchar*)hash);
