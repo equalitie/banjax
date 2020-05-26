@@ -265,9 +265,13 @@ bool Challenger::check_auth_validity(const char* cookiestr, const std::string pa
 
   SHA256_Final(hash, &sha256);
 
-  std::string cookiedata
-    = Base64::Decode(cookiestr + COOKIE_B64_LENGTH,
-                     cookiestr + cookie_len);
+  std::string cookiedata;
+  try {
+    cookiedata = Base64::Decode(cookiestr + COOKIE_B64_LENGTH,
+                       cookiestr + cookie_len);
+  } catch (std::invalid_argument) {
+      return false;
+  }
 
   // Return true if the hashes equal
   return memcmp(cookiedata.c_str(), hash, SHA256_DIGEST_LENGTH) == 0;
