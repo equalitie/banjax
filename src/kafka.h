@@ -5,7 +5,7 @@
 #include <thread>
 #include "banjax.h"
 #include "banjax_interface.h"
-#include <nlohmann/json.hpp>
+#include <json.hpp>
 using json = nlohmann::json;
 
 

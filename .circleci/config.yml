@@ -124,9 +124,6 @@ jobs:
         cd "$BANJAX_DIR"
         mkdir build && cd build
         cmake ../ -DCMAKE_CXX_FLAGS="-I$TSPATH/include"
-        mkdir /usr/local/include/nlohmann  # XXX terrible
-        make json
-        cp -r json-prefix/include/nlohmann/* /usr/local/include/nlohmann/
         make -j4
 
     - run: |

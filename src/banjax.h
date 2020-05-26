@@ -24,7 +24,7 @@ class BanjaxFilter;
 #include "regex_manager.h"
 #include "challenger.h"
 #include "socket.h"
-#include <nlohmann/json.hpp>
+#include <json.hpp>
 using json = nlohmann::json;
 
 class KafkaConsumer;

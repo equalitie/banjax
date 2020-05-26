@@ -12,14 +12,6 @@ externalproject_add(yaml
     BUILD_COMMAND $(MAKE) yaml-cpp
     PREFIX "yaml")
 
-ExternalProject_Add(json
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG "v3.7.1"
-    INSTALL_DIR ${PROJECT_BINARY_DIR}
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DBUILD_TESTING=0 -DJSON_MultipleHeaders=ON
-    UPDATE_COMMAND ""
-    )
-
 set(YAML_DIR "${CMAKE_BINARY_DIR}/yaml/src")
 
 option(WITH_ASAN "Build with Address sanitizer" OFF)
@@ -74,9 +66,6 @@ set_target_properties(banjax_module PROPERTIES PREFIX "")
 
 add_dependencies(banjax_static yaml)
 add_dependencies(banjax_module yaml)
-
-add_dependencies(banjax_static json)
-add_dependencies(banjax_module json)
 
 if (WITH_ASAN)
     # NOTE1: https://stackoverflow.com/a/50163972
