@@ -74,7 +74,7 @@ jobs:
             libconfig++-dev \
             wget \
             openjdk-8-jre \
-            nlohmann-json-dev
+            nlohmann-json3-dev
         apt-get install -qy -t stretch-backports librdkafka++1 librdkafka-dev
 
 

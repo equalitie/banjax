@@ -1,6 +1,6 @@
 #pragma once
 #include "challenger.h"
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 /* XXX TODO FIXME
