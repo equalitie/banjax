@@ -352,7 +352,7 @@ Banjax::read_configuration()
   build_filters();
 
 
-  if (!kafka_conf["brokers"]) {
+  if (!kafka_conf["metadata.broker.list"]) {
     print::debug("Did not find Kafka config");
     kafka_consumer.reset();
     kafka_producer.reset();

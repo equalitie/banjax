@@ -3,6 +3,26 @@
 #include <librdkafka/rdkafkacpp.h>
 #include <boost/asio/ip/host_name.hpp>
 
+// XXX require the unused fields to be present but blank?
+void set_single_config_field(RdKafka::Conf& rd_conf, YAML::Node& yaml_conf, std::string field) {
+  if (!yaml_conf[field]) {
+      print::debug("KafkaProducer: no config for ", field);
+      throw;
+  }
+
+  if (yaml_conf[field].IsNull()) {
+      return;
+  }
+
+  auto value = yaml_conf[field].as<std::string>();
+  std::string errstr;
+  if (rd_conf.set(field, value, errstr) !=
+      RdKafka::Conf::CONF_OK) {
+      print::debug("KafkaProducer: bad config for ", field, value, errstr);
+    throw;
+  }
+}
+
 KafkaProducer::KafkaProducer(BanjaxInterface* banjax, YAML::Node &config)
   : banjax(banjax) {
   print::debug("KafkaProducer default constructor");
@@ -13,19 +33,27 @@ KafkaProducer::KafkaProducer(BanjaxInterface* banjax, YAML::Node &config)
 
   auto conf = RdKafka::Conf::create(RdKafka::Conf::CONF_GLOBAL);
 
-  auto brokers = config["brokers"].as<std::string>();
-  std::string errstr;
-  if (conf->set("metadata.broker.list", brokers, errstr) !=
-      RdKafka::Conf::CONF_OK) {
-      print::debug("KafkaProducer: bad 'brokers' config: ", errstr);
-    throw;
-  }
+  // auto brokers = config["metadata.broker.list"].as<std::string>();
+  // std::string errstr;
+  // if (conf->set("metadata.broker.list", brokers, errstr) !=
+  //     RdKafka::Conf::CONF_OK) {
+  //     print::debug("KafkaProducer: bad 'brokers' config: ", errstr);
+  //   throw;
+  // }
+
+  set_single_config_field(*conf, config, "metadata.broker.list");
+  set_single_config_field(*conf, config, "security.protocol");
+  set_single_config_field(*conf, config, "ssl.ca.location");
+  set_single_config_field(*conf, config, "ssl.certificate.location");
+  set_single_config_field(*conf, config, "ssl.key.location");
+  set_single_config_field(*conf, config, "ssl.key.password");
 
   report_topic = config["report_topic"].as<std::string>();
 
+  std::string errstr;
   rdk_producer.reset(RdKafka::Producer::create(conf, errstr));
   if (!rdk_producer) {
-      print::debug("KafkaProducer: failed to create Producer (for failed challenges)");
+      print::debug("KafkaProducer: failed to create Producer (for failed challenges): ", errstr);
     throw;
   }
 
@@ -110,12 +138,12 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, BanjaxInterface* banjax)
 
                 print::debug("01-99 blah");
         
-                auto brokers = stored_config["brokers"].as<std::string>();
-                if (conf->set("metadata.broker.list", brokers, errstr) !=
-                    RdKafka::Conf::CONF_OK) {
-                    print::debug("KafkaConsumer: bad 'brokers' config: ", errstr);
-                    throw;
-                }
+                set_single_config_field(*conf, stored_config, "metadata.broker.list");
+                set_single_config_field(*conf, stored_config, "security.protocol");
+                set_single_config_field(*conf, stored_config, "ssl.ca.location");
+                set_single_config_field(*conf, stored_config, "ssl.certificate.location");
+                set_single_config_field(*conf, stored_config, "ssl.key.location");
+                set_single_config_field(*conf, stored_config, "ssl.key.password");
 
                 print::debug("02-99 blah");
 
