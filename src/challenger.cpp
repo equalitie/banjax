@@ -111,7 +111,6 @@ Challenger::remove_expired_challenges() {
   for (auto it = host_to_challenge_dynamic.begin(); it != host_to_challenge_dynamic.end();) {
       // XXX is this really the best way to remove from a map? std::remove_if?
       // XXX move the 60 seconds thing into a config
-      print::debug("host: ", it->first, " born: ", it->second->time_added);
       if (current_timestamp - it->second->time_added > 60) {
           it = host_to_challenge_dynamic.erase(it);
       } else {
@@ -742,16 +741,10 @@ Challenger::parse_single_challenge(const YAML::Node& ch) {
     auto& storage = host_challenge_spec->magic_words;
 
     if (mw.IsSequence()) {
-      TSDebug(BANJAX_PLUGIN_NAME, "--- MW is sequence");
       for (auto& entry : mw) {
-        TSDebug(BANJAX_PLUGIN_NAME, "--- top of for loop");
         if (entry.IsSequence()) {
-          TSDebug(BANJAX_PLUGIN_NAME, "--- entry is sequence");
           auto type = entry[0].as<string>();
           auto word = entry[1].as<string>();
-          TSDebug(BANJAX_PLUGIN_NAME, "--- type: %s", type.c_str());
-          TSDebug(BANJAX_PLUGIN_NAME, "--- word: %s", word.c_str());
-
           if (type == "regexp") {
             storage.insert(MagicWord::make_regexp(word));
           }
@@ -791,4 +784,10 @@ Challenger::parse_single_challenge(const YAML::Node& ch) {
     }
   }
   return host_challenge_spec;
+}
+
+size_t Challenger::dynamic_challenges_size() {
+    TSMutexLock(host_to_challenge_dynamic_mutex);
+    auto on_scope_exit = defer([&] { TSMutexUnlock(host_to_challenge_dynamic_mutex); });
+    return host_to_challenge_dynamic.size();
 }

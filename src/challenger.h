@@ -308,6 +308,7 @@ public:
   void on_http_close(const TransactionParts& transaction_parts) override {}
   void load_single_dynamic_config(const std::string& domain);
   int remove_expired_challenges();
+  size_t dynamic_challenges_size();
 
 private:
   std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info) override;

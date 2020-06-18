@@ -225,6 +225,19 @@ Banjax::report_status()
   json message;
   message["id"] = host_name;
   message["name"] = "status";
+  message["num_of_challenges"] = challenger->dynamic_challenges_size();
+
+  if (kafka_conf["ats_metrics_to_report"]) {
+    auto metrics = kafka_conf["ats_metrics_to_report"].as<std::vector<std::string>>();
+
+	TSMgmtInt stat_value = 0;
+	for (const std::string& stat_name : metrics) {
+		if (TS_SUCCESS == TSMgmtIntGet(stat_name.c_str(), &stat_value)) {
+			message[stat_name] = stat_value;
+		}
+	}
+  }
+
 
   print::debug("reporting status");
   return kafka_producer->send_message(message);

@@ -123,20 +123,16 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, BanjaxInterface* banjax)
             std::vector<std::string> topics;  // annoyingly a vector when we really just need one
             std::string errstr;
             {
-                print::debug("#@#@ Just before block");
                 TSMutexLock(stored_config_lock);
                 auto on_scope_exit = defer([&] { TSMutexUnlock(stored_config_lock); });
-                print::debug("#@#@ after lock");
                 if (stored_config.Type() != YAML::NodeType::Map) {
                     print::debug("KafkaConsumer::load_config requires a YAML::Map");
                     throw;
                 }
-                print::debug("00-99 blah");
 
                 auto topic = stored_config["command_topic"].as<std::string>();
                 topics.push_back(topic);
 
-                print::debug("01-99 blah");
         
                 set_single_config_field(*conf, stored_config, "metadata.broker.list");
                 set_single_config_field(*conf, stored_config, "security.protocol");
@@ -145,7 +141,6 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, BanjaxInterface* banjax)
                 set_single_config_field(*conf, stored_config, "ssl.key.location");
                 set_single_config_field(*conf, stored_config, "ssl.key.password");
 
-                print::debug("02-99 blah");
 
                 // we want every banjax instance to see every message. this means every banjax instance
                 // needs its own group id. so i'm using the hostname.
@@ -153,11 +148,8 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, BanjaxInterface* banjax)
                     print::debug("KafkaConsumer: bad group.id config: ", errstr);
                     throw;
                 }
-                print::debug("03-99 blah");
                 config_valid = true;
-                print::debug("04-99 blah");
             }
-            print::debug("#@#@ after lock released");
           
             RdKafka::KafkaConsumer *consumer = RdKafka::KafkaConsumer::create(conf, errstr);
             if (!consumer) {
