@@ -111,7 +111,8 @@ Challenger::remove_expired_challenges() {
   for (auto it = host_to_challenge_dynamic.begin(); it != host_to_challenge_dynamic.end();) {
       // XXX is this really the best way to remove from a map? std::remove_if?
       // XXX move the 60 seconds thing into a config
-      if (current_timestamp - it->second->time_added > 60) {
+      print::debug("remove_expired_challenges time_added: ", it->second->time_added);
+      if (current_timestamp - it->second->time_added > 10) {
           it = host_to_challenge_dynamic.erase(it);
       } else {
           ++it;

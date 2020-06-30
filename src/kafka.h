@@ -26,7 +26,7 @@ public:
   KafkaConsumer(YAML::Node &new_config, BanjaxInterface* banjax);
   void reload_config(YAML::Node &config, BanjaxInterface* banjax);
   void msg_consume(std::unique_ptr<RdKafka::Message> message, void *opaque);
-  void shutdown() { shutting_down = true; thread_handle.join(); };
+  void shutdown();
   ~KafkaConsumer() { shutdown(); };
 
 private:
@@ -40,3 +40,7 @@ private:
 };
 
 
+// release_kafka_consumer()
+// Banjax(..., kafka_consumer)
+// read_configuration()
+// kafka_consumer->reload_config()

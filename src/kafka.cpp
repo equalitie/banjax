@@ -92,24 +92,24 @@ int KafkaProducer::send_message(const json& message) {
 }
 
 void
-KafkaConsumer::reload_config(YAML::Node& config, BanjaxInterface* banjax) {
+KafkaConsumer::reload_config(YAML::Node& config, BanjaxInterface* new_banjax) {
     {
         print::debug("-!-! reload_config() before lock");
         TSMutexLock(stored_config_lock);
         auto on_scope_exit = defer([&] { TSMutexUnlock(stored_config_lock); });
         print::debug("-!-! reload_config() after lock");
         stored_config = config;
-        banjax = banjax;
+        banjax = new_banjax;
         config_valid = false;
     }
     print::debug("-!-! reload_config() after lock released");
 }
 
 
-KafkaConsumer::KafkaConsumer(YAML::Node &new_config, BanjaxInterface* banjax)
+KafkaConsumer::KafkaConsumer(YAML::Node &new_config, BanjaxInterface* new_banjax)
   : stored_config_lock(TSMutexCreate()),
     stored_config(new_config),
-    banjax(banjax)
+    banjax(new_banjax)
 {
     // XXX this (or at least the `while (config_valid && !shutting_down)` loop ~50 lines down)
     // should probably be a TS continuation scheduled with TSContScheduleEvery(),
@@ -180,40 +180,56 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, BanjaxInterface* banjax)
     print::debug("hello from OUTSIDE lambda");
 }
 
+void KafkaConsumer::shutdown() {
+  shutting_down = true;
+  print::debug("KafkaConsumer::shutdown() BEFORE thread join()");
+  thread_handle.join();
+  print::debug("KafkaConsumer::shutdown() AFTER thread join()");
+}
+
 
 void KafkaConsumer::msg_consume(std::unique_ptr<RdKafka::Message> message, void *opaque) {
+  if (TSMutexLockTry(stored_config_lock) != TS_SUCCESS) {
+      print::debug("KafkaConsumer::msg_consume() failed to get lock; skipping.");
+      return;
+  }
+  print::debug("KafkaConsumer::msg_consume() acquired lock");
+  {
+    auto on_scope_exit = defer([&] { TSMutexUnlock(stored_config_lock); });
     print::debug("MSG_CONSUME()");
-  switch (message->err()) {
-  case RdKafka::ERR__TIMED_OUT:
+    switch (message->err()) {
+    case RdKafka::ERR__TIMED_OUT:
     print::debug("timed out");
     break;
 
-  case RdKafka::ERR_NO_ERROR: {
-    /* Real message */
-    print::debug("Read msg at offset ", message->offset());
-    print::debug("msg json: ", (char*)message->payload());
-    json message_dict;
+    case RdKafka::ERR_NO_ERROR: {
+      /* Real message */
+      print::debug("Read msg at offset ", message->offset());
+      print::debug("msg json: ", (char*)message->payload());
+      json message_dict;
     try {
-      message_dict = json::parse((char*)message->payload());
+        message_dict = json::parse((char*)message->payload());
     } catch (json::exception& e) {
-      print::debug("kafka message not json: ", (char*)message->payload());
-      return;
+        print::debug("kafka message not json: ", (char*)message->payload());
+        return;
     }
 
-    banjax->kafka_message_consume(message_dict);
-  } break;
-  case RdKafka::ERR__PARTITION_EOF: {
-    print::debug("%% EOF reached for all  partition(s)");
+      banjax->kafka_message_consume(message_dict);
+    } break;
+    case RdKafka::ERR__PARTITION_EOF: {
+      print::debug("%% EOF reached for all  partition(s)");
+    }
+    break;
+      case RdKafka::ERR__UNKNOWN_TOPIC: {
+    }
+    case RdKafka::ERR__UNKNOWN_PARTITION: {
+      print::debug("Consume failed: ", message->errstr());
+    } break;
+    default: {
+      /* Errors */
+      print::debug("Consume failed: ", message->errstr());
+    }
+    }
   }
-  break;
-  case RdKafka::ERR__UNKNOWN_TOPIC: {
-  }
-  case RdKafka::ERR__UNKNOWN_PARTITION: {
-    print::debug("Consume failed: ", message->errstr());
-  } break;
-  default: {
-  /* Errors */
-    print::debug("Consume failed: ", message->errstr());
-  }
-  }
+  print::debug("KafkaConsumer::msg_consume() released lock");
 }
