@@ -83,7 +83,7 @@ int KafkaProducer::send_message(const json& message) {
       /* Message headers, if any */
       NULL);
   if (err == RdKafka::ERR_NO_ERROR) {
-      print::debug("sent message!");
+      print::debug("sent message: ", serialized_message);
       return 0;
   } else {
       print::debug("Failed to send kafka message! ");

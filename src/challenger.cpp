@@ -69,6 +69,7 @@ Challenger::load_config()
     SHA256((const unsigned char*)challenger_key.c_str(), challenger_key.length(), hashed_key);
 
     number_of_trailing_zeros = cfg["difficulty"].as<unsigned int>();
+    dynamic_expiry_seconds = cfg["dynamic_expiry_seconds"].as<unsigned int>();
 
     // better to check for these and fail at load-time than later
     if (!cfg["dynamic_challenger_config"]) {
@@ -109,10 +110,8 @@ Challenger::remove_expired_challenges() {
   TSMutexLock(host_to_challenge_dynamic_mutex);
   auto on_scope_exit = defer([&] { TSMutexUnlock(host_to_challenge_dynamic_mutex); });
   for (auto it = host_to_challenge_dynamic.begin(); it != host_to_challenge_dynamic.end();) {
-      // XXX is this really the best way to remove from a map? std::remove_if?
-      // XXX move the 60 seconds thing into a config
       print::debug("remove_expired_challenges time_added: ", it->second->time_added);
-      if (current_timestamp - it->second->time_added > 10) {
+      if (current_timestamp - it->second->time_added > dynamic_expiry_seconds) {
           it = host_to_challenge_dynamic.erase(it);
       } else {
           ++it;

@@ -39,6 +39,8 @@ public:
 
   bool drop_ip(std::string& ip);
 
+  size_t size();
+
 private:
   IPHashTable _db;
   TSMutex _mutex;
@@ -97,6 +99,14 @@ IpDb<IpState>::get_ip_state(const std::string& ip)
   typename IPHashTable::iterator i = _db.find(ip);
 
   return i != _db.end() ? i->second : IpState{};
+}
+
+template<class IpState>
+inline
+size_t
+IpDb<IpState>::size()
+{
+  return _db.size();
 }
 
 #endif

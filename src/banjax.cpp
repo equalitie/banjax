@@ -30,16 +30,22 @@ struct BanjaxPlugin {
   string config_dir;
   TSMutex reload_mutex;
   std::shared_ptr<Banjax> current_state;
+  time_t restart_time;  // when the plugin was last (re)started
+  time_t reload_time;   // when the plugin's config was last reloaded
 
   BanjaxPlugin(string config_dir)
     : config_dir(move(config_dir))
     , reload_mutex(TSMutexCreate())
     , current_state(make_shared<Banjax>(this->config_dir))
+    , restart_time(time(NULL))
+    , reload_time(time(NULL))
   {}
 
   void reload_config() {
     TSMutexLock(reload_mutex);
     auto on_exit = defer([&] { TSMutexUnlock(reload_mutex); });
+
+    reload_time = time(NULL);
 
     auto swab_s = current_state->release_swabber_socket();
     auto snif_s = current_state->release_botsniffer_socket();
@@ -222,19 +228,30 @@ Banjax::report_status()
       return -1;
   }
 
+  time_t current_timestamp = time(NULL);
+
   json message;
   message["id"] = host_name;
   message["name"] = "status";
   message["num_of_challenges"] = challenger->dynamic_challenges_size();
+  message["timestamp"] = current_timestamp;
+  message["restart_time"] =  g_banjax_plugin->restart_time;
+  message["reload_time"] = g_banjax_plugin->reload_time;
+  message["swabber_ip_db_size"] = swabber_ip_db.size();
+  message["challenger_ip_db_size"] = challenger_ip_db.size();
+  message["regex_manager_ip_db_size"] = regex_manager_ip_db.size();
 
   if (kafka_conf["ats_metrics_to_report"]) {
     auto metrics = kafka_conf["ats_metrics_to_report"].as<std::vector<std::string>>();
 
-	TSMgmtInt stat_value = 0;
+	TSMgmtInt stat_value_int = 0;
+	TSMgmtFloat stat_value_float = 0;
 	for (const std::string& stat_name : metrics) {
-		if (TS_SUCCESS == TSMgmtIntGet(stat_name.c_str(), &stat_value)) {
-			message[stat_name] = stat_value;
-		}
+		if (TS_SUCCESS == TSMgmtIntGet(stat_name.c_str(), &stat_value_int)) {
+			message[stat_name] = stat_value_int;
+		} else if (TS_SUCCESS == TSMgmtFloatGet(stat_name.c_str(), &stat_value_float)) {
+			message[stat_name] = stat_value_float;
+        }
 	}
   }
 

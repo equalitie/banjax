@@ -143,6 +143,8 @@ protected:
   unsigned char hashed_key[SHA256_DIGEST_LENGTH];
   // Number of zeros needed at the end of the SHA hash
   unsigned int number_of_trailing_zeros;
+  // delete dynamic challenges after this many seconds
+  unsigned int dynamic_expiry_seconds;
 
   std::vector<std::string> split(const std::string &, char);
 
