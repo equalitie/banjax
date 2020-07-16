@@ -51,5 +51,5 @@ FilterResponse Denialator::on_http_request(const TransactionParts& transaction_p
 
 std::string Denialator::generate_response(const TransactionParts&, const FilterResponse&)
 {
-  return "<html><header></header><body>504 Gateway Timeout</body></html>";
+  return "<html><header></header><body>you've been temporarily banned by deflect</body></html>";
 }
