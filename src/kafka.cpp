@@ -33,14 +33,6 @@ KafkaProducer::KafkaProducer(BanjaxInterface* banjax, YAML::Node &config)
 
   auto conf = RdKafka::Conf::create(RdKafka::Conf::CONF_GLOBAL);
 
-  // auto brokers = config["metadata.broker.list"].as<std::string>();
-  // std::string errstr;
-  // if (conf->set("metadata.broker.list", brokers, errstr) !=
-  //     RdKafka::Conf::CONF_OK) {
-  //     print::debug("KafkaProducer: bad 'brokers' config: ", errstr);
-  //   throw;
-  // }
-
   set_single_config_field(*conf, config, "metadata.broker.list");
   set_single_config_field(*conf, config, "security.protocol");
   set_single_config_field(*conf, config, "ssl.ca.location");
@@ -67,10 +59,7 @@ int KafkaProducer::send_message(const json& message) {
   RdKafka::ErrorCode err = rdk_producer->produce(
       /* Topic name */
       report_topic,
-      /* Any Partition: the builtin partitioner will be
-              * used to assign the message to a topic based
-              * on the message key, or random partition if
-              * the key is not set. */
+      /* Any Partition */
       (int)RdKafka::Topic::PARTITION_UA,
       /* Make a copy of the value */
       (int)RdKafka::Producer::RK_MSG_COPY /* Copy payload */,
@@ -94,15 +83,12 @@ int KafkaProducer::send_message(const json& message) {
 void
 KafkaConsumer::reload_config(YAML::Node& config, BanjaxInterface* new_banjax) {
     {
-        print::debug("-!-! reload_config() before lock");
         TSMutexLock(stored_config_lock);
         auto on_scope_exit = defer([&] { TSMutexUnlock(stored_config_lock); });
-        print::debug("-!-! reload_config() after lock");
         stored_config = config;
         banjax = new_banjax;
         config_valid = false;
     }
-    print::debug("-!-! reload_config() after lock released");
 }
 
 
@@ -115,9 +101,8 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, BanjaxInterface* new_banjax
     // should probably be a TS continuation scheduled with TSContScheduleEvery(),
     // but i think this thing below works and i'm afraid of breaking it.
     thread_handle = std::thread([=] {
-        print::debug("hello from lambda");
         while (!shutting_down) {
-            print::debug("(RE)LOADING CONFIG");
+            print::debug("kafka consumer is (re)loading configuration");
             auto conf = RdKafka::Conf::create(RdKafka::Conf::CONF_GLOBAL);
             auto tconf = RdKafka::Conf::create(RdKafka::Conf::CONF_TOPIC);
             std::vector<std::string> topics;  // annoyingly a vector when we really just need one
@@ -166,25 +151,20 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, BanjaxInterface* new_banjax
             }
 
             while (config_valid && !shutting_down) {
-                std::cerr << "BLOCKING" << std::endl;
+                print::debug("kafka consumer is blocking...");
                 auto msg = std::unique_ptr<RdKafka::Message>(consumer->consume(2000));
                 msg_consume(std::move(msg), NULL);
             }
 
-            print::debug("BEFORE CLOSE");
             consumer->close();
-            print::debug("AFTER CLOSE");
         }
-        print::debug("THREAD EXITING");
     });
-    print::debug("hello from OUTSIDE lambda");
 }
 
 void KafkaConsumer::shutdown() {
   shutting_down = true;
-  print::debug("KafkaConsumer::shutdown() BEFORE thread join()");
   thread_handle.join();
-  print::debug("KafkaConsumer::shutdown() AFTER thread join()");
+  print::debug("KafkaConsumer::shutdown() after thread join");
 }
 
 
@@ -196,10 +176,10 @@ void KafkaConsumer::msg_consume(std::unique_ptr<RdKafka::Message> message, void 
   print::debug("KafkaConsumer::msg_consume() acquired lock");
   {
     auto on_scope_exit = defer([&] { TSMutexUnlock(stored_config_lock); });
-    print::debug("MSG_CONSUME()");
+    print::debug("KafkaConsumer::msg_consume()");
     switch (message->err()) {
     case RdKafka::ERR__TIMED_OUT:
-    print::debug("timed out");
+    print::debug("no message, just a timeout");
     break;
 
     case RdKafka::ERR_NO_ERROR: {
