@@ -90,7 +90,7 @@ Challenger::load_config()
 }
 
 void
-Challenger::load_single_dynamic_config(const std::string& domain) {
+Challenger::load_single_host_challenge(const std::string& domain) {
   try
   {
       auto challenge_spec = parse_single_challenge(cfg["dynamic_challenger_config"]);
@@ -99,7 +99,22 @@ Challenger::load_single_dynamic_config(const std::string& domain) {
       host_to_challenge_dynamic[domain] = challenge_spec;
   }
   catch(YAML::RepresentationException& e) {
-    TSDebug(BANJAX_PLUGIN_NAME, "Challenger::load_single_dynamic_config error: %s", e.what());
+    TSDebug(BANJAX_PLUGIN_NAME, "Challenger::load_single_host_challenge error: %s", e.what());
+    throw;
+  }
+}
+
+void
+Challenger::load_single_ip_challenge(const std::string& ip) {
+  try
+  {
+      auto challenge_spec = parse_single_challenge(cfg["dynamic_challenger_config"]);
+      TSMutexLock(ip_to_challenge_dynamic_mutex);
+      auto on_scope_exit = defer([&] { TSMutexUnlock(ip_to_challenge_dynamic_mutex); });
+      ip_to_challenge_dynamic[ip] = challenge_spec;
+  }
+  catch(YAML::RepresentationException& e) {
+    TSDebug(BANJAX_PLUGIN_NAME, "Challenger::load_single_ip_challenge error: %s", e.what());
     throw;
   }
 }
@@ -108,14 +123,28 @@ int
 Challenger::remove_expired_challenges() {
   time_t current_timestamp = time(NULL);
   TSMutexLock(host_to_challenge_dynamic_mutex);
-  auto on_scope_exit = defer([&] { TSMutexUnlock(host_to_challenge_dynamic_mutex); });
-  for (auto it = host_to_challenge_dynamic.begin(); it != host_to_challenge_dynamic.end();) {
-      print::debug("remove_expired_challenges time_added: ", it->second->time_added);
-      if (current_timestamp - it->second->time_added > dynamic_expiry_seconds) {
-          it = host_to_challenge_dynamic.erase(it);
-      } else {
-          ++it;
-      }
+  {
+    auto on_scope_exit = defer([&] { TSMutexUnlock(host_to_challenge_dynamic_mutex); });
+    for (auto it = host_to_challenge_dynamic.begin(); it != host_to_challenge_dynamic.end();) {
+        print::debug("remove_expired_challenges time_added: ", it->second->time_added);
+        if (current_timestamp - it->second->time_added > dynamic_expiry_seconds) {
+            it = host_to_challenge_dynamic.erase(it);
+        } else {
+            ++it;
+        }
+    }
+  }
+  TSMutexLock(ip_to_challenge_dynamic_mutex);
+  {
+    auto on_scope_exit = defer([&] { TSMutexUnlock(ip_to_challenge_dynamic_mutex); });
+    for (auto it = ip_to_challenge_dynamic.begin(); it != ip_to_challenge_dynamic.end();) {
+        print::debug("remove_expired_challenges time_added: ", it->second->time_added);
+        if (current_timestamp - it->second->time_added > dynamic_expiry_seconds) {
+            it = ip_to_challenge_dynamic.erase(it);
+        } else {
+            ++it;
+        }
+    }
   }
   return 0;
 }
@@ -399,6 +428,7 @@ FilterResponse
 Challenger::on_http_request(const TransactionParts& transaction_parts)
 {
   const auto& host = transaction_parts.at(TransactionMuncher::HOST);
+  const auto& ip = transaction_parts.at(TransactionMuncher::IP);
 
   // look up if this host is serving captcha's or not
   TSDebug(BANJAX_PLUGIN_NAME, "Host to be challenged %s", host.c_str());
@@ -408,6 +438,7 @@ Challenger::on_http_request(const TransactionParts& transaction_parts)
   auto challenges_it = host_challenges_static.find(host);  // <- on-disk challenge gets priority
 
   // XXX omfg what a mess
+  // very much just slapping layers of mud on the ball here
   if (challenges_it == host_challenges_static.end()) {
     print::debug("No on-disk challenge for host: ", host);
     if (TSMutexLockTry(host_to_challenge_dynamic_mutex) != TS_SUCCESS) {
@@ -419,15 +450,30 @@ Challenger::on_http_request(const TransactionParts& transaction_parts)
       auto dyn_challenges_it = host_to_challenge_dynamic.find(host);
       if (dyn_challenges_it == host_to_challenge_dynamic.end()) {
         print::debug("No from-kafka challenge for host: ", host);
-        return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+        if (TSMutexLockTry(ip_to_challenge_dynamic_mutex) != TS_SUCCESS) {
+          print::debug("Unable to get lock for ip_to_challenge_dynamic; skipping challenger");
+          return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+        } else {
+          auto on_scope_exit = defer([&] { TSMutexUnlock(ip_to_challenge_dynamic_mutex); });
+          print::debug("Got lock for ip_to_challenge_dynamic; checking inside");
+          dyn_challenges_it = ip_to_challenge_dynamic.find(ip);
+          if (dyn_challenges_it == ip_to_challenge_dynamic.end()) {
+            print::debug("No from-kafka challenge for ip: ", ip);
+            return FilterResponse(FilterResponse::GO_AHEAD_NO_COMMENT);
+          }
+          print::debug("Going to serve IP challenge (from kafka config)");
+          challenges_to_run.push_front(dyn_challenges_it->second);
+        }
       }
+      print::debug("Going to serve host challenge (from kafka config)");
       challenges_to_run.push_front(dyn_challenges_it->second);
     }
   } else {
-    challenges_to_run = challenges_it->second;
+    print::debug("Going to serve host challenge (from disk config)");
+    challenges_to_run = challenges_it->second;  // static host challenge
   }
 
-  DEBUG("cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE));
+  TSDebug("cookie_value: %s", transaction_parts.at(TransactionMuncher::COOKIE).c_str());
 
   auto custom_response = [=](const shared_ptr<HostChallengeSpec>& challenge) {
     return FilterResponse(FilterResponse::I_RESPOND,
@@ -435,15 +481,12 @@ Challenger::on_http_request(const TransactionParts& transaction_parts)
                                        challenge));
   };
 
-  const auto ip = transaction_parts.at(TransactionMuncher::IP);
-
   DEBUG(">>> Num challenges ", challenges_to_run.size());
 
   for(const auto& cur_challenge : challenges_to_run) {
 
     TSDebug(BANJAX_PLUGIN_NAME, "set size: %lu", cur_challenge->white_listed_ips.size());
     for (const auto& ipr : cur_challenge->white_listed_ips) {
-      TSDebug(BANJAX_PLUGIN_NAME, "000a");
       if (is_match(ip, ipr)) {
         return FilterResponse(FilterResponse::SERVE_IMMIDIATELY_DONT_CACHE);
       }
@@ -451,7 +494,6 @@ Challenger::on_http_request(const TransactionParts& transaction_parts)
 
     switch(cur_challenge->challenge_type)
     {
-      TSDebug(BANJAX_PLUGIN_NAME, "002");
       case ChallengeDefinition::CHALLENGE_CAPTCHA:
         TSDebug(BANJAX_PLUGIN_NAME, ">>> Running challenge CHALLENGE_CAPTCHA");
         {
@@ -786,8 +828,14 @@ Challenger::parse_single_challenge(const YAML::Node& ch) {
   return host_challenge_spec;
 }
 
-size_t Challenger::dynamic_challenges_size() {
+size_t Challenger::dynamic_host_challenges_size() {
     TSMutexLock(host_to_challenge_dynamic_mutex);
     auto on_scope_exit = defer([&] { TSMutexUnlock(host_to_challenge_dynamic_mutex); });
     return host_to_challenge_dynamic.size();
+}
+
+size_t Challenger::dynamic_ip_challenges_size() {
+    TSMutexLock(ip_to_challenge_dynamic_mutex);
+    auto on_scope_exit = defer([&] { TSMutexUnlock(ip_to_challenge_dynamic_mutex); });
+    return ip_to_challenge_dynamic.size();
 }

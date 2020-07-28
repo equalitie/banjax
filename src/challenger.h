@@ -188,10 +188,12 @@ protected:
   typedef std::map<std::string, std::list<std::shared_ptr<HostChallengeSpec>>> HostChallengeMap;
   HostChallengeMap host_challenges_static;   // these come from the on-disk config
 
-  // this comes from the Kafka channel
+  // these come from the Kafka channel
   // XXX should we move this from old Challenger to new on a config reload? to preserve them.
   TSMutex host_to_challenge_dynamic_mutex;
   std::map<std::string, std::shared_ptr<HostChallengeSpec>> host_to_challenge_dynamic;
+  TSMutex ip_to_challenge_dynamic_mutex;
+  std::map<std::string, std::shared_ptr<HostChallengeSpec>> ip_to_challenge_dynamic;
 
   //We store the forbidden message at the begining so we can copy it fast
   //everytime. It is being stored here for being used again
@@ -260,6 +262,8 @@ public:
     :BanjaxFilter::BanjaxFilter(filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
     host_to_challenge_dynamic_mutex(TSMutexCreate()),
     host_to_challenge_dynamic(),
+    ip_to_challenge_dynamic_mutex(TSMutexCreate()),
+    ip_to_challenge_dynamic(),
     too_many_failures_message("<html><header></header><body>you are banned by deflect/banjax</body></html>"), // XXX what to say here
     swabber(swabber),
     global_white_list(global_white_list),
@@ -308,9 +312,11 @@ public:
   */
   FilterResponse on_http_request(const TransactionParts& transaction_parts) override;
   void on_http_close(const TransactionParts& transaction_parts) override {}
-  void load_single_dynamic_config(const std::string& domain);
+  void load_single_host_challenge(const std::string& domain);
+  void load_single_ip_challenge(const std::string& ip);
   int remove_expired_challenges();
-  size_t dynamic_challenges_size();
+  size_t dynamic_host_challenges_size();
+  size_t dynamic_ip_challenges_size();
 
 private:
   std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info) override;

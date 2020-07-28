@@ -233,7 +233,8 @@ Banjax::report_status()
   json message;
   message["id"] = host_name;
   message["name"] = "status";
-  message["num_of_challenges"] = challenger->dynamic_challenges_size();
+  message["num_of_host_challenges"] = challenger->dynamic_host_challenges_size();
+  message["num_of_ip_challenges"] = challenger->dynamic_ip_challenges_size();
   message["timestamp"] = current_timestamp;
   message["restart_time"] =  g_banjax_plugin->restart_time;
   message["reload_time"] = g_banjax_plugin->reload_time;
@@ -511,23 +512,29 @@ Banjax::process_config(const YAML::Node& cfg)
 void
 Banjax::kafka_message_consume(const json& message) {
   auto command_name_it = message.find("name");
-  if (command_name_it == message.end() || (*command_name_it != "challenge_host")) {
-    print::debug("kafka command not of 'challenge_host' type");
-    return;
+  if (command_name_it == message.end()) {
+      print::debug("kafka command has no 'name' key");
+      return;
   }
-
   auto value_it = message.find("value");
   if (value_it == message.end()) {
-    print::debug("kafka command has no 'value'");
+    print::debug("kafka command has no 'value' key");
     return;
   }
-
-  std::string website = *value_it;
   if (!challenger) {
     print::debug("null challenger at time of kafka_message_consume()");
     return;
   }
-  challenger->load_single_dynamic_config(website);
+
+  if (*command_name_it == "challenge_host") {
+    std::string website = *value_it;
+    challenger->load_single_host_challenge(website);
+  } else if (*command_name_it == "challenge_ip") {
+    std::string ip = *value_it;
+    challenger->load_single_ip_challenge(ip);
+  } else {
+    print::debug("kafka command not 'challenge_host' or 'challenge_ip'");
+  }
 }
 
 static void destroy_g_banjax_plugin() {
