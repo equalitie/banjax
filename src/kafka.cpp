@@ -104,7 +104,7 @@ KafkaConsumer::KafkaConsumer(YAML::Node &new_config, BanjaxInterface* new_banjax
         while (!shutting_down) {
             print::debug("kafka consumer is (re)loading configuration");
             auto conf = RdKafka::Conf::create(RdKafka::Conf::CONF_GLOBAL);
-            auto tconf = RdKafka::Conf::create(RdKafka::Conf::CONF_TOPIC);
+            // auto tconf = RdKafka::Conf::create(RdKafka::Conf::CONF_TOPIC);
             std::vector<std::string> topics;  // annoyingly a vector when we really just need one
             std::string errstr;
             {
