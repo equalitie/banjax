@@ -69,16 +69,23 @@ Challenger::load_config()
     SHA256((const unsigned char*)challenger_key.c_str(), challenger_key.length(), hashed_key);
 
     number_of_trailing_zeros = cfg["difficulty"].as<unsigned int>();
-    dynamic_expiry_seconds = cfg["dynamic_expiry_seconds"].as<unsigned int>();
+    // kafka related stuff.... this is sloppy
+    try
+    {
+      dynamic_expiry_seconds = cfg["dynamic_expiry_seconds"].as<unsigned int>();
 
-    // better to check for these and fail at load-time than later
-    if (!cfg["dynamic_challenger_config"]) {
-      TSDebug(BANJAX_PLUGIN_NAME, "missing dynamic_challenger_config");
-      throw;
+      // better to check for these and fail at load-time than later
+      if (!cfg["dynamic_challenger_config"]) {
+        TSDebug(BANJAX_PLUGIN_NAME, "missing dynamic_challenger_config");
+        throw;
+      }
+      if (!cfg["dynamic_challenger_config"]["challenge_type"]) {
+        TSDebug(BANJAX_PLUGIN_NAME, "missing dynamic_challenger_config's challenge_type");
+        throw;
+      }
     }
-    if (!cfg["dynamic_challenger_config"]["challenge_type"]) {
-      TSDebug(BANJAX_PLUGIN_NAME, "missing dynamic_challenger_config's challenge_type");
-      throw;
+    catch(YAML::RepresentationException& e) {
+      TSDebug(BANJAX_PLUGIN_NAME, "NO KAFKA STUFF, assuming that's ok and continuing");
     }
   }
   catch(YAML::RepresentationException& e) {
