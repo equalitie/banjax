@@ -101,10 +101,10 @@ Behavior tests needs to be run as root. You also need to add the following line 
 regex_map   http://^(www\.)?127.0.0.1$/ ORIGIN_URL
 ```
 
-For example, if the http server is running on the same machine, listening on port 8080, you should add:
+For example, if the http server is running on the same machine, listening on port 8000, you should add:
 
 ```
-regex_map   http://^(www\.)?127.0.0.1$/ http://127.0.0.1:8080/
+regex_map   http://^(www\.)?127.0.0.1$/ http://127.0.0.1:8000/
 ```
 
 You should also need to have write access to the folder where http origin server websites from.

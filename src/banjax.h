@@ -12,6 +12,7 @@
 
 class BanjaxFilter;
 
+#include "banjax_interface.h"
 #include "ip_db.h"
 #include "swabber.h"
 #include "transaction_muncher.h"
@@ -23,8 +24,13 @@ class BanjaxFilter;
 #include "regex_manager.h"
 #include "challenger.h"
 #include "socket.h"
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
 
-class Banjax
+class KafkaConsumer;
+class KafkaProducer;
+
+class Banjax : public BanjaxInterface
 {
 public:
   //it keeps all part of requests and responses which is
@@ -47,6 +53,8 @@ protected:
   // Keep swabber configuration.
   FilterConfig swabber_conf;
 
+  YAML::Node kafka_conf;
+
   // Ordering and accessing filters by priority.
   std::map<int, std::string> priority_map;
 
@@ -63,10 +71,14 @@ protected:
 
   // Filters
   std::unique_ptr<RegexManager> regex_manager;
-  std::unique_ptr<Challenger>   challenger;
+  std::shared_ptr<Challenger>   challenger;
   std::unique_ptr<WhiteLister>  white_lister;
   std::unique_ptr<BotSniffer>   bot_sniffer;
   std::unique_ptr<Denialator>   denialator;
+
+
+  std::unique_ptr<KafkaConsumer>   kafka_consumer;
+  std::shared_ptr<KafkaProducer>   kafka_producer;
 
   /**
      open the mysql database and read the configs from the database
@@ -111,10 +123,32 @@ public:
    */
   Banjax( const std::string& banjax_config_dir
         , std::unique_ptr<Socket> swabber_s = nullptr
-        , std::unique_ptr<Socket> botsniffer_s = nullptr);
+        , std::unique_ptr<Socket> botsniffer_s = nullptr
+        , std::unique_ptr<KafkaConsumer> kafka_consumer = nullptr);
+  ~Banjax();
 
   std::unique_ptr<Socket> release_swabber_socket();
   std::unique_ptr<Socket> release_botsniffer_socket();
+  std::unique_ptr<KafkaConsumer> release_kafka_consumer();
+
+  virtual std::shared_ptr<Challenger> get_challenger() { return challenger; }
+  std::shared_ptr<KafkaProducer> get_producer() { return kafka_producer; }
+  virtual const std::string& get_host_name() { return host_name; }
+  virtual void kafka_message_consume(const json& message);
+  virtual int report_failure(const std::string& site, const std::string& ip);
+
+  int report_status();
+  int remove_expired_challenges();
+
+private:
+  std::string host_name;
+
+  int report_status_interval_seconds;
+  int remove_expired_challenges_interval_seconds;
+
+  TSAction report_status_action;
+  TSAction remove_expired_challenges_action;
+
 };
 
 #endif /*banjax.h*/

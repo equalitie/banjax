@@ -17,6 +17,9 @@
 #include "banjax_filter.h"
 #include "global_white_list.h"
 #include "default.h"
+#include "print.h"
+
+class BanjaxInterface;
 
 const size_t AES_KEY_LENGTH = 16;
 //const size_t AES_BLOCK_SIZE;
@@ -97,7 +100,9 @@ public:
 
   unsigned long challenge_validity_period; //how many second the challenge is valid for this host
   HostChallengeSpec()
-    : fail_tolerance_threshold() {};
+    : fail_tolerance_threshold(),
+      time_added(time(NULL))
+    {};
 
   // SHA256 of client's password, needed for the auth challenge.
   std::string password_hash;
@@ -113,6 +118,8 @@ public:
   // The content (even if protected by magic_words) shall be
   // served directly without being cached.
   std::set<SubnetRange> white_listed_ips;
+
+  time_t time_added; // the dynamically-added ones expire after some time
 };
 
 class ChallengerExtendedResponse : public FilterExtendedResponse
@@ -136,6 +143,8 @@ protected:
   unsigned char hashed_key[SHA256_DIGEST_LENGTH];
   // Number of zeros needed at the end of the SHA hash
   unsigned int number_of_trailing_zeros;
+  // delete dynamic challenges after this many seconds
+  unsigned int dynamic_expiry_seconds;
 
   std::vector<std::string> split(const std::string &, char);
 
@@ -177,7 +186,14 @@ protected:
   std::vector<std::unique_ptr<ChallengeSpec>> challenge_specs;
 
   typedef std::map<std::string, std::list<std::shared_ptr<HostChallengeSpec>>> HostChallengeMap;
-  HostChallengeMap host_challenges;
+  HostChallengeMap host_challenges_static;   // these come from the on-disk config
+
+  // these come from the Kafka channel
+  // XXX should we move this from old Challenger to new on a config reload? to preserve them.
+  TSMutex host_to_challenge_dynamic_mutex;
+  std::map<std::string, std::shared_ptr<HostChallengeSpec>> host_to_challenge_dynamic;
+  TSMutex ip_to_challenge_dynamic_mutex;
+  std::map<std::string, std::shared_ptr<HostChallengeSpec>> ip_to_challenge_dynamic;
 
   //We store the forbidden message at the begining so we can copy it fast
   //everytime. It is being stored here for being used again
@@ -189,6 +205,8 @@ protected:
   const GlobalWhiteList* global_white_list;
 
   IpDb* challenger_ip_db;
+
+  const std::string banjax_dir;
 
   /**
    * Should be called upon failure of providing solution. Checks the ip_database
@@ -239,12 +257,19 @@ public:
             const FilterConfig& filter_config,
             IpDb* challenger_ip_db,
             Swabber* swabber,
-            const GlobalWhiteList* global_white_list)
+            const GlobalWhiteList* global_white_list,
+            BanjaxInterface* banjax)
     :BanjaxFilter::BanjaxFilter(filter_config, CHALLENGER_FILTER_ID, CHALLENGER_FILTER_NAME), solver_page(banjax_dir + "/solver.html"),
-    too_many_failures_message("<html><header></header><body>504 Gateway Timeout</body></html>"),
+    host_to_challenge_dynamic_mutex(TSMutexCreate()),
+    host_to_challenge_dynamic(),
+    ip_to_challenge_dynamic_mutex(TSMutexCreate()),
+    ip_to_challenge_dynamic(),
+    too_many_failures_message("<html><header></header><body>you are banned by deflect/banjax</body></html>"), // XXX what to say here
     swabber(swabber),
     global_white_list(global_white_list),
-    challenger_ip_db(challenger_ip_db)
+    challenger_ip_db(challenger_ip_db),
+    banjax_dir(banjax_dir),
+    banjax(banjax)
   {
     queued_tasks[HTTP_REQUEST] = this;
 
@@ -254,7 +279,7 @@ public:
       challenge_type[ChallengeDefinition::CHALLENGE_LIST[i]] = (ChallengeDefinition::ChallengeType)i;
     }
 
-    load_config(banjax_dir);
+    load_config();
   }
 
   /**
@@ -287,11 +312,19 @@ public:
   */
   FilterResponse on_http_request(const TransactionParts& transaction_parts) override;
   void on_http_close(const TransactionParts& transaction_parts) override {}
+  void load_single_host_challenge(const std::string& domain);
+  void load_single_ip_challenge(const std::string& ip);
+  int remove_expired_challenges();
+  size_t dynamic_host_challenges_size();
+  size_t dynamic_ip_challenges_size();
 
 private:
   std::string generate_response(const TransactionParts& transaction_parts, const FilterResponse& response_info) override;
+  std::shared_ptr<HostChallengeSpec> parse_single_challenge(const YAML::Node& ch);
 
-  void load_config(const std::string& banjax_dir);
+  void load_config();
+  BanjaxInterface* banjax;
 };
+
 
 #endif /* challenge_manager.h */

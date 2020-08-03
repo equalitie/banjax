@@ -30,6 +30,7 @@ jobs:
     - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
 
     - run: |
+        echo "deb http://deb.debian.org/debian stretch-backports main" >> /etc/apt/sources.list
         apt-get update -qq
         apt-get upgrade -qq
 
@@ -41,6 +42,7 @@ jobs:
             rsync \
             psmisc \
             python3 \
+            python3-pip \
             python2.7 \
             tzdata \
             unzip \
@@ -69,7 +71,12 @@ jobs:
             libboost-dev \
             libboost-system-dev \
             libboost-test-dev \
-            libconfig++-dev
+            libconfig++-dev \
+            wget \
+            openjdk-8-jre \
+            nlohmann-json3-dev
+        apt-get install -qy -t stretch-backports librdkafka++1 librdkafka-dev
+
 
     - run: |
         groupadd --gid $TSGID $TSGROUP
@@ -99,6 +106,9 @@ jobs:
     - run: |
         cd /build_trafficserver/trafficserver-$ATS_VERSION
         make -j4  # nproc says like 36 but i don't think we can actually use them all
+        mkdir -p /usr/local/include/ts
+        cp ./proxy/api/ts/* /usr/local/include/ts/  # omg why doesn't make install do this
+        cp ./lib/ts/*.h /usr/local/include/ts/
         make install
 
     - run: |
@@ -129,5 +139,6 @@ jobs:
 
     - run: cd "$TSPATH" && ./bin/trafficserver restart
     - run: cd "$BANJAX_DIR" && ./build/unit-tests  --log_level=test_suite  # XXX not sure if these are working
-    - run: cd "$BANJAX_DIR" && python2.7 ./test/banjax_behavior_test.py --ts-prefix=$TSPATH --ts-layout="apache"
+    - run: cd "$BANJAX_DIR"/test && wget "http://apache.lauf-forum.at/kafka/2.5.0/kafka_2.12-2.5.0.tgz" && tar xzf "kafka_2.12-2.5.0.tgz"
+    - run: cd "$BANJAX_DIR" && pip3 install pexpect && python3 ./test/banjax_behavior_test.py --ts-prefix=$TSPATH --ts-layout="apache"
 
