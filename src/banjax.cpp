@@ -262,7 +262,7 @@ Banjax::report_status()
 }
 
 int
-Banjax::report_failure(const std::string& site, const std::string& ip)
+Banjax::report_pass_or_failure(const std::string& site, const std::string& ip, bool passed)
 {
   if (!kafka_producer) {
       return -1;
@@ -270,11 +270,47 @@ Banjax::report_failure(const std::string& site, const std::string& ip)
 
   json message;
   message["id"] = host_name;
-  message["name"] = "ip_failed_challenge";
+  if (passed) {
+    message["name"] = "ip_passed_challenge";
+  } else {
+    message["name"] = "ip_failed_challenge";
+  }
   message["value_ip"] = ip;
   message["value_site"] = site;
 
+  auto challenger_ip_state = challenger_ip_db.get_ip_state(ip);
+
+  if (challenger_ip_state) {
+    message["value_challenger_db"] = (uint64_t)*challenger_ip_state;
+  } else {
+    message["value_challenger_db"] = nullptr;
+  }
+
+
   print::debug("reporting challenge failure for site: ", site, " and ip: ", ip);
+  return kafka_producer->send_message(message);
+}
+
+int
+Banjax::report_if_ip_in_database(const std::string& ip)
+{
+  if (!kafka_producer) {
+      return -1;
+  }
+
+  auto challenger_ip_state = challenger_ip_db.get_ip_state(ip);
+
+
+  json message;
+  message["name"] = "ip_in_database";
+  message["value_ip"] = ip;
+
+  if (challenger_ip_state) {
+    message["value_challenger_db"] = (uint64_t)*challenger_ip_state;
+  } else {
+    message["value_challenger_db"] = nullptr;
+  }
+
   return kafka_producer->send_message(message);
 }
 
@@ -531,6 +567,7 @@ Banjax::kafka_message_consume(const json& message) {
     challenger->load_single_host_challenge(website);
   } else if (*command_name_it == "challenge_ip") {
     std::string ip = *value_it;
+    report_if_ip_in_database(ip);
     challenger->load_single_ip_challenge(ip);
   } else {
     print::debug("kafka command not 'challenge_host' or 'challenge_ip'");

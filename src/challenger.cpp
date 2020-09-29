@@ -286,7 +286,8 @@ bool Challenger::check_cookie(string answer, const TransactionParts& transaction
       TSDebug(BANJAX_PLUGIN_NAME, "Challenge cookie: [%s] based on ip[%s] - sha_ok [%s] - result: %d (l:%d)",
               captcha_cookie.c_str(), ip.c_str(),
               challenge_prevailed ? "Y" : "N", result, (int)strlen(captcha_cookie.c_str()));
-      return challenge_prevailed && result == 1;
+      bool passed = challenge_prevailed && result == 1;
+      return passed;
     }
   }
 
@@ -689,15 +690,7 @@ Challenger::report_failure(const std::shared_ptr<HostChallengeSpec>& failed_chal
   // XXX i (joe) have tried and failed to understand this double dereference
   (**ip_state)++;
   TSDebug(BANJAX_PLUGIN_NAME, "XXX: ip_state: %lu", **ip_state);
-
   if (*ip_state >= failed_challenge->fail_tolerance_threshold) {
-    if (banjax != nullptr) {
-      print::debug("calling banjax->report_failure()");
-      banjax->report_failure(failed_host, client_ip);
-    } else {
-      print::debug("banjax is null!!!!!!!!!!");
-    }
-
     TransactionParts ats_record_parts = transaction_parts;
 
     string banning_reason = "failed challenge " + failed_challenge->name + " for host " + failed_host  + " " + to_string(*ip_state) + " times, " +
@@ -710,10 +703,17 @@ Challenger::report_failure(const std::shared_ptr<HostChallengeSpec>& failed_chal
     //we are not clearing the state cause it is not for sure that
     //swabber ban the ip due to possible failure of acquiring lock
     //ip_state.detail.no_of_failures = 0;
+    if (banjax != nullptr) {
+        banjax->report_pass_or_failure(failed_host, client_ip, false); // note the other call to this below!!!
+    }
+
     return true;
   }
   else { //only report if we haven't report to swabber cause otherwise it nulifies the work of swabber which has forgiven the ip and delete it from db
     challenger_ip_db->set_ip_state(client_ip, *ip_state);
+    if (banjax != nullptr) {
+        banjax->report_pass_or_failure(failed_host, client_ip, false); // note the other call to this above!!!
+    }
     return false;
   }
 }
