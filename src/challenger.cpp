@@ -699,13 +699,13 @@ Challenger::report_failure(const std::shared_ptr<HostChallengeSpec>& failed_chal
       encapsulate_in_quotes(ats_record_parts[TransactionMuncher::UA]);
 
     swabber->ban(client_ip.c_str(), banning_reason);
-    //reset the number of failures for future
-    //we are not clearing the state cause it is not for sure that
-    //swabber ban the ip due to possible failure of acquiring lock
-    //ip_state.detail.no_of_failures = 0;
+
     if (banjax != nullptr) {
         banjax->report_pass_or_failure(failed_host, client_ip, false); // note the other call to this below!!!
     }
+
+    //reset the number of failures for future
+    challenger_ip_db->drop_ip(client_ip);
 
     return true;
   }
