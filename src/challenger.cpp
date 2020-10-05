@@ -520,10 +520,16 @@ Challenger::on_http_request(const TransactionParts& transaction_parts)
 
           if (Challenger::check_cookie("", transaction_parts, *cur_challenge)) {
             report_success(ip);
+            if (banjax != nullptr) {
+                banjax->report_pass_or_failure(host, ip, true);
+            }
             //rather go to next challenge
             continue;
           } else {
             //record challenge failure
+            if (banjax != nullptr) {
+                banjax->report_pass_or_failure(host, ip, false);
+            }
             FilterResponse failure_response = custom_response(cur_challenge);
             if (cur_challenge->fail_tolerance_threshold) {
               failure_response.response_data->banned_ip = report_failure(cur_challenge, transaction_parts);
@@ -543,6 +549,9 @@ Challenger::on_http_request(const TransactionParts& transaction_parts)
         if(!Challenger::check_cookie("", transaction_parts, *cur_challenge))
           {
             TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, sending challenge");
+            if (banjax != nullptr) {
+                banjax->report_pass_or_failure(host, ip, false);
+            }
 
             //record challenge failure
             FilterResponse failure_response = custom_response(cur_challenge);
@@ -559,6 +568,10 @@ Challenger::on_http_request(const TransactionParts& transaction_parts)
             response_data->set_cookie_header.append("deflect=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly");
 
             return failure_response;
+          } else {
+            if (banjax != nullptr) {
+                banjax->report_pass_or_failure(host, ip, true);
+            }
           }
         break;
 
@@ -567,10 +580,16 @@ Challenger::on_http_request(const TransactionParts& transaction_parts)
         if(Challenger::check_cookie("", transaction_parts, *cur_challenge)) {
           // Success response in auth means don't serve
           report_success(ip);
+          if (banjax != nullptr) {
+              banjax->report_pass_or_failure(host, ip, true);
+          }
           return FilterResponse(FilterResponse::SERVE_FRESH);
         }
         else {
           TSDebug(BANJAX_PLUGIN_NAME, "cookie is not valid, looking for magic word");
+          if (banjax != nullptr) {
+              banjax->report_pass_or_failure(host, ip, false);
+          }
 
           if (needs_authentication(transaction_parts.at(TransactionMuncher::URL_WITH_HOST), *cur_challenge)) {
             TSDebug(BANJAX_PLUGIN_NAME, "needs authentication");
@@ -700,10 +719,6 @@ Challenger::report_failure(const std::shared_ptr<HostChallengeSpec>& failed_chal
 
     swabber->ban(client_ip.c_str(), banning_reason);
 
-    if (banjax != nullptr) {
-        banjax->report_pass_or_failure(failed_host, client_ip, false); // note the other call to this below!!!
-    }
-
     //reset the number of failures for future
     challenger_ip_db->drop_ip(client_ip);
 
@@ -711,9 +726,6 @@ Challenger::report_failure(const std::shared_ptr<HostChallengeSpec>& failed_chal
   }
   else { //only report if we haven't report to swabber cause otherwise it nulifies the work of swabber which has forgiven the ip and delete it from db
     challenger_ip_db->set_ip_state(client_ip, *ip_state);
-    if (banjax != nullptr) {
-        banjax->report_pass_or_failure(failed_host, client_ip, false); // note the other call to this above!!!
-    }
     return false;
   }
 }

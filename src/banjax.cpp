@@ -292,6 +292,32 @@ Banjax::report_pass_or_failure(const std::string& site, const std::string& ip, b
 }
 
 int
+Banjax::report_ip_banned(const std::string& site, const std::string& ip)
+{
+  if (!kafka_producer) {
+      return -1;
+  }
+
+  json message;
+  message["id"] = host_name;
+  message["name"] = "ip_banned";
+  message["value_ip"] = ip;
+  message["value_site"] = site;
+
+  auto challenger_ip_state = challenger_ip_db.get_ip_state(ip);
+
+  if (challenger_ip_state) {
+    message["value_challenger_db"] = (uint64_t)*challenger_ip_state;
+  } else {
+    message["value_challenger_db"] = nullptr;
+  }
+
+
+  print::debug("reporting ip_banned for site: ", site, " and ip: ", ip);
+  return kafka_producer->send_message(message);
+}
+
+int
 Banjax::report_if_ip_in_database(const std::string& ip)
 {
   if (!kafka_producer) {
