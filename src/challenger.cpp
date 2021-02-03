@@ -252,6 +252,7 @@ bool Challenger::check_auth_validity(const char* cookiestr, const std::string pa
 bool Challenger::check_cookie(string answer, const TransactionParts& transaction_parts, const HostChallengeSpec& cookied_challenge) const {
   string cookie_jar = transaction_parts.at(TransactionMuncher::COOKIE);
   string ip         = transaction_parts.at(TransactionMuncher::IP);
+  const auto& host  = transaction_parts.at(TransactionMuncher::HOST);
 
   DEBUG("Challenger::check_cookie: cookie_jar = ", cookie_jar);
 
@@ -286,7 +287,8 @@ bool Challenger::check_cookie(string answer, const TransactionParts& transaction
       TSDebug(BANJAX_PLUGIN_NAME, "Challenge cookie: [%s] based on ip[%s] - sha_ok [%s] - result: %d (l:%d)",
               captcha_cookie.c_str(), ip.c_str(),
               challenge_prevailed ? "Y" : "N", result, (int)strlen(captcha_cookie.c_str()));
-      bool passed = challenge_prevailed && result == 1;
+      bool passed = challenge_prevailed && (result == 1);
+      banjax->report_pass_or_failure2(host, ip, passed);
       return passed;
     }
   }

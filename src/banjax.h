@@ -136,6 +136,7 @@ public:
   virtual const std::string& get_host_name() { return host_name; }
   virtual void kafka_message_consume(const json& message);
   virtual int report_pass_or_failure(const std::string& site, const std::string& ip, bool passed);
+  virtual int report_pass_or_failure2(const std::string& site, const std::string& ip, bool passed);
   virtual int report_ip_banned(const std::string& site, const std::string& ip);
   virtual int report_if_ip_in_database(const std::string& ip);
 
