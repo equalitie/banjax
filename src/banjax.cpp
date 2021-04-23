@@ -608,8 +608,8 @@ namespace incoming_kafka_message {
     };
 
     void from_json(const json &j, name_value &nv) {
-        j.at("name").get_to(nv.name);
-        j.at("value").get_to(nv.value);
+        nv.name = j.at("name").get<std::string>();  // get_to in 3.3.0 is nicer
+        nv.value = j.at("value").get<std::string>();
     };
 }
 
