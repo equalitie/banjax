@@ -601,32 +601,38 @@ Banjax::process_config(const YAML::Node& cfg)
   }
 }
 
+namespace incoming_kafka_message {
+	struct name_value {
+		std::string name;
+		std::string value;
+	};
+
+	void from_json(const json& j, name_value& nv) {
+	    j.at("name").get_to(nv.name);
+	    j.at("value").get_to(nv.value);
+	};
+}
+
 void
 Banjax::kafka_message_consume(const json& message) {
-  auto command_name_it = message.find("name");
-  if (command_name_it == message.end()) {
-      print::debug("kafka command has no 'name' key");
-      return;
-  }
-  auto value_it = message.find("value");
-  if (value_it == message.end()) {
-    print::debug("kafka command has no 'value' key");
-    return;
+  incoming_kafka_message::name_value name_value;
+  try {
+    name_value = message.get<incoming_kafka_message::name_value>();
+  } catch (json::exception& e) {
+    print::debug("got a kafka message that wasn't {name: <string>, value: <string>}");
   }
   if (!challenger) {
     print::debug("null challenger at time of kafka_message_consume()");
     return;
   }
 
-  if (*command_name_it == "challenge_host") {
-    std::string website = *value_it;
-    challenger->load_single_host_challenge(website);
-  } else if (*command_name_it == "challenge_ip") {
-    std::string ip = *value_it;
-    report_if_ip_in_database(ip);
-    challenger->load_single_ip_challenge(ip);
+  if (name_value.name == "challenge_host") {
+    challenger->load_single_host_challenge(name_value.value);
+  } else if (name_value.name == "challenge_ip") {
+    report_if_ip_in_database(name_value.value);
+    challenger->load_single_ip_challenge(name_value.value);
   } else {
-    print::debug("kafka command not 'challenge_host' or 'challenge_ip'");
+    print::debug("kafka command name not 'challenge_host' or 'challenge_ip'");
   }
 }
 
