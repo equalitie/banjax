@@ -180,9 +180,10 @@ void KafkaConsumer::msg_consume(std::unique_ptr<RdKafka::Message> message,
         auto on_scope_exit = defer([&] { TSMutexUnlock(stored_config_lock); });
         print::debug("KafkaConsumer::msg_consume()");
         switch (message->err()) {
-        case RdKafka::ERR__TIMED_OUT:
+        case RdKafka::ERR__TIMED_OUT: {
             print::debug("no message, just a timeout");
             break;
+        }
 
         case RdKafka::ERR_NO_ERROR: {
             /* Real message */
@@ -198,19 +199,29 @@ void KafkaConsumer::msg_consume(std::unique_ptr<RdKafka::Message> message,
             }
 
             banjax->kafka_message_consume(message_dict);
-        } break;
+            break;
+        }
+
         case RdKafka::ERR__PARTITION_EOF: {
             print::debug("%% EOF reached for all  partition(s)");
-        } break;
-        case RdKafka::ERR__UNKNOWN_TOPIC: {
+            break;
         }
+
+        case RdKafka::ERR__UNKNOWN_TOPIC: {
+            break;
+        }
+
         case RdKafka::ERR__UNKNOWN_PARTITION: {
             print::debug("Consume failed: ", message->errstr());
-        } break;
+            break;
+        }
+
         default: {
             /* Errors */
             print::debug("Consume failed: ", message->errstr());
+            break;
         }
+
         }
     }
     print::debug("KafkaConsumer::msg_consume() released lock");
