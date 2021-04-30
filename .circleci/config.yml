@@ -139,6 +139,6 @@ jobs:
 
     - run: cd "$TSPATH" && ./bin/trafficserver restart
     - run: cd "$BANJAX_DIR" && ./build/unit-tests  --log_level=test_suite  # XXX not sure if these are working
-    - run: cd "$BANJAX_DIR"/test && wget "http://apache.lauf-forum.at/kafka/2.5.0/kafka_2.12-2.5.0.tgz" && tar xzf "kafka_2.12-2.5.0.tgz"
+    - run: cd "$BANJAX_DIR"/test && wget "http://apache.lauf-forum.at/kafka/2.8.0/kafka_2.12-2.8.0.tgz" && tar xzf "kafka_2.12-2.8.0.tgz"
     - run: cd "$BANJAX_DIR" && pip3 install pexpect && python3 ./test/banjax_behavior_test.py --ts-prefix=$TSPATH --ts-layout="apache"
 
